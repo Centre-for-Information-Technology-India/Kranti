@@ -11,11 +11,10 @@ import { cookies } from "next/headers";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
-import ClerkFallback from "@/components/clerk-fallback";
+import { PWARegister } from "@/components/pwa-register";
 import AppwriteSync from "@/components/appwrite-sync";
 import { CockroachPointer } from "@/components/cockroach-pointer";
 import { VisitAudio } from "@/components/visit-audio";
-import { PWARegister } from "@/components/pwa-register";
 import { JsonLd } from "@/components/json-ld";
 import {
   SITE_URL,
@@ -165,7 +164,6 @@ export default async function RootLayout({
         <ClerkProvider>
           <NextIntlClientProvider messages={messages}>
             <PWARegister />
-            <ClerkFallback />
             <AppwriteSync />
             <CockroachPointer />
             <VisitAudio />

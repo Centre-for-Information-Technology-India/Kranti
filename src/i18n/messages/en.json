@@ -56,6 +56,50 @@
       "cta": "Start Now",
       "ctaSecondary": "Learn How It Works"
     },
+    "tagline": "Raise your voice. Demand justice.",
+    "headline": "Kranti is for citizens who refuse silence.",
+    "subheadline": "Kranti gives people a public way to report serious problems, gather support, and keep attention on the cases that need action. The goal is simple: make it easier for communities to speak clearly and be heard.",
+    "raiseNow": "Raise voice now",
+    "viewCampaigns": "View campaigns",
+    "activeNow": "Active now",
+    "prioritiesTitle": "Citizen priorities this week",
+    "prioritiesDescription": "Stronger action on hate crimes, faster response for sexual violence cases, and accountability for unsafe public spaces.",
+    "priorities": {
+      "p1": "Safe transport routes for women in tier-2 cities",
+      "p2": "Fast-track action against repeat hate offenders",
+      "p3": "Public hospital dignity and emergency response audits"
+    },
+    "focus": {
+      "injustice": {
+        "title": "Injustice reporting",
+        "text": "Raise cases where institutions fail to respond, services collapse, or rights are denied."
+      },
+      "hate": {
+        "title": "Hate incidents",
+        "text": "Report communal hate, targeted abuse, and threats so communities can document and respond lawfully."
+      },
+      "violence": {
+        "title": "Sexual violence support",
+        "text": "Share rape and sexual violence case details responsibly, with survivor safety and legal escalation in mind."
+      }
+    },
+    "flow": {
+      "label": "How Kranti works",
+      "title": "From a single report to collective public pressure.",
+      "intro": "The platform keeps the process straightforward: explain what happened, add details that matter, and let supporters help carry the case forward.",
+      "report": {
+        "title": "Report the case",
+        "text": "Submit clear details, location, timeline, and any supporting material available."
+      },
+      "support": {
+        "title": "Build public support",
+        "text": "Others can back the case and help keep pressure on relevant authorities."
+      },
+      "accountability": {
+        "title": "Push for accountability",
+        "text": "Move toward lawful escalation, official complaints, and transparent public tracking."
+      }
+    },
     "stats": {
       "issuesRaised": "Issues Raised",
       "signatures": "Signatures",

@@ -3,19 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth, UserButton } from "@clerk/nextjs";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/language-switcher";
-
-const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/create", label: "Create" },
-  { href: "/issues", label: "Issues" },
-  { href: "/petitions", label: "Petitions" },
-  { href: "/guides", label: "Guides" },
-  { href: "/about", label: "About" },
-];
 
 // Pages where we don't need to pass redirect_url back (auth pages themselves)
 const AUTH_PAGES = ["/sign-in", "/sign-up"];
@@ -24,7 +16,17 @@ export function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
+  const t = useTranslations("common");
   const showSignedInActions = isLoaded && isSignedIn;
+
+  const navItems = [
+    { href: "/", label: t("home") },
+    { href: "/create", label: t("create") },
+    { href: "/issues", label: t("issues") },
+    { href: "/petitions", label: t("petitions") },
+    { href: "/guides", label: t("guides") },
+    { href: "/about", label: t("about") },
+  ];
 
   // Build auth URLs that redirect back to the current page after login
   const isAuthPage = AUTH_PAGES.some((p) => pathname.startsWith(p));
@@ -64,7 +66,7 @@ export function SiteHeader() {
             <>
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm">
-                  Dashboard
+                  {t("dashboard")}
                 </Button>
               </Link>
               <Button
@@ -72,21 +74,21 @@ export function SiteHeader() {
                 className="rounded-full bg-slate-950 px-4 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
                 onClick={() => router.push("/create")}
               >
-                Create
+                {t("create")}
               </Button>
               <UserButton />
             </>
           ) : (
             <>
               <Button variant="ghost" size="sm" onClick={() => router.push(signInUrl)}>
-                Log in
+                {t("signIn")}
               </Button>
               <Button
                 size="sm"
                 className="rounded-full bg-slate-950 px-4 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
                 onClick={() => router.push(signUpUrl)}
               >
-                Join Kranti
+                {t("raiseVoice")}
               </Button>
             </>
           )}

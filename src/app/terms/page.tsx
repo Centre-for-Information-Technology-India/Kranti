@@ -166,7 +166,7 @@ export default function TermsPage() {
                 <Phone className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400">Phone (Business Hours)</p>
-                  <p className="mt-1 text-sm font-medium text-slate-900 dark:text-white">+91-11-XXXX-XXXX</p>
+                  <p className="mt-1 text-sm font-medium text-slate-900 dark:text-white">+91-11-2456-0758</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Mon–Fri, 10:00 AM – 6:00 PM IST</p>
                 </div>
               </div>
