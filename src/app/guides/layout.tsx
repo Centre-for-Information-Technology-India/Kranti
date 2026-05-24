@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { siteGuides } from "@/lib/site-content";
+import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Citizen Guides — RTI, FIR, Consumer Rights & Escalation",
@@ -21,85 +23,37 @@ export const metadata: Metadata = {
     title: "Citizen Guides — RTI, FIR, Consumer Rights | Kranti",
     description:
       "Free step-by-step guides for Indian citizens on RTI, FIR, consumer complaints, and civic escalation.",
-    url: "https://kranti.org.in/guides",
+    url: `${SITE_URL}/guides`,
     type: "website",
   },
 };
 
 export default function GuidesLayout({ children }: { children: React.ReactNode }) {
+  const itemListLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Citizen Guides — Kranti",
+    description: "Practical legal guides for Indian citizens on RTI, FIR, consumer rights, and civic escalation",
+    url: `${SITE_URL}/guides`,
+    numberOfItems: siteGuides.length,
+    itemListElement: siteGuides.map((guide, idx) => ({
+      "@type": "ListItem",
+      position: idx + 1,
+      item: {
+        "@type": "HowTo",
+        name: guide.title,
+        description: guide.summary,
+        url: `${SITE_URL}/guides/${guide.slug}`,
+        ...(guide.schema?.totalTime && { totalTime: guide.schema.totalTime }),
+      },
+    })),
+  };
+
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "ItemList",
-            name: "Citizen Guides — Kranti",
-            description: "Practical legal guides for Indian citizens on RTI, FIR, consumer rights, and civic escalation",
-            url: "https://kranti.org.in/guides",
-            numberOfItems: 5,
-            itemListElement: [
-              {
-                "@type": "ListItem",
-                position: 1,
-                item: {
-                  "@type": "HowTo",
-                  name: "How to File an RTI Application in India",
-                  description: "Step-by-step guide to filing Right to Information requests with templates",
-                  url: "https://kranti.org.in/guides#rti-guide",
-                  totalTime: "PT30M",
-                  estimatedCost: { "@type": "MonetaryAmount", currency: "INR", value: "10" },
-                },
-              },
-              {
-                "@type": "ListItem",
-                position: 2,
-                item: {
-                  "@type": "HowTo",
-                  name: "How to File an FIR in India",
-                  description: "Your legal rights and the complete FIR filing process including Zero FIR",
-                  url: "https://kranti.org.in/guides#fir-guide",
-                  totalTime: "PT20M",
-                  estimatedCost: { "@type": "MonetaryAmount", currency: "INR", value: "0" },
-                },
-              },
-              {
-                "@type": "ListItem",
-                position: 3,
-                item: {
-                  "@type": "HowTo",
-                  name: "How to File a Consumer Complaint in India",
-                  description: "NCH, e-Daakhil portal, and Consumer Court process explained",
-                  url: "https://kranti.org.in/guides#consumer-complaint-guide",
-                  totalTime: "PT25M",
-                },
-              },
-              {
-                "@type": "ListItem",
-                position: 4,
-                item: {
-                  "@type": "HowTo",
-                  name: "How to Lodge a Grievance on CPGRAMS",
-                  description: "File complaints with Central Government ministries online",
-                  url: "https://kranti.org.in/guides#cpgrams-guide",
-                  totalTime: "PT15M",
-                },
-              },
-              {
-                "@type": "ListItem",
-                position: 5,
-                item: {
-                  "@type": "HowTo",
-                  name: "How to Collect and Preserve Evidence",
-                  description: "Practical guide to documenting civic issues, injuries, and digital evidence",
-                  url: "https://kranti.org.in/guides#evidence-collection-guide",
-                  totalTime: "PT20M",
-                },
-              },
-            ],
-          }),
-        }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }}
       />
       {children}
     </>

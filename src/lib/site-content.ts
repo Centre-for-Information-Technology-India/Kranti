@@ -6,6 +6,7 @@
 export const siteGuides = [
   {
     id: "rti-guide",
+    slug: "how-to-file-rti-application-india",
     title: "How to File an RTI Application in India (2025 Complete Guide)",
     category: "RTI",
     summary:
@@ -120,6 +121,7 @@ If the PIO does not respond within 30 days, or gives an unsatisfactory response,
 
   {
     id: "fir-guide",
+    slug: "how-to-file-fir-india",
     title: "How to File an FIR in India — Your Rights and the Complete Process",
     category: "Police & FIR",
     summary:
@@ -218,6 +220,7 @@ Before filing an FIR, preserve all evidence:
 
   {
     id: "consumer-complaint-guide",
+    slug: "how-to-file-consumer-complaint-india",
     title: "How to File a Consumer Complaint in India — NCH, e-Daakhil & Consumer Court",
     category: "Consumer Rights",
     summary:
@@ -318,6 +321,7 @@ Consumer Commissions have awarded significant compensation in cases involving me
 
   {
     id: "cpgrams-guide",
+    slug: "how-to-lodge-grievance-cpgrams",
     title: "How to Lodge a Grievance on CPGRAMS — Central Government Complaint Portal",
     category: "Public Service",
     summary:
@@ -384,6 +388,7 @@ Use CPGRAMS when:
 
   {
     id: "evidence-collection-guide",
+    slug: "how-to-collect-preserve-evidence-civic-issues",
     title: "How to Collect and Preserve Evidence for Civic Issues — A Practical Guide",
     category: "Evidence & Documentation",
     summary:
@@ -475,6 +480,7 @@ This organised file will be invaluable when you approach a lawyer, file a court 
 
   {
     id: "escalation-guide",
+    slug: "civic-escalation-pathways-india",
     title: "Civic Escalation Pathways — When and How to Escalate Your Issue",
     category: "Escalation",
     summary:

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
+import { siteGuides } from "@/lib/site-content";
 import {
   appwriteDatabaseId,
   appwriteIssuesCollectionId,
@@ -85,5 +86,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.85,
   }));
 
-  return [...staticRoutes, ...issueRoutes, ...petitionRoutes, ...campaignRoutes];
+  const guideRoutes: MetadataRoute.Sitemap = siteGuides.map((guide) => ({
+    url: `${SITE_URL}/guides/${guide.slug}`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: 0.85,
+  }));
+
+  return [...staticRoutes, ...guideRoutes, ...issueRoutes, ...petitionRoutes, ...campaignRoutes];
 }
