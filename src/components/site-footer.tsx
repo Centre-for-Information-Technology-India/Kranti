@@ -17,6 +17,9 @@ export function SiteFooter() {
           {/* Brand */}
           <div className="space-y-3">
             <p className="text-base font-semibold text-slate-900 dark:text-white">Kranti</p>
+            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+              {t("description")}
+            </p>
             <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
               {t("tagline")}
             </p>

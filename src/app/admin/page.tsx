@@ -53,6 +53,23 @@ export default function AdminPage() {
   const [moderationLogs, setModerationLogs] = useState<AdminLog[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [roleChecked, setRoleChecked] = useState(false);
+
+  // Client-side role guard
+  useEffect(() => {
+    fetch("/api/auth/role")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.role !== "admin" && data.role !== "moderator") {
+          setAccessDenied(true);
+        }
+        setRoleChecked(true);
+      })
+      .catch(() => {
+        setAccessDenied(true);
+        setRoleChecked(true);
+      });
+  }, []);
 
   // Derived Statistics
   const stats = useMemo(() => {
@@ -194,7 +211,7 @@ export default function AdminPage() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || !roleChecked) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f4f1ea] dark:bg-slate-950">
         <div className="flex flex-col items-center gap-3">

@@ -565,6 +565,7 @@
     "settings": "Settings"
   },
   "footer": {
+    "description": "An open-source civic platform empowering citizens to report issues, launch petitions, and drive lawful change across India.",
     "tagline": "People first civic action",
     "sections": {
       "platform": "Platform",

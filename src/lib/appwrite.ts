@@ -88,6 +88,22 @@ export async function listDocuments(databaseId: string, collectionId: string, qu
   return appwriteRequest(path);
 }
 
+/**
+ * Query helpers for Appwrite 1.9+ JSON query format.
+ */
+export const Query = {
+  equal: (attribute: string, values: (string | number | boolean)[]) =>
+    JSON.stringify({ method: "equal", attribute, values }),
+  limit: (count: number) =>
+    JSON.stringify({ method: "limit", values: [count] }),
+  orderDesc: (attribute: string) =>
+    JSON.stringify({ method: "orderDesc", attribute }),
+  orderAsc: (attribute: string) =>
+    JSON.stringify({ method: "orderAsc", attribute }),
+  offset: (count: number) =>
+    JSON.stringify({ method: "offset", values: [count] }),
+};
+
 export async function deleteDocument(databaseId: string, collectionId: string, documentId: string) {
   return appwriteRequest(`/databases/${databaseId}/collections/${collectionId}/documents/${documentId}`, {
     method: "DELETE",

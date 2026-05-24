@@ -9,6 +9,7 @@ import {
   createDocument,
   getDocument,
   listDocuments,
+  Query,
   updateDocument,
 } from "@/lib/appwrite";
 
@@ -30,8 +31,8 @@ async function getCallerRole(clerkId: string): Promise<string | null> {
   } catch {
     // Try listing by clerk_id in case document ID differs
     const result = await listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [
-      `equal("clerk_id", ["${clerkId}"])`,
-      "limit(1)",
+      Query.equal("clerk_id", [clerkId]),
+      Query.limit(1),
     ]);
     const user = (result as { documents?: Array<Record<string, unknown>> }).documents?.[0];
     return user ? String(user.role ?? "citizen") : null;
