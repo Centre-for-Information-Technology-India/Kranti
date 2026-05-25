@@ -122,6 +122,31 @@ export default async function GuidePage({
           {/* Content */}
           <div className="prose prose-slate dark:prose-invert max-w-none text-base leading-8 text-slate-700 dark:text-slate-300 space-y-4">
             {guide.content.split("\n\n").map((para, idx) => {
+              const renderInline = (text: string) => {
+                const parts = text.split(/(\*\*.*?\*\*|\[.*?\]\(.*?\))/g);
+                return parts.filter(Boolean).map((part, i) => {
+                  if (part.startsWith('**') && part.endsWith('**')) {
+                    return <strong key={i} className="font-semibold text-slate-900 dark:text-white">{part.slice(2, -2)}</strong>;
+                  }
+                  const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+                  if (linkMatch) {
+                    return (
+                      <a
+                        key={i}
+                        href={linkMatch[2]}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-amber-700 underline underline-offset-4 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 inline-flex items-center gap-0.5"
+                      >
+                        {linkMatch[1]}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    );
+                  }
+                  return part;
+                });
+              };
+
               if (para.startsWith("###")) {
                 return (
                   <h2
@@ -129,7 +154,7 @@ export default async function GuidePage({
                     id={para.replace("###", "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}
                     className="text-xl font-bold text-slate-900 dark:text-white mt-8 mb-2 scroll-mt-20"
                   >
-                    {para.replace("###", "").trim()}
+                    {renderInline(para.replace("###", "").trim())}
                   </h2>
                 );
               }
@@ -137,7 +162,7 @@ export default async function GuidePage({
                 return (
                   <ul key={idx} className="list-disc pl-6 space-y-2 my-4">
                     {para.split("\n").map((li, lidx) => (
-                      <li key={lidx}>{li.replace(/^[\*\-\s]+/, "").trim()}</li>
+                      <li key={lidx}>{renderInline(li.replace(/^[\*\-\s]+/, "").trim())}</li>
                     ))}
                   </ul>
                 );
@@ -146,31 +171,12 @@ export default async function GuidePage({
                 return (
                   <ol key={idx} className="list-decimal pl-6 space-y-2 my-4">
                     {para.split("\n").map((li, lidx) => (
-                      <li key={lidx}>{li.replace(/^\d+[\.\s]+/, "").trim()}</li>
+                      <li key={lidx}>{renderInline(li.replace(/^\d+[\.\s]+/, "").trim())}</li>
                     ))}
                   </ol>
                 );
               }
-              const mdLinkMatch = para.match(/\[([^\]]+)\]\(([^)]+)\)/);
-              if (mdLinkMatch) {
-                const parts = para.split(mdLinkMatch[0]);
-                return (
-                  <p key={idx}>
-                    {parts[0]}
-                    <a
-                      href={mdLinkMatch[2]}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-amber-700 underline underline-offset-4 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 inline-flex items-center gap-0.5"
-                    >
-                      {mdLinkMatch[1]}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                    {parts[1]}
-                  </p>
-                );
-              }
-              return <p key={idx}>{para.trim()}</p>;
+              return <p key={idx}>{renderInline(para.trim())}</p>;
             })}
           </div>
 

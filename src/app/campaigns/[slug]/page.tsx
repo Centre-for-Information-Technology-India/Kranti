@@ -25,12 +25,6 @@ export default function CampaignDetailPage() {
   const [campaign, setCampaign] = useState<CampaignRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (slug) {
-      fetchCampaign();
-    }
-  }, [slug]);
-
   const fetchCampaign = async () => {
     try {
       const response = await fetch(`/api/campaigns/${slug}`);
@@ -43,6 +37,12 @@ export default function CampaignDetailPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (slug) {
+      fetchCampaign();
+    }
+  }, [slug]);
 
   const handleShare = () => {
     if (navigator.share) {
