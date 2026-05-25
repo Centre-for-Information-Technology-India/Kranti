@@ -60,6 +60,7 @@ export function SiteFooter() {
               <Link href="/moderation" className="hover:text-slate-900 dark:hover:text-white">{t("links.moderation")}</Link>
               <Link href="/guidelines" className="hover:text-slate-900 dark:hover:text-white">{t("links.guidelines")}</Link>
               <Link href="/about" className="hover:text-slate-900 dark:hover:text-white">{t("links.about")}</Link>
+              <Link href="/volunteer" className="hover:text-slate-900 dark:hover:text-white font-medium text-emerald-600 dark:text-emerald-400">Volunteer / Donate</Link>
             </nav>
           </div>
 
