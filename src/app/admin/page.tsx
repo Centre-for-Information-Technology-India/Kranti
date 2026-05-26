@@ -47,7 +47,7 @@ export default function AdminPage() {
   const [issues, setIssues] = useState<IssueRecord[]>([]);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending_review" | "open" | "in_progress" | "resolved">("pending_review");
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "escalated" | "in_progress" | "resolved">("open");
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [moderationLogs, setModerationLogs] = useState<AdminLog[]>([]);
@@ -74,12 +74,12 @@ export default function AdminPage() {
   // Derived Statistics
   const stats = useMemo(() => {
     const total = issues.length;
-    const pending = issues.filter((i) => i.status === "pending_review").length;
     const open = issues.filter((i) => i.status === "open").length;
-    const inProgress = issues.filter((i) => i.status === "in_progress").length;
+    const escalated = issues.filter((i) => i.status === "escalated" || i.status === "in_progress").length;
     const resolved = issues.filter((i) => i.status === "resolved").length;
+    const rejected = issues.filter((i) => i.status === "rejected").length;
     
-    return { total, pending, open, inProgress, resolved };
+    return { total, open, escalated, resolved, rejected };
   }, [issues]);
 
   // Filtered issues list
@@ -110,7 +110,7 @@ export default function AdminPage() {
       .then((data) => {
         const nextIssues = Array.isArray(data?.issues) ? data.issues : [];
         setIssues(nextIssues);
-        setSelectedIssueId((current) => current || nextIssues.find((issue: IssueRecord) => issue.status === "pending_review")?.$id || nextIssues[0]?.$id || null);
+        setSelectedIssueId((current) => current || nextIssues.find((issue: IssueRecord) => issue.status === "open")?.$id || nextIssues[0]?.$id || null);
       })
       .catch(() => {
         setIssues([]);
@@ -167,9 +167,8 @@ export default function AdminPage() {
     }, ...prev]);
     setShowRejectDialog(false);
     setRejectReason("");
-    const nextPending = issues.find(i => i.$id !== selectedIssueId && i.status === "pending_review");
     const nextFirst = issues.find(i => i.$id !== selectedIssueId);
-    setSelectedIssueId(nextPending?.$id || nextFirst?.$id || null);
+    setSelectedIssueId(nextFirst?.$id || null);
   };
 
   const handleEscalate = async (issueId: string) => {
@@ -177,7 +176,7 @@ export default function AdminPage() {
     if (!issueToUpdate) return;
     const result = await callModerate(issueId, "escalate", "Escalated to local authorities. Direct RTI request formulated.");
     if (!result) return;
-    setIssues(prev => prev.map(issue => issue.$id === issueId ? { ...issue, status: "in_progress" } : issue));
+    setIssues(prev => prev.map(issue => issue.$id === issueId ? { ...issue, status: "escalated" } : issue));
     setModerationLogs(prev => [{
       id: `log_${Date.now()}`, issueId, issueTitle: issueToUpdate.title,
       action: "ESCALATE", reason: "Escalated to local authorities.",
@@ -202,10 +201,11 @@ export default function AdminPage() {
     switch (status) {
       case "resolved":
         return <Badge className="bg-emerald-50 border-emerald-250 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-350 uppercase text-[10px]">Resolved</Badge>;
+      case "escalated":
       case "in_progress":
-        return <Badge className="bg-amber-50 border-amber-250 text-amber-700 hover:bg-amber-50 dark:bg-amber-950/40 dark:text-amber-350 uppercase text-[10px]">In Progress</Badge>;
-      case "pending_review":
-        return <Badge className="bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-350 uppercase text-[10px]">Pending Review</Badge>;
+        return <Badge className="bg-amber-50 border-amber-250 text-amber-700 hover:bg-amber-50 dark:bg-amber-950/40 dark:text-amber-350 uppercase text-[10px]">Escalated</Badge>;
+      case "rejected":
+        return <Badge className="bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-350 uppercase text-[10px]">Rejected</Badge>;
       default:
         return <Badge className="bg-rose-50 border-rose-250 text-rose-700 hover:bg-rose-50 dark:bg-rose-950/40 dark:text-rose-350 uppercase text-[10px]">Open</Badge>;
     }
@@ -266,11 +266,11 @@ export default function AdminPage() {
         {/* Stats Dashboard */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
           {[
-            { label: "Pending Audit", count: stats.pending, color: "text-slate-600 dark:text-slate-300", icon: HelpCircle },
             { label: "Active/Open", count: stats.open, color: "text-rose-600 dark:text-rose-400", icon: AlertOctagon },
-            { label: "In Progress", count: stats.inProgress, color: "text-amber-600 dark:text-amber-400", icon: Clock },
+            { label: "Escalated", count: stats.escalated, color: "text-amber-600 dark:text-amber-400", icon: Clock },
             { label: "Resolved", count: stats.resolved, color: "text-emerald-600 dark:text-emerald-400", icon: CheckCircle2 },
-            { label: "Total Audited", count: stats.total, color: "text-slate-700 dark:text-slate-200", icon: Layers }
+            { label: "Rejected", count: stats.rejected, color: "text-slate-600 dark:text-slate-300", icon: HelpCircle },
+            { label: "Total", count: stats.total, color: "text-slate-700 dark:text-slate-200", icon: Layers }
           ].map((item) => (
             <Card key={item.label} className="border-slate-900/10 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-900/70">
               <CardHeader className="p-4 pb-1">
@@ -305,9 +305,8 @@ export default function AdminPage() {
               {/* Status filtering tabs */}
               <div className="flex flex-wrap gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-2xl">
                 {[
-                  { id: "pending_review", label: "Pending" },
                   { id: "open", label: "Open" },
-                  { id: "in_progress", label: "Escalated" },
+                  { id: "escalated", label: "Escalated" },
                   { id: "resolved", label: "Resolved" },
                   { id: "all", label: "All" }
                 ].map((tab) => (
@@ -508,7 +507,7 @@ export default function AdminPage() {
                       <div className="space-y-1">
                         <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Kranti AI Assistant Pre-audit</p>
                         <p className="text-xs text-emerald-700 leading-relaxed dark:text-emerald-300">
-                          {selectedIssue.status === "pending_review" 
+                          {selectedIssue.status === "pending_review" || selectedIssue.status === "open" 
                             ? "Content matches neutral, non-inciting civic standards. Location data matches postal registers. Suggested action: Approve / Publish."
                             : `Audit complete. Issue currently set to '${selectedIssue.status.toUpperCase()}'. Status timelines are synchronized with public directories.`}
                         </p>
@@ -519,7 +518,7 @@ export default function AdminPage() {
                   {/* Control Buttons */}
                   <div className="border-t border-slate-900/5 dark:border-white/5 pt-4 flex flex-wrap gap-2 justify-end">
                     {/* Only show reject/approve if it's pending review */}
-                    {selectedIssue.status === "pending_review" ? (
+                    {selectedIssue.status === "open" ? (
                       <>
                         <Button
                           onClick={() => setShowRejectDialog(true)}
@@ -549,7 +548,7 @@ export default function AdminPage() {
                           This issue has been approved. Change workflow status below:
                         </p>
                         <div className="flex gap-2">
-                          {selectedIssue.status !== "in_progress" && selectedIssue.status !== "resolved" && (
+                          {selectedIssue.status !== "escalated" && selectedIssue.status !== "in_progress" && selectedIssue.status !== "resolved" && (
                             <Button
                               onClick={() => handleEscalate(selectedIssue.$id)}
                               disabled={!!actionLoading}

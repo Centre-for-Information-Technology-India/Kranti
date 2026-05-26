@@ -24,6 +24,7 @@ export const petitionSubmissionSchema = z.object({
   signatureGoal: z.number().min(10, "Signature goal must be at least 10").max(10000000, "Goal too high"),
   language: z.enum(["en", "hi"]),
   evidenceLevel: z.enum(["high", "medium", "low"]),
+  evidenceLinks: z.string().url("Must be a valid URL").array().optional(),
   consent: z.boolean().refine((val) => val === true, "You must agree to the terms"),
 });
 
@@ -40,6 +41,7 @@ export const petitionDefaultValues: PetitionSubmissionValues = {
   signatureGoal: 1000,
   language: "en",
   evidenceLevel: "medium",
+  evidenceLinks: [],
   consent: false,
 };
 

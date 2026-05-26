@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { browserStorage, ID } from "@/lib/appwrite-browser";
 import { petitionCategories, petitionDefaultValues, petitionSubmissionSchema, type PetitionSubmissionValues } from "@/lib/petition-form";
 import { validateEvidenceFile } from "@/lib/evidence";
+import { EvidenceLinksInput } from "@/components/evidence-links-input";
 
 const checklist = [
   "State a clear, specific demand directed at the appropriate authority.",
@@ -293,6 +294,11 @@ export default function NewPetitionPage() {
                       className="mt-4 h-12 rounded-2xl border-slate-900/10 bg-white/90 dark:border-white/10 dark:bg-white/5"
                     />
                   </label>
+
+                  <EvidenceLinksInput
+                    value={form.watch("evidenceLinks") ?? []}
+                    onChange={(links) => form.setValue("evidenceLinks", links)}
+                  />
 
                   <label className="flex items-start gap-3 rounded-2xl border border-slate-900/10 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/5">
                     <input

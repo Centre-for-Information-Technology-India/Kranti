@@ -6,7 +6,6 @@ import {
   appwriteUsersCollectionId,
   getDocument,
   listDocuments,
-  Query,
 } from "@/lib/appwrite";
 
 export const runtime = "nodejs";
@@ -23,8 +22,8 @@ async function getUserRole(clerkId: string, email: string | null): Promise<strin
   // Try by clerk_id field
   try {
     const result = await listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [
-      Query.equal("clerk_id", [clerkId]),
-      Query.limit(1),
+      `equal("clerk_id", ["${clerkId}"])`,
+      "limit(1)",
     ]);
     const user = (result as { documents?: Array<Record<string, unknown>> }).documents?.[0];
     if (user) return String(user.role ?? "citizen");
@@ -36,8 +35,8 @@ async function getUserRole(clerkId: string, email: string | null): Promise<strin
   if (email) {
     try {
       const result = await listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [
-        Query.equal("email", [email]),
-        Query.limit(1),
+        `equal("email", ["${email}"])`,
+        "limit(1)",
       ]);
       const user = (result as { documents?: Array<Record<string, unknown>> }).documents?.[0];
       if (user) return String(user.role ?? "citizen");
