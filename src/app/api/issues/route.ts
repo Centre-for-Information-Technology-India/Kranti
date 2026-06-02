@@ -26,139 +26,151 @@ function safeFileId(seed: string) {
 }
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
+  try {
+    const { userId } = await auth();
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const clerkUser = await currentUser();
+    const clerkUser = await currentUser();
 
-  if (!clerkUser) {
-    return NextResponse.json({ error: "Unable to load Clerk user" }, { status: 400 });
-  }
+    if (!clerkUser) {
+      return NextResponse.json({ error: "Unable to load Clerk user" }, { status: 400 });
+    }
 
-  const body = (await request.json()) as {
-    payload?: unknown;
-    evidence?: Array<{
+    let body: {
+      payload?: unknown;
+      evidence?: Array<{
+        fileId: string;
+        name: string;
+        size: number;
+        mimeType: string;
+        publicUrl?: string;
+      }>;
+    } = {};
+
+    try {
+      body = (await request.json()) as typeof body;
+    } catch (error) {
+      console.error("Invalid JSON body for issue submission:", error);
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    const submission = issueSubmissionSchema.parse(body.payload);
+    const evidenceFiles = Array.isArray(body.evidence) ? body.evidence : [];
+
+    const issueId = `issue${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
+    const issueSlug = buildIssueSlug(submission.title);
+    const uploadedEvidence = [] as Array<{
       fileId: string;
       name: string;
       size: number;
       mimeType: string;
-      publicUrl?: string;
+      publicUrl: string;
+      originalFileId?: string;
+      sanitized: boolean;
     }>;
-  };
 
-  const submission = issueSubmissionSchema.parse(body.payload);
-  const evidenceFiles = Array.isArray(body.evidence) ? body.evidence : [];
+    for (const file of evidenceFiles) {
+      if (!file.fileId || !file.name || !file.size || !file.mimeType) {
+        return NextResponse.json({ error: "Invalid evidence metadata" }, { status: 400 });
+      }
 
-  const issueId = `issue${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
-  const issueSlug = buildIssueSlug(submission.title);
-  const uploadedEvidence = [] as Array<{
-    fileId: string;
-    name: string;
-    size: number;
-    mimeType: string;
-    publicUrl: string;
-    originalFileId?: string;
-    sanitized: boolean;
-  }>;
+      const isImage = file.mimeType.startsWith("image/");
+      const publicUrl = file.publicUrl ?? getFileViewUrl(appwriteStorageBucketId, file.fileId);
 
-  for (const file of evidenceFiles) {
-    if (!file.fileId || !file.name || !file.size || !file.mimeType) {
-      return NextResponse.json({ error: "Invalid evidence metadata" }, { status: 400 });
-    }
+      if (isImage) {
+        const raw = Buffer.from(await downloadFile(appwriteStorageBucketId, file.fileId));
+        const sanitizedBuffer = await sharp(raw).rotate().toBuffer();
+        const sanitizedFileId = safeFileId(`${file.fileId}-clean`);
+        const sanitizedUpload = await uploadFileBuffer(appwriteStorageBucketId, sanitizedFileId, file.name, sanitizedBuffer, file.mimeType);
 
-    const isImage = file.mimeType.startsWith("image/");
-    const publicUrl = file.publicUrl ?? getFileViewUrl(appwriteStorageBucketId, file.fileId);
+        await deleteFile(appwriteStorageBucketId, file.fileId).catch(() => {
+          // If deleting the raw file fails, keep the sanitized copy and continue.
+        });
 
-    if (isImage) {
-      const raw = Buffer.from(await downloadFile(appwriteStorageBucketId, file.fileId));
-      const sanitizedBuffer = await sharp(raw).rotate().toBuffer();
-      const sanitizedFileId = safeFileId(`${file.fileId}-clean`);
-      const sanitizedUpload = await uploadFileBuffer(appwriteStorageBucketId, sanitizedFileId, file.name, sanitizedBuffer, file.mimeType);
-
-      await deleteFile(appwriteStorageBucketId, file.fileId).catch(() => {
-        // If deleting the raw file fails, keep the sanitized copy and continue.
-      });
+        uploadedEvidence.push({
+          fileId: String((sanitizedUpload as { $id?: unknown }).$id ?? sanitizedFileId),
+          originalFileId: file.fileId,
+          name: file.name,
+          size: sanitizedBuffer.byteLength,
+          mimeType: file.mimeType,
+          publicUrl: getFileViewUrl(appwriteStorageBucketId, sanitizedFileId),
+          sanitized: true,
+        });
+        continue;
+      }
 
       uploadedEvidence.push({
-        fileId: String((sanitizedUpload as { $id?: unknown }).$id ?? sanitizedFileId),
-        originalFileId: file.fileId,
+        fileId: file.fileId,
         name: file.name,
-        size: sanitizedBuffer.byteLength,
+        size: file.size,
         mimeType: file.mimeType,
-        publicUrl: getFileViewUrl(appwriteStorageBucketId, sanitizedFileId),
-        sanitized: true,
+        publicUrl,
+        sanitized: false,
       });
-      continue;
     }
 
-    uploadedEvidence.push({
-      fileId: file.fileId,
-      name: file.name,
-      size: file.size,
-      mimeType: file.mimeType,
-      publicUrl,
-      sanitized: false,
+    const issueDocument = await upsertDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId, {
+      created_by: clerkUser.id,
+      title: submission.title,
+      slug: issueSlug,
+      description: submission.description,
+      category: submission.category,
+      state: submission.state,
+      district: submission.district,
+      language: submission.language,
+      status: "open",
+      supporter_count: 0,
+      risk_score: submission.evidenceLevel === "high" ? 20 : submission.evidenceLevel === "medium" ? 40 : 60,
+      evidence_count: uploadedEvidence.length,
+      featured: false,
+      visibility: "public",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     });
+
+    for (const evidenceItem of uploadedEvidence) {
+      const evidenceId = `evidence${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
+      void createDocument(appwriteDatabaseId, appwriteEvidenceCollectionId, evidenceId, {
+        issue_id: issueId,
+        type: detectEvidenceType(evidenceItem.mimeType),
+        file_url: evidenceItem.publicUrl,
+        file_name: evidenceItem.name,
+        size_bytes: evidenceItem.size,
+        verified: false,
+        created_at: new Date().toISOString(),
+      }).catch(() => {});
+    }
+
+    // Store evidence links
+    const evidenceLinks = Array.isArray(submission.evidenceLinks) ? submission.evidenceLinks.filter(Boolean) : [];
+    for (const link of evidenceLinks) {
+      const linkEvidenceId = `evidence${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
+      void createDocument(appwriteDatabaseId, appwriteEvidenceCollectionId, linkEvidenceId, {
+        issue_id: issueId,
+        type: "other",
+        file_url: link,
+        source_url: link,
+        file_name: new URL(link).hostname,
+        size_bytes: 0,
+        verified: false,
+        created_at: new Date().toISOString(),
+      }).catch(() => {});
+    }
+
+    return NextResponse.json({
+      ok: true,
+      issueId,
+      issueSlug,
+      issueDocument,
+      uploadedEvidence,
+    });
+  } catch (error) {
+    console.error("Failed to create issue:", error);
+    return NextResponse.json({ error: "Failed to create issue" }, { status: 500 });
   }
-
-  const issueDocument = await upsertDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId, {
-    created_by: clerkUser.id,
-    title: submission.title,
-    slug: issueSlug,
-    description: submission.description,
-    category: submission.category,
-    state: submission.state,
-    district: submission.district,
-    language: submission.language,
-    status: "open",
-    supporter_count: 0,
-    risk_score: submission.evidenceLevel === "high" ? 20 : submission.evidenceLevel === "medium" ? 40 : 60,
-    evidence_count: uploadedEvidence.length,
-    featured: false,
-    visibility: "public",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  });
-
-  for (const evidenceItem of uploadedEvidence) {
-    const evidenceId = `evidence${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
-    void createDocument(appwriteDatabaseId, appwriteEvidenceCollectionId, evidenceId, {
-      issue_id: issueId,
-      type: detectEvidenceType(evidenceItem.mimeType),
-      file_url: evidenceItem.publicUrl,
-      file_name: evidenceItem.name,
-      size_bytes: evidenceItem.size,
-      verified: false,
-      created_at: new Date().toISOString(),
-    }).catch(() => {});
-  }
-
-  // Store evidence links
-  const evidenceLinks = Array.isArray(submission.evidenceLinks) ? submission.evidenceLinks.filter(Boolean) : [];
-  for (const link of evidenceLinks) {
-    const linkEvidenceId = `evidence${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
-    void createDocument(appwriteDatabaseId, appwriteEvidenceCollectionId, linkEvidenceId, {
-      issue_id: issueId,
-      type: "other",
-      file_url: link,
-      source_url: link,
-      file_name: new URL(link).hostname,
-      size_bytes: 0,
-      verified: false,
-      created_at: new Date().toISOString(),
-    }).catch(() => {});
-  }
-
-  return NextResponse.json({
-    ok: true,
-    issueId,
-    issueSlug,
-    issueDocument,
-    uploadedEvidence,
-  });
 }
 
 export async function GET() {
