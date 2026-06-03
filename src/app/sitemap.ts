@@ -29,7 +29,7 @@ async function fetchPublicSlugs(
     ])) as { documents?: DocWithSlug[] };
     const docs = res.documents || [];
     return docs
-      .filter((d) => d.slug && d.status !== "pending_review")
+      .filter((d) => d.slug && d.status !== "rejected")
       .map((d) => ({
         slug: d.slug as string,
         lastModified: d.$updatedAt || new Date().toISOString(),
