@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import {
@@ -21,6 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default function Home() {
   const router = useRouter();
+  const { isSignedIn } = useAuth();
   const t = useTranslations("home");
 
   const focusAreas = [
@@ -70,9 +72,9 @@ export default function Home() {
               <Button
                 size="lg"
                 className="h-12 rounded-full bg-slate-950 px-6 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-                onClick={() => router.push("/issue/new")}
+                onClick={() => router.push(isSignedIn ? "/issue/new" : "/sign-up")}
               >
-                {t("raiseNow")}
+                {isSignedIn ? t("raiseNow") : "Join Kranti"}
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
               <Button size="lg" variant="outline" className="h-12 rounded-full" onClick={() => router.push("/campaigns")}>

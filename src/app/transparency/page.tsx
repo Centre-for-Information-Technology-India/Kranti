@@ -17,6 +17,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { siteTransparencyStats } from "@/lib/site-content";
+import { VolunteerCard } from "@/components/volunteer-card";
+import { DonationCard } from "@/components/donation-card";
 
 export default function TransparencyPage() {
   const stats = siteTransparencyStats;
@@ -124,6 +126,12 @@ export default function TransparencyPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Community & Support */}
+        <div className="grid gap-6 md:grid-cols-2 mt-8">
+          <VolunteerCard />
+          <DonationCard />
+        </div>
 
         {/* Public Audit Logs */}
         <Card className="border-slate-900/10 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-900/70">

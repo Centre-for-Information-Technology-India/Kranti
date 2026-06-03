@@ -82,10 +82,49 @@ export async function getDocument(databaseId: string, collectionId: string, docu
 }
 
 export async function listDocuments(databaseId: string, collectionId: string, queries: string[] = []) {
-  const queryString = queries.map((query) => `queries[]=${encodeURIComponent(query)}`).join("&");
+  const normalizedQueries = queries.map(normalizeQuery);
+  const queryString = normalizedQueries.map((query) => `queries[]=${encodeURIComponent(query)}`).join("&");
   const path = `/databases/${databaseId}/collections/${collectionId}/documents${queryString ? `?${queryString}` : ""}`;
 
   return appwriteRequest(path);
+}
+
+/**
+ * Converts old-style string queries like `equal("field", ["value"])` or `orderDesc("field")`
+ * to Appwrite 1.9+ JSON format. If already JSON, returns as-is.
+ */
+function normalizeQuery(query: string): string {
+  // Already JSON format
+  if (query.startsWith("{")) return query;
+
+  // Match: methodName("attribute", ["value1", "value2"])
+  const equalMatch = query.match(/^(equal|notEqual|lessThan|greaterThan|contains)\("([^"]+)",\s*\[(.*)\]\)$/);
+  if (equalMatch) {
+    const [, method, attribute, valuesStr] = equalMatch;
+    const values = valuesStr.split(",").map((v) => {
+      const trimmed = v.trim().replace(/^"|"$/g, "");
+      const num = Number(trimmed);
+      return isNaN(num) ? trimmed : num;
+    });
+    return JSON.stringify({ method, attribute, values });
+  }
+
+  // Match: orderDesc("attribute") or orderAsc("attribute")
+  const orderMatch = query.match(/^(orderDesc|orderAsc)\("([^"]+)"\)$/);
+  if (orderMatch) {
+    const [, method, attribute] = orderMatch;
+    return JSON.stringify({ method, attribute });
+  }
+
+  // Match: limit(N) or offset(N)
+  const limitMatch = query.match(/^(limit|offset)\((\d+)\)$/);
+  if (limitMatch) {
+    const [, method, value] = limitMatch;
+    return JSON.stringify({ method, values: [Number(value)] });
+  }
+
+  // Fallback: return as-is (may fail)
+  return query;
 }
 
 /**

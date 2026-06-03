@@ -1,5 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { VolunteerCard } from "@/components/volunteer-card";
+import { DonationCard } from "@/components/donation-card";
 
 const principles = [
   {
@@ -44,6 +46,11 @@ export default function AboutPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 mt-12">
+          <VolunteerCard />
+          <DonationCard />
         </div>
       </div>
     </div>

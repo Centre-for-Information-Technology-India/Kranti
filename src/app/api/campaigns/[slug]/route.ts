@@ -9,15 +9,15 @@ export async function GET(
     const { slug } = await context.params;
 
     const response = await listDocuments(appwriteDatabaseId, appwriteCampaignsCollectionId, [
-      `equal("slug", "${slug}")`,
+      `equal("slug", ["${slug}"])`,
       `limit(1)`,
     ]);
 
-    if (!response.documents || response.documents.length === 0) {
+    if (!(response as { documents?: Array<Record<string, unknown>> }).documents || ((response as { documents?: Array<Record<string, unknown>> }).documents ?? []).length === 0) {
       return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
     }
 
-    const doc = response.documents[0] as Record<string, unknown>;
+    const doc = ((response as { documents?: Array<Record<string, unknown>> }).documents ?? [])[0] as Record<string, unknown>;
 
     const campaign = {
       $id: doc.$id,
