@@ -127,8 +127,6 @@ export async function POST(request: Request) {
       evidence_count: uploadedEvidence.length,
       featured: false,
       visibility: "public",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     });
 
     for (const evidenceItem of uploadedEvidence) {
@@ -176,8 +174,8 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const [issuesResponse, evidenceResponse, usersResponse] = await Promise.all([
-      listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, ["orderDesc(\"created_at\")"]),
-      listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, ["orderDesc(\"created_at\")"]),
+      listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, []),
+      listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, []),
       listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, []),
     ]);
 
