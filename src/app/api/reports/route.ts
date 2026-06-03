@@ -134,6 +134,22 @@ export async function POST(request: Request) {
     }).catch(() => {});
   }
 
+  // Store evidence links
+  const evidenceLinks = Array.isArray(submission.evidenceLinks) ? submission.evidenceLinks.filter(Boolean) : [];
+  for (const link of evidenceLinks) {
+    const linkEvidenceId = `evidence${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
+    void createDocument(appwriteDatabaseId, appwriteEvidenceCollectionId, linkEvidenceId, {
+      issue_id: reportId,
+      type: "other",
+      file_url: link,
+      source_url: link,
+      file_name: new URL(link).hostname,
+      size_bytes: 0,
+      verified: false,
+      created_at: new Date().toISOString(),
+    }).catch(() => {});
+  }
+
   return NextResponse.json({
     ok: true,
     reportId,

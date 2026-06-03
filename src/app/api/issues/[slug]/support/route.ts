@@ -54,7 +54,6 @@ export async function POST(_: Request, { params }: { params: Promise<{ slug: str
   if (supportDoc) {
     await updateDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issue.$id, {
       supporter_count: nextSupportCount,
-      updated_at: new Date().toISOString(),
     });
 
     // Send notification to issue creator

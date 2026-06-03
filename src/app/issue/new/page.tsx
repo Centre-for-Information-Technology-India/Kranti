@@ -21,6 +21,8 @@ import { Input } from "@/components/ui/input";
 import { browserStorage, ID } from "@/lib/appwrite-browser";
 import { evidenceLevels, issueCategories, issueDefaultValues, issueSubmissionSchema, type IssueSubmissionValues } from "@/lib/issue-form";
 import { validateEvidenceFile } from "@/lib/evidence";
+import { EvidenceLinksInput } from "@/components/evidence-links-input";
+import { useFormAutoSave } from "@/lib/use-form-autosave";
 
 const checklist = [
   "Keep the complaint factual, local, and specific.",
@@ -56,6 +58,8 @@ export default function NewIssuePage() {
     defaultValues: issueDefaultValues,
     mode: "onTouched",
   });
+
+  const { clear: clearDraft } = useFormAutoSave(form, "kranti_issue_draft");
 
   async function handleIssueSubmit(values: IssueSubmissionValues) {
     setIsSaving(true);
@@ -99,6 +103,7 @@ export default function NewIssuePage() {
       }
 
       setSubmitted(true);
+      clearDraft();
       form.reset(issueDefaultValues);
       if (evidenceInputRef.current) {
         evidenceInputRef.current.value = "";
@@ -283,6 +288,11 @@ export default function NewIssuePage() {
                       className="mt-4 h-12 rounded-2xl border-slate-900/10 bg-white/90 dark:border-white/10 dark:bg-white/5"
                     />
                   </label>
+
+                  <EvidenceLinksInput
+                    value={form.watch("evidenceLinks") ?? []}
+                    onChange={(links) => form.setValue("evidenceLinks", links)}
+                  />
 
                   <label className="flex items-start gap-3 rounded-2xl border border-slate-900/10 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/5">
                     <input

@@ -110,7 +110,10 @@ export default function CreatePage() {
                         ? "border-slate-950 shadow-xl dark:border-white"
                         : "border-slate-900/10 hover:border-slate-900/30 dark:border-white/10 dark:hover:border-white/30"
                     }`}
-                    onClick={() => setSelectedType(type.id)}
+                    onClick={() => {
+                      setSelectedType(type.id);
+                      router.push(type.route);
+                    }}
                   >
 
                     <CardHeader className="space-y-4">

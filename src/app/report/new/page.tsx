@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { browserStorage, ID } from "@/lib/appwrite-browser";
 import { incidentTypes, reportDefaultValues, reportSubmissionSchema, type ReportSubmissionValues } from "@/lib/report-form";
 import { validateEvidenceFile } from "@/lib/evidence";
+import { EvidenceLinksInput } from "@/components/evidence-links-input";
+import { useFormAutoSave } from "@/lib/use-form-autosave";
 
 const safetyGuidelines = [
   "Evidence is mandatory for all incident reports to ensure documentation accuracy.",
@@ -35,11 +37,14 @@ export default function NewReportPage() {
     mode: "onTouched",
   });
 
+  const { clear: clearDraft } = useFormAutoSave(form, "kranti_report_draft");
+
   async function handleReportSubmit(values: ReportSubmissionValues) {
     const files = Array.from(evidenceInputRef.current?.files ?? []);
+    const links = values.evidenceLinks ?? [];
     
-    if (files.length === 0) {
-      setSubmitError("Evidence is mandatory for incident reports. Please upload at least one file.");
+    if (files.length === 0 && links.length === 0) {
+      setSubmitError("Evidence is mandatory for incident reports. Please upload at least one file or add an evidence link.");
       return;
     }
 
@@ -83,6 +88,7 @@ export default function NewReportPage() {
       }
 
       setSubmitted(true);
+      clearDraft();
       form.reset(reportDefaultValues);
       if (evidenceInputRef.current) {
         evidenceInputRef.current.value = "";
@@ -273,6 +279,11 @@ export default function NewReportPage() {
                       </p>
                     )}
                   </label>
+
+                  <EvidenceLinksInput
+                    value={form.watch("evidenceLinks") ?? []}
+                    onChange={(links) => form.setValue("evidenceLinks", links)}
+                  />
 
                   <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
                     <input

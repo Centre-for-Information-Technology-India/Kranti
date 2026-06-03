@@ -86,21 +86,21 @@ export async function GET(request: NextRequest) {
     const queries: string[] = [];
 
     if (category) {
-      queries.push(`equal("category", "${category}")`);
+      queries.push(`equal("category", ["${category}"])`);
     }
 
     if (state) {
-      queries.push(`equal("state", "${state}")`);
+      queries.push(`equal("state", ["${state}"])`);
     }
 
     if (status) {
-      queries.push(`equal("status", "${status}")`);
+      queries.push(`equal("status", ["${status}"])`);
     } else {
-      queries.push(`notEqual("status", "pending_review")`);
+      queries.push(`notEqual("status", ["pending_review"])`);
     }
 
     if (featured === "true") {
-      queries.push(`equal("featured", true)`);
+      queries.push(`equal("featured", [true])`);
     }
 
     queries.push(`orderDesc("created_at")`);
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
 
     const response = await listDocuments(appwriteDatabaseId, appwriteCampaignsCollectionId, queries);
 
-    const campaigns = response.documents.map((doc: Record<string, unknown>) => ({
+    const campaigns = ((response as { documents?: Array<Record<string, unknown>> }).documents ?? []).map((doc: Record<string, unknown>) => ({
       $id: doc.$id,
       title: doc.title,
       slug: doc.slug,

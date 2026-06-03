@@ -27,6 +27,7 @@ export const issueSubmissionSchema = z.object({
   district: z.string().min(2, "District is required."),
   landmark: z.string().min(3, "Add a nearby landmark or locality."),
   evidenceLevel: z.enum(evidenceLevels),
+  evidenceLinks: z.string().url("Must be a valid URL").array().optional(),
   language: z.enum(issueLanguages),
   consent: z.boolean().refine((value) => value, {
     message: "Please confirm the information is accurate to the best of your knowledge.",
@@ -43,6 +44,7 @@ export const issueDefaultValues: IssueSubmissionValues = {
   district: "",
   landmark: "",
   evidenceLevel: "medium",
+  evidenceLinks: [],
   language: "en",
   consent: true,
 };

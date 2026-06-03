@@ -74,17 +74,17 @@ export async function POST(request: Request) {
   // Update issue status
   await updateDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId, {
     status: newStatus,
-    updated_at: new Date().toISOString(),
   });
 
-  // Write moderation log
+  // Write moderation log (action enum: flag/hide/delete/ban/restore/escalate/approve/reject)
+  // Map 'resolve' to 'approve' since DB enum doesn't have 'resolve'
+  const dbAction = action === "resolve" ? "approve" : action;
   const logId = `log${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`.slice(0, 32);
   await createDocument(appwriteDatabaseId, appwriteModerationLogsCollectionId, logId, {
-    action,
+    action: dbAction,
     admin_id: userId,
     reason: reason || `Action: ${action} performed by moderator.`,
     content_id: issueId,
-    created_at: new Date().toISOString(),
   });
 
   return NextResponse.json({ ok: true, issueId, newStatus, action });

@@ -58,7 +58,7 @@ export async function POST() {
     }
   }
 
-  // Preserve existing role
+  // Preserve existing role (never escalate during sync)
   const existingRole = existingDoc?.role as string | undefined;
 
   const document = await upsertDocument(appwriteDatabaseId, appwriteUsersCollectionId, user.id, {
@@ -67,7 +67,7 @@ export async function POST() {
     email: primaryEmail,
     phone: primaryPhone,
     avatar_url: user.imageUrl,
-    role: existingRole || "citizen",
+    role: existingRole ?? "citizen",
     verified: Boolean(user.primaryEmailAddressId || user.primaryPhoneNumberId),
     trust_score: 10,
     consent_accepted: true,

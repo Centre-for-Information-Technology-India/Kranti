@@ -20,6 +20,7 @@ export const reportSubmissionSchema = z.object({
   district: z.string().min(2, "District is required"),
   landmark: z.string().optional(),
   language: z.enum(["en", "hi"]),
+  evidenceLinks: z.string().url("Must be a valid URL").array().optional(),
   evidenceRequired: z.boolean().refine((val) => val === true, "Evidence is mandatory for incident reports"),
   consent: z.boolean().refine((val) => val === true, "You must agree to the terms"),
 });
@@ -35,6 +36,7 @@ export const reportDefaultValues: ReportSubmissionValues = {
   district: "",
   landmark: "",
   language: "en",
+  evidenceLinks: [],
   evidenceRequired: false,
   consent: false,
 };

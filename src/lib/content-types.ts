@@ -26,7 +26,7 @@ export interface IssueRecord {
   state: string;
   district: string;
   landmark: string;
-  status: "pending_review" | "open" | "in_progress" | "resolved";
+  status: "pending_review" | "open" | "in_progress" | "escalated" | "resolved" | "rejected";
   supporter_count: number;
   evidence_count: number;
   created_by: string;

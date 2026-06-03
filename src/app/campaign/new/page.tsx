@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 
 import { campaignFormSchema, type CampaignFormData, campaignCategories, indianStates } from "@/lib/campaign-form";
+import { useFormAutoSave } from "@/lib/use-form-autosave";
 
 export default function NewCampaignPage() {
   const router = useRouter();
@@ -34,6 +35,8 @@ export default function NewCampaignPage() {
       language: "en",
     },
   });
+
+  const { clear: clearDraft } = useFormAutoSave(form, "kranti_campaign_draft");
 
   const onSubmit = async (data: CampaignFormData) => {
     if (!isSignedIn || !userId) {
@@ -57,6 +60,7 @@ export default function NewCampaignPage() {
       }
 
       const result = await response.json();
+      clearDraft();
       router.push(`/campaigns/${result.slug}`);
     } catch (error) {
       console.error("Campaign creation error:", error);

@@ -7,7 +7,7 @@ export const siteGuides = [
   {
     id: "rti-guide",
     slug: "how-to-file-rti-application-india",
-    title: "How to File an RTI Application in India (2025 Complete Guide)",
+    title: "How to File an RTI Application in India (2026 Complete Guide)",
     category: "RTI",
     summary:
       "The Right to Information Act 2005 is one of India's most powerful citizen tools. This step-by-step guide explains how to identify the right authority, draft effective questions, pay the fee, and track your application — with ready-to-use templates.",
