@@ -14,6 +14,7 @@ import { browserStorage, ID } from "@/lib/appwrite-browser";
 import { petitionCategories, petitionDefaultValues, petitionSubmissionSchema, type PetitionSubmissionValues } from "@/lib/petition-form";
 import { validateEvidenceFile } from "@/lib/evidence";
 import { EvidenceLinksInput } from "@/components/evidence-links-input";
+import { useFormAutoSave } from "@/lib/use-form-autosave";
 
 const checklist = [
   "State a clear, specific demand directed at the appropriate authority.",
@@ -49,6 +50,8 @@ export default function NewPetitionPage() {
     defaultValues: petitionDefaultValues,
     mode: "onTouched",
   });
+
+  const { clear: clearDraft } = useFormAutoSave(form, "kranti_petition_draft");
 
   async function handlePetitionSubmit(values: PetitionSubmissionValues) {
     setIsSaving(true);
@@ -92,6 +95,7 @@ export default function NewPetitionPage() {
       }
 
       setSubmitted(true);
+      clearDraft();
       form.reset(petitionDefaultValues);
       if (evidenceInputRef.current) {
         evidenceInputRef.current.value = "";

@@ -22,6 +22,7 @@ import { browserStorage, ID } from "@/lib/appwrite-browser";
 import { evidenceLevels, issueCategories, issueDefaultValues, issueSubmissionSchema, type IssueSubmissionValues } from "@/lib/issue-form";
 import { validateEvidenceFile } from "@/lib/evidence";
 import { EvidenceLinksInput } from "@/components/evidence-links-input";
+import { useFormAutoSave } from "@/lib/use-form-autosave";
 
 const checklist = [
   "Keep the complaint factual, local, and specific.",
@@ -57,6 +58,8 @@ export default function NewIssuePage() {
     defaultValues: issueDefaultValues,
     mode: "onTouched",
   });
+
+  const { clear: clearDraft } = useFormAutoSave(form, "kranti_issue_draft");
 
   async function handleIssueSubmit(values: IssueSubmissionValues) {
     setIsSaving(true);
@@ -100,6 +103,7 @@ export default function NewIssuePage() {
       }
 
       setSubmitted(true);
+      clearDraft();
       form.reset(issueDefaultValues);
       if (evidenceInputRef.current) {
         evidenceInputRef.current.value = "";

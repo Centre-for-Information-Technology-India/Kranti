@@ -14,6 +14,7 @@ import { browserStorage, ID } from "@/lib/appwrite-browser";
 import { incidentTypes, reportDefaultValues, reportSubmissionSchema, type ReportSubmissionValues } from "@/lib/report-form";
 import { validateEvidenceFile } from "@/lib/evidence";
 import { EvidenceLinksInput } from "@/components/evidence-links-input";
+import { useFormAutoSave } from "@/lib/use-form-autosave";
 
 const safetyGuidelines = [
   "Evidence is mandatory for all incident reports to ensure documentation accuracy.",
@@ -35,6 +36,8 @@ export default function NewReportPage() {
     defaultValues: reportDefaultValues,
     mode: "onTouched",
   });
+
+  const { clear: clearDraft } = useFormAutoSave(form, "kranti_report_draft");
 
   async function handleReportSubmit(values: ReportSubmissionValues) {
     const files = Array.from(evidenceInputRef.current?.files ?? []);
@@ -85,6 +88,7 @@ export default function NewReportPage() {
       }
 
       setSubmitted(true);
+      clearDraft();
       form.reset(reportDefaultValues);
       if (evidenceInputRef.current) {
         evidenceInputRef.current.value = "";
