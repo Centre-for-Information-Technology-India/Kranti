@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://kranti.org.in";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://www.kranti.org.in";
 
 export const SITE_NAME = "Kranti";
 

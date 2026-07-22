@@ -5,8 +5,8 @@ export const metadata: Metadata = {
   description:
     "Choose what to create on Kranti — raise a civic issue, file a petition, launch a campaign, or document an incident with evidence.",
   alternates: { canonical: "/create" },
-  // The /create page is a private action funnel — let it be indexed but not too aggressively
-  robots: { index: true, follow: true },
+  // Create is a user action funnel, not a content page worth indexing
+  robots: { index: false, follow: false },
 };
 
 export default function CreateLayout({ children }: { children: React.ReactNode }) {

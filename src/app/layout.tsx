@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 
-// Force the root layout to always be dynamic so the NEXT_LOCALE cookie
-// is re-read on every request (required for language switching to work).
-export const dynamic = "force-dynamic";
+// NOTE: Do NOT use `export const dynamic = "force-dynamic"` here.
+// That would propagate to every page, making them all uncacheable and
+// preventing Google from rendering/indexing them. The NEXT_LOCALE cookie
+// is still re-read on every request because next-intl's getRequestConfig
+// reads cookies() which is always dynamic — no explicit declaration needed.
 import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NextIntlClientProvider } from "next-intl";
