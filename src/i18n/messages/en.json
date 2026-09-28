@@ -584,8 +584,10 @@
       "contact": "Contact",
       "github": "GitHub"
     },
-    "developedBy": "Developed & Maintained by",
+    "developedBy": "Developed & Hosted by",
     "organization": "Centre for Information Technology India",
+    "maintainedBy": "and Maintained by",
+    "contributors": "OS Contributors",
     "copyright": "© {year} Kranti. All rights reserved.",
     "license": "Open source under AGPLv3"
   },

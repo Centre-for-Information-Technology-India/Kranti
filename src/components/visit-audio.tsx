@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 const PLAYED_KEY = "kranti-visit-audio-played";
 const AUDIO_SRC = "/azadi.mp3";
-const AUDIO_VOLUME = 0.12;
+const AUDIO_VOLUME = 0.03;
 
 export function VisitAudio() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
