@@ -15,7 +15,10 @@ export async function PATCH(
 
     const { id } = await context.params;
 
-    await markNotificationAsRead(id);
+    const updated = await markNotificationAsRead(id, userId);
+    if (!updated) {
+      return NextResponse.json({ error: "Notification not found" }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

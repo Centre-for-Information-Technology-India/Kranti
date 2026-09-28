@@ -70,27 +70,32 @@ export async function getUserNotifications(userId: string, limit = 50): Promise<
   }
 }
 
-export async function markNotificationAsRead(notificationId: string): Promise<void> {
-  try {
-    await updateDocument(appwriteDatabaseId, appwriteNotificationsCollectionId, notificationId, {
-      read: true,
-    });
-  } catch (error) {
-    console.error("Failed to mark notification as read:", error);
-  }
+export async function markNotificationAsRead(notificationId: string, userId: string): Promise<boolean> {
+  // Reject path characters before using an untrusted ID in a privileged request.
+  if (!userId || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,35}$/.test(notificationId)) return false;
+
+  const response = await listDocuments(appwriteDatabaseId, appwriteNotificationsCollectionId, [
+    Query.equal("$id", [notificationId]),
+    Query.equal("user_id", [userId]),
+    Query.limit(1),
+  ]);
+  const notification = response.documents[0];
+  if (!notification || notification.$id !== notificationId || notification.user_id !== userId) return false;
+
+  await updateDocument(appwriteDatabaseId, appwriteNotificationsCollectionId, notificationId, { read: true });
+  return true;
 }
 
 export async function markAllNotificationsAsRead(userId: string): Promise<void> {
-  try {
-    const notifications = await getUserNotifications(userId, 100);
-    const unreadNotifications = notifications.filter((n) => !n.read);
-
-    await Promise.all(
-      unreadNotifications.map((notification) => markNotificationAsRead(notification.$id))
-    );
-  } catch (error) {
-    console.error("Failed to mark all notifications as read:", error);
-  }
+  if (!userId) throw new Error("Notification owner is required");
+  const response = await listDocuments(appwriteDatabaseId, appwriteNotificationsCollectionId, [
+    Query.equal("user_id", [userId]),
+    Query.orderDesc("created_at"),
+    Query.limit(100),
+  ]);
+  await Promise.all(response.documents
+    .filter((notification: NotificationRecord) => !notification.read)
+    .map((notification: NotificationRecord) => markNotificationAsRead(notification.$id, userId)));
 }
 
 // Helper functions to create specific notification types

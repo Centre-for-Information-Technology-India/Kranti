@@ -42,3 +42,48 @@ test("notification reads send structured, user-scoped Appwrite queries", async (
     else process.env.APPWRITE_API_KEY = originalKey;
   }
 });
+
+test("notification mutations enforce ownership and surface storage failures", async () => {
+  const originalFetch = globalThis.fetch;
+  const { markNotificationAsRead, markAllNotificationsAsRead } = await import("./notifications");
+  const own = { $id: "synthetic_notification", user_id: "owner", read: false };
+  let documents = [own];
+  let writes = 0;
+  let failRead = false;
+  let failWrite = false;
+  globalThis.fetch = async (input, init) => {
+    if (init?.method === "PATCH") {
+      writes++;
+      assert.ok(String(input).endsWith("/documents/synthetic_notification"));
+      assert.deepEqual(JSON.parse(String(init.body)), { data: { read: true } });
+      return Response.json(failWrite ? { message: "synthetic write failure" } : own, { status: failWrite ? 500 : 200 });
+    }
+    const queries = new URL(String(input)).searchParams.getAll("queries[]").map(q => JSON.parse(q));
+    assert.ok(queries.some(q => q.attribute === "user_id" && q.values[0] === "owner"));
+    return Response.json(failRead ? { message: "synthetic read failure" } : { documents }, { status: failRead ? 500 : 200 });
+  };
+  try {
+    assert.equal(await markNotificationAsRead(own.$id, "owner"), true);
+    assert.equal(writes, 1);
+    documents = [{ ...own, user_id: "someone_else" }];
+    assert.equal(await markNotificationAsRead(own.$id, "owner"), false);
+    documents = [];
+    assert.equal(await markNotificationAsRead(own.$id, "owner"), false);
+    assert.equal(await markNotificationAsRead("../other", "owner"), false);
+    assert.equal(await markNotificationAsRead(own.$id, ""), false);
+    assert.equal(writes, 1);
+    documents = [own];
+    failWrite = true;
+    await assert.rejects(markNotificationAsRead(own.$id, "owner"), /synthetic write failure/);
+    await assert.rejects(markAllNotificationsAsRead("owner"), /synthetic write failure/);
+    failWrite = false;
+    failRead = true;
+    await assert.rejects(markNotificationAsRead(own.$id, "owner"), /synthetic read failure/);
+    await assert.rejects(markAllNotificationsAsRead("owner"), /synthetic read failure/);
+    failRead = false;
+    await markAllNotificationsAsRead("owner");
+    assert.equal(writes, 4);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

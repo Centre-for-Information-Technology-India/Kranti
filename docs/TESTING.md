@@ -19,3 +19,8 @@ Never use production data as disposable test data. Prefer isolated development/t
 Run `node --import tsx --test src/lib/notifications.test.ts`.
 This test mocks Appwrite requests and uses synthetic records only.
 It checks user filtering, escaped identifiers, ordering, limits, and returned alerts.
+
+Notification mutation tests also cover ownership, missing records, malformed IDs,
+and storage failures. Single-alert updates require the authenticated Clerk owner.
+Missing and foreign alerts return the same 404 response. Bulk updates preserve
+owner checks and propagate storage failures. These tests never contact production.
