@@ -15,7 +15,6 @@ import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 import { PWARegister } from "@/components/pwa-register";
 import AppwriteSync from "@/components/appwrite-sync";
-import { CockroachPointer } from "@/components/cockroach-pointer";
 import { VisitAudio } from "@/components/visit-audio";
 import { JsonLd } from "@/components/json-ld";
 import {
@@ -167,7 +166,6 @@ export default async function RootLayout({
           <NextIntlClientProvider messages={messages}>
             <PWARegister />
             <AppwriteSync />
-            <CockroachPointer />
             <VisitAudio />
             <SiteHeader />
             <main className="flex-1">{children}</main>
