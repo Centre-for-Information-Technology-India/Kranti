@@ -584,8 +584,10 @@
       "contact": "संपर्क करें",
       "github": "GitHub"
     },
-    "developedBy": "विकसित और रखरखाव",
+    "developedBy": "विकसित एवं होस्ट द्वारा",
     "organization": "सेंटर फॉर इंफॉर्मेशन टेक्नोलॉजी इंडिया",
+    "maintainedBy": "तथा रखरखाव",
+    "contributors": "OS Contributors द्वारा",
     "copyright": "© {year} क्रांति। सर्वाधिकार सुरक्षित।",
     "license": "AGPLv3 के तहत ओपन सोर्स"
   },
