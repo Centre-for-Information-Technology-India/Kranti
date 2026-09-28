@@ -4,6 +4,7 @@ import {
   appwriteNotificationsCollectionId,
   createDocument,
   listDocuments,
+  Query,
   updateDocument,
 } from "./appwrite";
 
@@ -48,9 +49,9 @@ export async function createNotification(data: NotificationData): Promise<void> 
 export async function getUserNotifications(userId: string, limit = 50): Promise<NotificationRecord[]> {
   try {
     const response = await listDocuments(appwriteDatabaseId, appwriteNotificationsCollectionId, [
-      `equal("user_id", "${userId}")`,
-      `orderDesc("created_at")`,
-      `limit(${limit})`,
+      Query.equal("user_id", [userId]),
+      Query.orderDesc("created_at"),
+      Query.limit(limit),
     ]);
 
     return response.documents.map((doc: Record<string, unknown>) => ({

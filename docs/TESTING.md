@@ -14,3 +14,8 @@ Check mobile, slow network, loading, empty, error, retry/offline behavior where 
 
 ## Production
 Never use production data as disposable test data. Prefer isolated development/test projects and sanitized fixtures.
+
+## Notification query regression
+Run `node --import tsx --test src/lib/notifications.test.ts`.
+This test mocks Appwrite requests and uses synthetic records only.
+It checks user filtering, escaped identifiers, ordering, limits, and returned alerts.
