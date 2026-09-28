@@ -112,6 +112,16 @@ export function SiteFooter() {
               >
                 {t("organization")}
                 <ExternalLink className="h-2.5 w-2.5" />
+              </a>{" "}
+              {t("maintainedBy")}{" "}
+              <a
+                href="https://github.com/Centre-for-Information-Technology-India/Kranti/graphs/contributors"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100 underline underline-offset-2 inline-flex items-center gap-0.5"
+              >
+                {t("contributors")}
+                <ExternalLink className="h-2.5 w-2.5" />
               </a>
             </p>
           </div>
