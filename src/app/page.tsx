@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
@@ -49,12 +48,7 @@ export default function Home() {
 
       <main className="relative mx-auto max-w-7xl px-6 pb-14 pt-14 lg:px-8 lg:pt-20">
         <section className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="max-w-3xl"
-          >
+          <div className="max-w-3xl">
             <Badge variant="outline" className="mb-5 border-slate-900/10 bg-white/80 px-3 py-1 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
               <Megaphone className="mr-1 h-3.5 w-3.5" />
               {t("tagline")}
@@ -81,13 +75,9 @@ export default function Home() {
                 {t("viewCampaigns")}
               </Button>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.08 }}
-          >
+          <div>
             <Card className="border-slate-900/10 bg-white/90 shadow-2xl shadow-slate-950/10 dark:border-white/10 dark:bg-slate-900/70">
               <CardHeader>
                 <Badge variant="outline" className="w-fit border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
@@ -109,7 +99,7 @@ export default function Home() {
                 ))}
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </section>
 
         <section className="mt-14 grid gap-4 md:grid-cols-3">

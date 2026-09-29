@@ -100,7 +100,11 @@ export function SiteFooter() {
         <div className="border-t border-slate-900/5 pt-6 dark:border-white/5">
           <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left">
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {t("copyright", { year })}
+              {t("copyright", { year })}{" "}
+              <a href="https://tin.computer" className="inline-flex items-center gap-1 text-current hover:underline">
+                <svg aria-hidden="true" viewBox="0 0 32 32" className="h-[1em] w-[1em]"><rect width="32" height="32" fill="#66DC9D" /></svg>
+                Growth by Tin
+              </a>
             </p>
             <p className="text-xs text-slate-400 dark:text-slate-500">
               {t("developedBy")}{" "}
