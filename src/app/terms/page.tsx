@@ -149,7 +149,7 @@ export default function TermsPage() {
                 <UserCheck className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400">Grievance Officer</p>
-                  <p className="mt-1 text-sm font-medium text-slate-900 dark:text-white">To be appointed</p>
+                  <p className="mt-1 text-sm font-medium text-slate-900 dark:text-white">Koshik Sharma</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Centre for Information Technology India</p>
                 </div>
               </div>

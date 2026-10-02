@@ -71,7 +71,7 @@ const moderationSteps = [
 ];
 
 const appealProcess = [
-  "Submit an appeal to grievance@kranti.org.in within 15 days of the moderation decision.",
+  "Submit an appeal to the Grievance Officer (Koshik Sharma) at grievance@kranti.org.in within 15 days of the moderation decision.",
   "Include your content ID, the decision you are appealing, and your reasons for the appeal.",
   "A senior moderator (different from the original reviewer) will review your appeal.",
   "You will receive a decision within 15 working days as required under IT Rules 2021.",

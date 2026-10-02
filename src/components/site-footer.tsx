@@ -68,10 +68,11 @@ export function SiteFooter() {
           {/* Grievance Officer */}
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-              Grievance Officer
+              {t("grievance.title")}
             </p>
             <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-              <p className="text-xs text-slate-500 dark:text-slate-500">As required under IT Rules 2021</p>
+              <p className="text-xs text-slate-500 dark:text-slate-500">{t("grievance.required")}</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{t("grievance.name")}</p>
               <div className="flex items-center gap-2">
                 <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                 <a href="mailto:grievance@kranti.org.in" className="hover:text-slate-900 dark:hover:text-white">
@@ -83,7 +84,7 @@ export function SiteFooter() {
                 <span>+91-11-2456-0758</span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-500">
-                Acknowledged in 24h · Resolved in 15 days
+                {t("grievance.acknowledged")}
               </p>
               <a
                 href="mailto:legal@kranti.org.in"
