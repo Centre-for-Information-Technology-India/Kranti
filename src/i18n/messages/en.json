@@ -589,13 +589,7 @@
     "maintainedBy": "and Maintained by",
     "contributors": "OS Contributors",
     "copyright": "© {year} Kranti. All rights reserved.",
-    "license": "Open source under AGPLv3",
-    "grievance": {
-      "title": "Grievance Officer",
-      "required": "As required under IT Rules 2021",
-      "name": "Koshik Sharma",
-      "acknowledged": "Acknowledged in 24h · Resolved in 15 days"
-    }
+    "license": "Open source under MIT"
   },
   "errors": {
     "generic": "Something went wrong",

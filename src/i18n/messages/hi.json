@@ -589,13 +589,7 @@
     "maintainedBy": "तथा रखरखाव",
     "contributors": "OS Contributors द्वारा",
     "copyright": "© {year} क्रांति। सर्वाधिकार सुरक्षित।",
-    "license": "AGPLv3 के तहत ओपन सोर्स",
-    "grievance": {
-      "title": "शिकायत अधिकारी",
-      "required": "आईटी नियम 2021 के तहत आवश्यकतानुसार",
-      "name": "Koshik Sharma",
-      "acknowledged": "24 घंटे में पावती · 15 दिनों में समाधान"
-    }
+    "license": "MIT के तहत ओपन सोर्स"
   },
   "errors": {
     "generic": "कुछ गलत हो गया",
