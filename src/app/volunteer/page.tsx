@@ -1,10 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { VolunteerCard } from "@/components/volunteer-card";
 
-export const metadata = {
-  title: "Volunteer | Kranti",
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Volunteer",
   description: "Join as a volunteer moderator to help maintain Kranti's integrity.",
-};
+  path: "/volunteer",
+});
 
 export default function VolunteerPage() {
   return (
@@ -16,7 +20,7 @@ export default function VolunteerPage() {
           </Badge>
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Volunteer with Kranti</h1>
           <p className="mx-auto max-w-xl text-lg leading-8 text-slate-600 dark:text-slate-300">
-            We are a community-driven initiative. Contribute by becoming a moderator and helping us maintain our platform's integrity.
+            We are a community-driven initiative. Contribute by becoming a moderator and helping us maintain our platform&apos;s integrity.
           </p>
         </div>
 

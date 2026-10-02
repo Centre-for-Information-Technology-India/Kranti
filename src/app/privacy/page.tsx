@@ -2,18 +2,15 @@ import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lock, Eye, Database, UserCheck, Trash2, Globe, ShieldAlert, Mail } from "lucide-react";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Privacy Policy",
   description:
     "Kranti Privacy Policy — How we collect, use, and protect your personal data. Compliant with India's Digital Personal Data Protection Act 2023 and IT Rules 2021.",
-  openGraph: {
-    title: "Privacy Policy | Kranti",
-    description: "How Kranti collects, uses, and protects your personal data under Indian law.",
-    url: "https://kranti.org.in/privacy",
-  },
-  alternates: { canonical: "/privacy" },
-};
+  path: "/privacy",
+  socialDescription: "How Kranti collects, uses, and protects your personal data under Indian law.",
+});
 
 const sections = [
   {

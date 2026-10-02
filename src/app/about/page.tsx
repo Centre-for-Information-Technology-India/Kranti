@@ -1,7 +1,16 @@
+import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VolunteerCard } from "@/components/volunteer-card";
 import { DonationCard } from "@/components/donation-card";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "About Kranti",
+  description:
+    "Kranti is built for people who want to document injustice, find support, and keep a public record of what needs to change.",
+  path: "/about",
+});
 
 const principles = [
   {
