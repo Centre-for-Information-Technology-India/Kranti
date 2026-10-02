@@ -589,7 +589,7 @@
     "maintainedBy": "and Maintained by",
     "contributors": "OS Contributors",
     "copyright": "© {year} Kranti. All rights reserved.",
-    "license": "Open source under AGPLv3"
+    "license": "Open source under MIT"
   },
   "errors": {
     "generic": "Something went wrong",
