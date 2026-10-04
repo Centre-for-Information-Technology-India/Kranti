@@ -103,3 +103,50 @@ export function canonical(path: string) {
   const clean = path.startsWith("/") ? path : `/${path}`;
   return `${SITE_URL}${clean}`;
 }
+
+type PageMetadataInput = {
+  title: string;
+  description: string;
+  path: string;
+  /** Shorter variant for social cards; defaults to description. */
+  socialDescription?: string;
+};
+
+/**
+ * Per-page social metadata for public pages. The root layout supplies
+ * site-wide openGraph/twitter defaults, but those reuse the site title and
+ * description — this helper gives each public page its own social title,
+ * description, URL, and canonical so shared links render correctly.
+ */
+export function pageMetadata({ title, description, path, socialDescription }: PageMetadataInput) {
+  const socialTitle = `${title} | ${SITE_NAME}`;
+  const socialDesc = socialDescription ?? description;
+  const url = canonical(path);
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      title: socialTitle,
+      description: socialDesc,
+      url,
+      siteName: SITE_NAME,
+      type: "website" as const,
+      locale: "en_IN",
+      images: [
+        {
+          url: DEFAULT_OG_IMAGE,
+          width: 1200,
+          height: 630,
+          alt: socialTitle,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image" as const,
+      title: socialTitle,
+      description: socialDesc,
+      images: [DEFAULT_OG_IMAGE],
+    },
+  };
+}

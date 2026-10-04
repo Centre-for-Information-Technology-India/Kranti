@@ -2,18 +2,15 @@ import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Scale, ShieldCheck, AlertTriangle, UserCheck, Gavel, Mail, Phone, MapPin } from "lucide-react";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Terms of Service",
   description:
     "Kranti Terms of Service — Rules for lawful, evidence-based civic participation on India's responsible civic action platform. Compliant with IT Rules 2021 and DPDP Act.",
-  openGraph: {
-    title: "Terms of Service | Kranti",
-    description: "Read the terms governing use of Kranti, India's civic action platform.",
-    url: "https://kranti.org.in/terms",
-  },
-  alternates: { canonical: "/terms" },
-};
+  path: "/terms",
+  socialDescription: "Read the terms governing use of Kranti, India's civic action platform.",
+});
 
 const sections = [
   {
