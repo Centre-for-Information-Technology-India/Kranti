@@ -46,7 +46,7 @@ export const issueDefaultValues: IssueSubmissionValues = {
   evidenceLevel: "medium",
   evidenceLinks: [],
   language: "en",
-  consent: true,
+  consent: false,
 };
 
 export function buildIssueSlug(title: string) {
