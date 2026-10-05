@@ -24,7 +24,7 @@ export function SiteFooter() {
               {t("tagline")}
             </p>
             <a
-              href="https://github.com/Centre-for-Information-Technology-India/Kranti/blob/main/LICENSE"
+              href="https://github.com/iamaanahmad/kranti/blob/main/LICENSE"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
