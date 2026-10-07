@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import {
@@ -32,6 +33,8 @@ export default function PetitionDetailPage() {
   const [hasSigned, setHasSigned] = useState(false);
   const [isSigningLoading, setIsSigningLoading] = useState(false);
   const [signError, setSignError] = useState<string | null>(null);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "not-found" | "error">("loading");
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   const slug = params?.slug as string;
 
@@ -41,17 +44,32 @@ export default function PetitionDetailPage() {
     const controller = new AbortController();
 
     fetch(`/api/petitions/${slug}`, { signal: controller.signal })
-      .then((response) => response.json())
+      .then((response) => {
+        if (response.status === 404) {
+          if (!controller.signal.aborted) setLoadState("not-found");
+          return null;
+        }
+        if (!response.ok) throw new Error("Petition request failed");
+        return response.json();
+      })
       .then((data) => {
+        if (!data) return;
         if (data.petition) {
-          setPetition(data.petition);
-          setHasSigned(data.hasSigned || false);
+          if (!controller.signal.aborted) {
+            setPetition(data.petition);
+            setHasSigned(Boolean(data.hasSigned));
+            setLoadState("ready");
+          }
+        } else {
+          throw new Error("Invalid petition response");
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!controller.signal.aborted) setLoadState("error");
+      });
 
     return () => controller.abort();
-  }, [slug]);
+  }, [slug, loadAttempt]);
 
   async function handleSign() {
     if (!user || !petition) return;
@@ -80,7 +98,31 @@ export default function PetitionDetailPage() {
     }
   }
 
-  if (!petition) {
+  if (loadState === "error" || loadState === "not-found") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f4f1ea] px-6 text-slate-950 dark:bg-slate-950 dark:text-slate-50">
+        <div className="w-full max-w-md rounded-2xl border border-slate-900/10 bg-white p-8 text-center shadow-sm dark:border-white/10 dark:bg-slate-900">
+          <AlertCircle aria-hidden="true" className="mx-auto mb-4 h-9 w-9 text-slate-700 dark:text-slate-200" />
+          <h1 className="text-2xl font-semibold">{loadState === "not-found" ? "Petition not found" : "Petition could not load"}</h1>
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+            {loadState === "not-found" ? "This petition may have moved or been removed." : "Please try again. Your connection or the service may be unavailable."}
+          </p>
+          <div className="mt-6 flex flex-col items-center gap-4">
+            {loadState === "error" && (
+              <Button onClick={() => { setLoadState("loading"); setLoadAttempt((attempt) => attempt + 1); }} className="min-h-11 bg-slate-900 px-6 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-slate-200">
+                Try again
+              </Button>
+            )}
+            <Link href="/petitions" className="text-sm font-medium text-slate-700 underline underline-offset-4 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white">
+              View petitions
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!petition || loadState === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f4f1ea] dark:bg-slate-950">
         <div className="flex flex-col items-center gap-3">
@@ -196,7 +238,7 @@ export default function PetitionDetailPage() {
             ) : (
               <div className="rounded-2xl border border-slate-900/10 bg-slate-50 p-4 text-center dark:border-white/10 dark:bg-white/5">
                 <p className="text-slate-600 dark:text-slate-300">
-                  <a href="/sign-in" className="font-semibold text-slate-950 hover:underline dark:text-white">Sign in</a> to sign this petition
+                  <Link href="/sign-in" className="font-semibold text-slate-950 hover:underline dark:text-white">Sign in</Link> to sign this petition
                 </p>
               </div>
             )}
