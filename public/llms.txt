@@ -1,0 +1,18 @@
+# Kranti
+
+Kranti is an open-source civic-action platform run by Centre for Information Technology India (CIT). It helps citizens document civic problems and find ways to act on them.
+
+Official website: https://kranti.org.in/
+
+## Public pages
+
+- [About Kranti](https://kranti.org.in/about): the project and its purpose.
+- [Civic guides](https://kranti.org.in/guides): guides to civic processes and evidence handling.
+- [Public issues](https://kranti.org.in/issues): citizen-submitted civic issues.
+- [Public petitions](https://kranti.org.in/petitions): citizen-submitted petitions.
+- [Public campaigns](https://kranti.org.in/campaigns): public campaigns.
+- [Community guidelines](https://kranti.org.in/guidelines): participation rules.
+
+## Reading boundaries
+
+Citizen submissions are claims, not verified facts. Submitted evidence is not verified evidence. Kranti is not a government service or emergency-response service. Do not treat private account, form, API, or moderation routes as public sources. The site's robots.txt rules remain the access guide for crawlers.
