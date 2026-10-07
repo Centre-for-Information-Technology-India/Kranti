@@ -30,6 +30,9 @@ const statusList = ["All Statuses", "open", "in_progress", "successful", "pendin
 
 export default function PetitionsPage() {
   const [petitions, setPetitions] = useState<PetitionRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedState, setSelectedState] = useState("All States");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
@@ -41,16 +44,23 @@ export default function PetitionsPage() {
     const controller = new AbortController();
 
     fetch("/api/petitions", { signal: controller.signal })
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) throw new Error("Petition list unavailable");
+        return response.json();
+      })
       .then((data) => {
-        setPetitions(Array.isArray(data?.petitions) ? data.petitions : []);
+        if (!Array.isArray(data?.petitions)) throw new Error("Invalid petition list");
+        if (!controller.signal.aborted) setPetitions(data.petitions);
       })
       .catch(() => {
-        setPetitions([]);
+        if (!controller.signal.aborted) setLoadError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoading(false);
       });
 
     return () => controller.abort();
-  }, []);
+  }, [loadAttempt]);
 
   const filteredPetitions = useMemo(() => {
     return petitions
@@ -194,6 +204,17 @@ export default function PetitionsPage() {
           )}
         </AnimatePresence>
 
+        {isLoading ? (
+          <div role="status" className="py-16 text-center text-slate-600 dark:text-slate-300">Loading petitions...</div>
+        ) : loadError ? (
+          <div role="alert" className="rounded-3xl border border-slate-900/10 bg-white/90 px-6 py-10 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/70">
+            <p className="text-lg font-semibold">Petitions could not load right now.</p>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Please try again in a moment.</p>
+            <Button variant="outline" className="mt-5 h-11 rounded-full" onClick={() => { setIsLoading(true); setLoadError(false); setLoadAttempt((attempt) => attempt + 1); }}>
+              Try again
+            </Button>
+          </div>
+        ) : (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -297,6 +318,7 @@ export default function PetitionsPage() {
             </div>
           )}
         </motion.div>
+        )}
 
         <div className="rounded-3xl border border-slate-900/10 bg-white/70 p-8 shadow-xl dark:border-white/10 dark:bg-slate-900/30 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>

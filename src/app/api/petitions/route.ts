@@ -225,6 +225,6 @@ export async function GET() {
     return NextResponse.json({ ok: true, petitions });
   } catch (error) {
     console.error("Failed to list petitions from Appwrite:", error);
-    return NextResponse.json({ ok: true, petitions: [] });
+    return NextResponse.json({ error: "Petitions are temporarily unavailable. Please try again." }, { status: 503 });
   }
 }
