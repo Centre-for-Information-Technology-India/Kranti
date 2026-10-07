@@ -33,6 +33,8 @@ const statusList = ["All Statuses", "open", "in_progress", "resolved", "pending_
 
 export default function IssuesPage() {
   const [issues, setIssues] = useState<IssueRecord[]>([]);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedState, setSelectedState] = useState("All States");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
@@ -45,16 +47,20 @@ export default function IssuesPage() {
     const controller = new AbortController();
 
     fetch("/api/issues", { signal: controller.signal })
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) throw new Error("Issue list unavailable");
+        return response.json();
+      })
       .then((data) => {
-        setIssues(Array.isArray(data?.issues) ? data.issues : []);
+        if (!Array.isArray(data?.issues)) throw new Error("Invalid issue list");
+        setIssues(data.issues);
       })
       .catch(() => {
-        setIssues([]);
+        if (!controller.signal.aborted) setLoadError(true);
       });
 
     return () => controller.abort();
-  }, []);
+  }, [loadAttempt]);
 
   // Filter & Sort logic
   const filteredIssues = useMemo(() => {
@@ -219,6 +225,15 @@ export default function IssuesPage() {
         </AnimatePresence>
 
         {/* Dynamic Map or Grid Render */}
+        {loadError ? (
+          <div role="alert" className="rounded-3xl border border-slate-900/10 bg-white/90 px-6 py-10 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/70">
+            <p className="text-lg font-semibold">Issues could not load right now.</p>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Please try again in a moment.</p>
+            <Button variant="outline" className="mt-5 h-11 rounded-full" onClick={() => { setLoadError(false); setLoadAttempt((attempt) => attempt + 1); }}>
+              Try again
+            </Button>
+          </div>
+        ) : (
         <AnimatePresence mode="wait">
           {viewMode === "map" ? (
             <motion.div
@@ -324,6 +339,7 @@ export default function IssuesPage() {
             </motion.div>
           )}
         </AnimatePresence>
+        )}
 
         {/* Raise Issue Callout */}
         <div className="rounded-3xl border border-slate-900/10 bg-white/70 p-8 shadow-xl dark:border-white/10 dark:bg-slate-900/30 flex flex-col md:flex-row md:items-center md:justify-between gap-6">

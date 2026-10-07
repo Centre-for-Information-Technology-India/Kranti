@@ -234,6 +234,6 @@ export async function GET() {
     return NextResponse.json({ ok: true, issues });
   } catch (error) {
     console.error("Failed to list issues from Appwrite:", error);
-    return NextResponse.json({ ok: true, issues: [] });
+    return NextResponse.json({ ok: false, error: "Issues are temporarily unavailable. Please try again." }, { status: 503 });
   }
 }
