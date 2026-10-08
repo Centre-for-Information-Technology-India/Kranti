@@ -18,10 +18,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   const { slug } = await params;
 
   try {
-    const [petitionsResponse, evidenceResponse, usersResponse] = await Promise.all([
-      listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]),
-      listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, []),
-      listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, []),
+    const petitionsResponse = await listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [
+      Query.equal("slug", [slug]),
+      Query.limit(1),
     ]);
 
     const petitionDoc = ((petitionsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [])[0];
@@ -29,6 +28,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     if (!petitionDoc) {
       return NextResponse.json({ error: "Petition not found" }, { status: 404 });
     }
+
+    const [evidenceResponse, usersResponse] = await Promise.all([
+      listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [
+        Query.equal("issue_id", [String(petitionDoc.$id)]),
+        Query.limit(100),
+      ]),
+      listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, []),
+    ]);
 
     const users = ((usersResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).reduce<Record<string, Record<string, unknown>>>((acc, doc) => {
       const clerkId = String(doc.clerk_id ?? doc.clerkUserId ?? doc.$id ?? "");
