@@ -1,5 +1,12 @@
 type AppwriteJson = Record<string, unknown>;
 
+export class AppwriteRequestError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = "AppwriteRequestError";
+  }
+}
+
 const appwriteEndpoint = process.env.APPWRITE_ENDPOINT ?? "https://citorg.in/v1";
 const appwriteProjectId = process.env.APPWRITE_PROJECT_ID ?? "kranti";
 const appwriteApiKey = process.env.APPWRITE_API_KEY;
@@ -43,7 +50,7 @@ async function appwriteRequest(path: string, init: RequestInit = {}) {
   if (!response.ok) {
     const message =
       typeof body === "object" && body && "message" in body ? String((body as { message?: unknown }).message) : response.statusText;
-    throw new Error(message || `Appwrite request failed (${response.status})`);
+    throw new AppwriteRequestError(message || `Appwrite request failed (${response.status})`, response.status);
   }
 
   return body;
