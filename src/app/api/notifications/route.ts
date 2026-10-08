@@ -11,7 +11,11 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const requestedLimit = searchParams.get("limit");
+    const limit = requestedLimit === null ? 50 : Number(requestedLimit);
+    if (requestedLimit !== null && (!/^\d+$/.test(requestedLimit) || !Number.isSafeInteger(limit) || limit < 1)) {
+      return NextResponse.json({ error: "Invalid notification limit" }, { status: 400 });
+    }
 
     const notifications = await getUserNotifications(userId, limit);
 
