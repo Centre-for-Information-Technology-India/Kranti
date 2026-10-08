@@ -8,6 +8,7 @@ import {
   appwriteEvidenceCollectionId,
   appwriteUsersCollectionId,
   listDocuments,
+  Query,
 } from "@/lib/appwrite";
 
 export const runtime = "nodejs";
@@ -18,7 +19,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
   try {
     const [petitionsResponse, evidenceResponse, usersResponse] = await Promise.all([
-      listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [`equal("slug", ["${slug}"])`, "limit(1)"]),
+      listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]),
       listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, []),
       listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, []),
     ]);
@@ -80,8 +81,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     let hasSigned = false;
     if (userId) {
       const signaturesResponse = await listDocuments(appwriteDatabaseId, appwriteSignaturesCollectionId, [
-        `equal("petition_id", ["${petition.$id}"])`,
-        `equal("user_id", ["${userId}"])`,
+        Query.equal("petition_id", [String(petition.$id)]),
+        Query.equal("user_id", [userId]),
+        Query.limit(1),
       ]);
       hasSigned = ((signaturesResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).length > 0;
     }
