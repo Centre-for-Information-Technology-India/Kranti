@@ -11,6 +11,7 @@ import {
 } from "@/lib/appwrite";
 import { notifyNewSignature } from "@/lib/notifications";
 import { updateSignatureCountAfterSave } from "@/lib/petition-signature-count";
+import { isExistingSignature, signatureDocumentId } from "@/lib/petition-signature";
 
 export const runtime = "nodejs";
 
@@ -45,16 +46,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     ]);
 
     if (((existingSignatures as { documents?: Array<Record<string, unknown>> }).documents ?? []).length > 0) {
-      return NextResponse.json({ error: "You have already signed this petition" }, { status: 400 });
+      return NextResponse.json({ ok: true, alreadySigned: true, countUpdated: false });
     }
 
-    const signatureId = `signature${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
+    const signatureId = signatureDocumentId(petitionId, userId);
 
-    await createDocument(appwriteDatabaseId, appwriteSignaturesCollectionId, signatureId, {
-      petition_id: petitionId,
-      user_id: userId,
-      created_at: new Date().toISOString(),
-    });
+    try {
+      await createDocument(appwriteDatabaseId, appwriteSignaturesCollectionId, signatureId, {
+        petition_id: petitionId,
+        user_id: userId,
+        created_at: new Date().toISOString(),
+      });
+    } catch (error) {
+      // Another request can save the same signature after the lookup above.
+      if (isExistingSignature(error)) {
+        return NextResponse.json({ ok: true, alreadySigned: true, countUpdated: false });
+      }
+      throw error;
+    }
 
     const currentCount = Number(petitionDoc.signature_count ?? petitionDoc.signatureCount ?? 0);
     const countUpdated = await updateSignatureCountAfterSave(
