@@ -589,7 +589,13 @@
     "maintainedBy": "and Maintained by",
     "contributors": "OS Contributors",
     "copyright": "© {year} Kranti. All rights reserved.",
-    "license": "Open source under MIT"
+    "license": "Open source under MIT",
+    "grievance": {
+      "title": "Grievance Officer",
+      "required": "For complaints and appeals",
+      "name": "Koshik Sharma",
+      "acknowledged": "Send your concern by email."
+    }
   },
   "errors": {
     "generic": "Something went wrong",
