@@ -6,8 +6,9 @@ import {
   appwriteIssuesCollectionId,
   appwriteSupportsCollectionId,
   createDocument,
+  incrementDocumentAttribute,
   listDocuments,
-  updateDocument,
+  Query,
 } from "@/lib/appwrite";
 import { notifyNewSupport } from "@/lib/notifications";
 
@@ -27,7 +28,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ slug: str
   const user = await currentUser();
   const { slug } = await params;
 
-  const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [`equal("slug", ["${slug}"])`, "limit(1)"]);
+  const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]);
   const issue = (issueQuery as { documents?: Array<{ $id: string; supporter_count?: number; title?: string; created_by?: string }> }).documents?.[0];
 
   if (!issue) {
@@ -49,12 +50,18 @@ export async function POST(_: Request, { params }: { params: Promise<{ slug: str
     throw error;
   });
 
-  const nextSupportCount = supportDoc ? (issue.supporter_count ?? 0) + 1 : issue.supporter_count ?? 0;
+  let supportCount = issue.supporter_count ?? 0;
+  let countUpdated = false;
 
   if (supportDoc) {
-    await updateDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issue.$id, {
-      supporter_count: nextSupportCount,
-    });
+    try {
+      const updatedIssue = await incrementDocumentAttribute(appwriteDatabaseId, appwriteIssuesCollectionId, issue.$id, "supporter_count") as { supporter_count?: number };
+      supportCount = updatedIssue.supporter_count ?? supportCount + 1;
+      countUpdated = true;
+    } catch (error) {
+      // The support is already saved. Keep the response successful so a retry cannot mislead the citizen.
+      console.error("Issue support saved but count update failed:", error);
+    }
 
     // Send notification to issue creator
     if (issue.created_by && issue.created_by !== userId) {
@@ -72,5 +79,5 @@ export async function POST(_: Request, { params }: { params: Promise<{ slug: str
     }
   }
 
-  return NextResponse.json({ ok: true, supportCount: nextSupportCount, alreadySupported: !supportDoc });
+  return NextResponse.json({ ok: true, supportCount, countUpdated, alreadySupported: !supportDoc });
 }
