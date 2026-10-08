@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unable to load Clerk user" }, { status: 400 });
   }
 
-  const body = (await request.json()) as {
+  let body: {
     payload?: unknown;
     evidence?: Array<{
       fileId: string;
@@ -48,9 +48,18 @@ export async function POST(request: Request) {
       publicUrl?: string;
     }>;
   };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-  const submission = petitionSubmissionSchema.parse(body.payload);
-  const evidenceFiles = Array.isArray(body.evidence) ? body.evidence : [];
+  const parsed = petitionSubmissionSchema.safeParse(body?.payload);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Please check the petition details and try again." }, { status: 400 });
+  }
+  const submission = parsed.data;
+  const evidenceFiles = Array.isArray(body?.evidence) ? body.evidence : [];
 
   const petitionId = `petition${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
   const petitionSlug = buildPetitionSlug(submission.title);
