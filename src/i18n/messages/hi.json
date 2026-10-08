@@ -589,7 +589,13 @@
     "maintainedBy": "तथा रखरखाव",
     "contributors": "OS Contributors द्वारा",
     "copyright": "© {year} क्रांति। सर्वाधिकार सुरक्षित।",
-    "license": "MIT के तहत ओपन सोर्स"
+    "license": "MIT के तहत ओपन सोर्स",
+    "grievance": {
+      "title": "शिकायत अधिकारी",
+      "required": "शिकायतों और अपीलों के लिए",
+      "name": "कोशिक शर्मा",
+      "acknowledged": "अपनी बात ईमेल से भेजें।"
+    }
   },
   "errors": {
     "generic": "कुछ गलत हो गया",
