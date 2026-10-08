@@ -6,8 +6,8 @@ import {
   appwritePetitionsCollectionId,
   appwriteSignaturesCollectionId,
   createDocument,
+  incrementDocumentAttribute,
   listDocuments,
-  updateDocument,
 } from "@/lib/appwrite";
 import { notifyNewSignature } from "@/lib/notifications";
 import { updateSignatureCountAfterSave } from "@/lib/petition-signature-count";
@@ -65,11 +65,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       throw error;
     }
 
-    const currentCount = Number(petitionDoc.signature_count ?? petitionDoc.signatureCount ?? 0);
     const countUpdated = await updateSignatureCountAfterSave(
-      () => updateDocument(appwriteDatabaseId, appwritePetitionsCollectionId, petitionId, {
-        signature_count: currentCount + 1,
-      }),
+      () => incrementDocumentAttribute(appwriteDatabaseId, appwritePetitionsCollectionId, petitionId, "signature_count"),
       (error) => console.error("Petition signature saved but count update failed:", error),
     );
 

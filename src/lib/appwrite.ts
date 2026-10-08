@@ -72,6 +72,14 @@ export async function updateDocument(databaseId: string, collectionId: string, d
   });
 }
 
+export async function incrementDocumentAttribute(databaseId: string, collectionId: string, documentId: string, attribute: string) {
+  return appwriteRequest(`/databases/${encodeURIComponent(databaseId)}/collections/${encodeURIComponent(collectionId)}/documents/${encodeURIComponent(documentId)}/${encodeURIComponent(attribute)}/increment`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ value: 1 }),
+  });
+}
+
 export async function upsertDocument(databaseId: string, collectionId: string, documentId: string, data: AppwriteJson) {
   try {
     return await createDocument(databaseId, collectionId, documentId, data);
