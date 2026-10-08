@@ -2,21 +2,20 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import {
+  AppwriteRequestError,
   appwriteDatabaseId,
   appwriteIssuesCollectionId,
   appwriteSupportsCollectionId,
   createDocument,
+  getDocument,
   incrementDocumentAttribute,
   listDocuments,
   Query,
 } from "@/lib/appwrite";
 import { notifyNewSupport } from "@/lib/notifications";
+import { belongsToSupporter, legacySupportDocumentId, supportDocumentId } from "@/lib/support-id";
 
 export const runtime = "nodejs";
-
-function supportDocumentId(issueId: string, userId: string) {
-  return `support-${issueId}-${userId}`.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 36);
-}
 
 export async function POST(_: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { userId } = await auth();
@@ -35,6 +34,18 @@ export async function POST(_: Request, { params }: { params: Promise<{ slug: str
     return NextResponse.json({ error: "Issue not found" }, { status: 404 });
   }
 
+  const legacyId = legacySupportDocumentId(issue.$id, userId);
+  let legacySupport: Record<string, unknown> | null = null;
+  try {
+    legacySupport = await getDocument(appwriteDatabaseId, appwriteSupportsCollectionId, legacyId) as Record<string, unknown>;
+  } catch (error) {
+    if (!(error instanceof AppwriteRequestError) || error.status !== 404) throw error;
+  }
+
+  if (legacySupport && belongsToSupporter(legacySupport, issue.$id, userId)) {
+    return NextResponse.json({ ok: true, supportCount: issue.supporter_count ?? 0, countUpdated: false, alreadySupported: true });
+  }
+
   const supportId = supportDocumentId(issue.$id, userId);
   const supportPayload = {
     issue_id: issue.$id,
@@ -43,11 +54,11 @@ export async function POST(_: Request, { params }: { params: Promise<{ slug: str
     note: null,
   };
 
-  const supportDoc = await createDocument(appwriteDatabaseId, appwriteSupportsCollectionId, supportId, supportPayload).catch((error) => {
-    if (error instanceof Error && error.message.toLowerCase().includes("already exists")) {
-      return null;
-    }
-    throw error;
+  const supportDoc = await createDocument(appwriteDatabaseId, appwriteSupportsCollectionId, supportId, supportPayload).catch(async (error) => {
+    if (!(error instanceof AppwriteRequestError) || error.status !== 409) throw error;
+    const existing = await getDocument(appwriteDatabaseId, appwriteSupportsCollectionId, supportId) as Record<string, unknown>;
+    if (!belongsToSupporter(existing, issue.$id, userId)) throw error;
+    return null;
   });
 
   let supportCount = issue.supporter_count ?? 0;
