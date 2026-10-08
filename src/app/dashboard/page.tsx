@@ -26,6 +26,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { IssueRecord } from "@/lib/content-types";
 import type { NotificationRecord } from "@/lib/notifications";
 
+async function fetchNotifications(signal?: AbortSignal): Promise<NotificationRecord[]> {
+  const response = await fetch("/api/notifications", { signal });
+  if (!response.ok) throw new Error("Could not load alerts");
+  const data = await response.json();
+  if (!Array.isArray(data?.notifications)) throw new Error("Invalid alerts response");
+  return data.notifications;
+}
+
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
@@ -33,6 +41,17 @@ export default function DashboardPage() {
   const [raisedIssues, setRaisedIssues] = useState<IssueRecord[]>([]);
   const [supportedIssues, setSupportedIssues] = useState<IssueRecord[]>([]);
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
+  const [notificationsError, setNotificationsError] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+
+  function retryNotifications() {
+    setNotificationsLoading(true);
+    setNotificationsError(false);
+    void fetchNotifications()
+      .then(setNotifications)
+      .catch(() => setNotificationsError(true))
+      .finally(() => setNotificationsLoading(false));
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -48,14 +67,13 @@ export default function DashboardPage() {
         setSupportedIssues([]);
       });
 
-    // Fetch notifications
-    fetch("/api/notifications", { signal: controller.signal })
-      .then((response) => response.json())
-      .then((data) => {
-        setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
-      })
+    void fetchNotifications(controller.signal)
+      .then(setNotifications)
       .catch(() => {
-        setNotifications([]);
+        if (!controller.signal.aborted) setNotificationsError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setNotificationsLoading(false);
       });
 
     return () => controller.abort();
@@ -152,7 +170,7 @@ export default function DashboardPage() {
               Welcome back, {user?.firstName || "Aarav"}
             </h1>
             <p className="max-w-2xl text-base text-slate-600 dark:text-slate-350">
-              Track issues you've raised, monitor ongoing petitions you support, and review moderation notices.
+              Track issues you&apos;ve raised, monitor ongoing petitions you support, and review moderation notices.
             </p>
           </div>
           <Button 
@@ -198,14 +216,14 @@ export default function DashboardPage() {
           <div className="space-y-4">
             {/* Tabs selector */}
             <div className="flex border-b border-slate-900/5 dark:border-white/5 pb-2 gap-4">
-              {[
+              {([
                 { id: "raised", label: "My Raised Issues", count: raisedIssues.length, icon: FileText },
                 { id: "supported", label: "Backed Petitions", count: supportedIssues.length, icon: Heart },
-                { id: "alerts", label: "Moderation Alerts", count: notifications.filter(n => !n.read).length, icon: Bell }
-              ].map((tab) => (
+                { id: "alerts", label: "Moderation Alerts", count: notificationsError ? "!" : notificationsLoading ? "…" : notifications.filter(n => !n.read).length, icon: Bell }
+              ] as const).map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id)}
                   className={`relative pb-2.5 text-sm font-semibold transition-all flex items-center gap-2 ${
                     activeTab === tab.id
                       ? "text-slate-950 dark:text-white"
@@ -319,7 +337,18 @@ export default function DashboardPage() {
                     exit={{ opacity: 0, y: 5 }}
                     className="space-y-3"
                   >
-                    {notifications.length > 0 ? (
+                    {notificationsLoading ? (
+                      <div className="py-10 text-center text-sm text-slate-500" role="status">
+                        Loading alerts...
+                      </div>
+                    ) : notificationsError ? (
+                      <div className="rounded-2xl border border-slate-900/10 bg-white/70 p-5 dark:border-white/10 dark:bg-slate-900/40" role="alert">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">Alerts could not load.</p>
+                        <Button variant="outline" className="mt-3 min-h-11 rounded-full" onClick={retryNotifications}>
+                          Try again
+                        </Button>
+                      </div>
+                    ) : notifications.length > 0 ? (
                       <>
                         {notifications.filter(n => !n.read).length > 0 && (
                           <div className="flex justify-end">
