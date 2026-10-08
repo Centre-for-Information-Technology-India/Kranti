@@ -43,6 +43,22 @@ test("notification reads send structured, user-scoped Appwrite queries", async (
   }
 });
 
+test("notification read failures remain failures instead of empty alerts", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+  const { getUserNotifications } = await import("./notifications");
+
+  try {
+    globalThis.fetch = async () => Response.json({ message: "synthetic service failure" }, { status: 503 });
+    await assert.rejects(getUserNotifications("synthetic_user"), /synthetic service failure/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});
+
 test("notification mutations enforce ownership and surface storage failures", async () => {
   const originalFetch = globalThis.fetch;
   const { markNotificationAsRead, markAllNotificationsAsRead } = await import("./notifications");

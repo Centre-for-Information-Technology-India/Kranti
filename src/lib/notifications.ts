@@ -47,27 +47,22 @@ export async function createNotification(data: NotificationData): Promise<void> 
 }
 
 export async function getUserNotifications(userId: string, limit = 50): Promise<NotificationRecord[]> {
-  try {
-    const response = await listDocuments(appwriteDatabaseId, appwriteNotificationsCollectionId, [
-      Query.equal("user_id", [userId]),
-      Query.orderDesc("created_at"),
-      Query.limit(limit),
-    ]);
+  const response = await listDocuments(appwriteDatabaseId, appwriteNotificationsCollectionId, [
+    Query.equal("user_id", [userId]),
+    Query.orderDesc("created_at"),
+    Query.limit(limit),
+  ]);
 
-    return response.documents.map((doc: Record<string, unknown>) => ({
-      $id: doc.$id as string,
-      user_id: doc.user_id as string,
-      type: doc.type as NotificationType,
-      title: doc.title as string,
-      message: doc.message as string,
-      link: doc.link as string | undefined,
-      read: doc.read as boolean,
-      created_at: doc.created_at as string,
-    }));
-  } catch (error) {
-    console.error("Failed to fetch notifications:", error);
-    return [];
-  }
+  return response.documents.map((doc: Record<string, unknown>) => ({
+    $id: doc.$id as string,
+    user_id: doc.user_id as string,
+    type: doc.type as NotificationType,
+    title: doc.title as string,
+    message: doc.message as string,
+    link: doc.link as string | undefined,
+    read: doc.read as boolean,
+    created_at: doc.created_at as string,
+  }));
 }
 
 export async function markNotificationAsRead(notificationId: string, userId: string): Promise<boolean> {
