@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Users, Calendar, MapPin, Filter, Loader2 } from "lucide-react";
@@ -20,34 +20,37 @@ const statusColors = {
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
-  const [filteredCampaigns, setFilteredCampaigns] = useState<CampaignRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [stateFilter, setStateFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
-    fetchCampaigns();
-  }, []);
+    const controller = new AbortController();
 
-  useEffect(() => {
-    applyFilters();
-  }, [campaigns, categoryFilter, stateFilter, statusFilter]);
+    fetch("/api/campaigns", { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Campaign list unavailable");
+        return response.json();
+      })
+      .then((data) => {
+        if (!Array.isArray(data?.campaigns)) throw new Error("Invalid campaign list");
+        setCampaigns(data.campaigns);
+        setLoadError(false);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setLoadError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoading(false);
+      });
 
-  const fetchCampaigns = async () => {
-    try {
-      const response = await fetch("/api/campaigns");
-      if (!response.ok) throw new Error("Failed to fetch campaigns");
-      const data = await response.json();
-      setCampaigns(data.campaigns || []);
-    } catch (error) {
-      console.error("Error fetching campaigns:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    return () => controller.abort();
+  }, [loadAttempt]);
 
-  const applyFilters = () => {
+  const filteredCampaigns = useMemo(() => {
     let filtered = [...campaigns];
 
     if (categoryFilter !== "all") {
@@ -62,8 +65,8 @@ export default function CampaignsPage() {
       filtered = filtered.filter((c) => c.status === statusFilter);
     }
 
-    setFilteredCampaigns(filtered);
-  };
+    return filtered;
+  }, [campaigns, categoryFilter, stateFilter, statusFilter]);
 
   const resetFilters = () => {
     setCategoryFilter("all");
@@ -148,7 +151,15 @@ export default function CampaignsPage() {
           </CardContent>
         </Card>
 
-        {filteredCampaigns.length === 0 ? (
+        {loadError ? (
+          <div role="alert" className="rounded-3xl border border-slate-900/10 bg-white/90 px-6 py-10 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/70">
+            <p className="text-lg font-semibold">Campaigns could not load right now.</p>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Please try again in a moment.</p>
+            <Button variant="outline" className="mt-5 h-11 rounded-full" onClick={() => { setIsLoading(true); setLoadError(false); setLoadAttempt((attempt) => attempt + 1); }}>
+              Try again
+            </Button>
+          </div>
+        ) : filteredCampaigns.length === 0 ? (
           <Card className="border-slate-900/10 bg-white/85 dark:border-white/10 dark:bg-white/5">
             <CardContent className="py-12 text-center">
               <p className="text-slate-600 dark:text-slate-300">
