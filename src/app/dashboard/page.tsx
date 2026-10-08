@@ -34,12 +34,24 @@ async function fetchNotifications(signal?: AbortSignal): Promise<NotificationRec
   return data.notifications;
 }
 
+async function fetchDashboard(signal?: AbortSignal): Promise<{ raisedIssues: IssueRecord[]; supportedIssues: IssueRecord[] }> {
+  const response = await fetch("/api/dashboard", { signal });
+  if (!response.ok) throw new Error("Could not load cases");
+  const data = await response.json();
+  if (!Array.isArray(data?.raisedIssues) || !Array.isArray(data?.supportedIssues)) {
+    throw new Error("Invalid cases response");
+  }
+  return { raisedIssues: data.raisedIssues, supportedIssues: data.supportedIssues };
+}
+
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"raised" | "supported" | "alerts">("raised");
   const [raisedIssues, setRaisedIssues] = useState<IssueRecord[]>([]);
   const [supportedIssues, setSupportedIssues] = useState<IssueRecord[]>([]);
+  const [casesError, setCasesError] = useState(false);
+  const [casesLoading, setCasesLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [notificationsError, setNotificationsError] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
@@ -53,18 +65,31 @@ export default function DashboardPage() {
       .finally(() => setNotificationsLoading(false));
   }
 
+  function retryCases() {
+    setCasesLoading(true);
+    setCasesError(false);
+    void fetchDashboard()
+      .then(({ raisedIssues, supportedIssues }) => {
+        setRaisedIssues(raisedIssues);
+        setSupportedIssues(supportedIssues);
+      })
+      .catch(() => setCasesError(true))
+      .finally(() => setCasesLoading(false));
+  }
+
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch("/api/dashboard", { signal: controller.signal })
-      .then((response) => response.json())
-      .then((data) => {
-        setRaisedIssues(Array.isArray(data?.raisedIssues) ? data.raisedIssues : []);
-        setSupportedIssues(Array.isArray(data?.supportedIssues) ? data.supportedIssues : []);
+    void fetchDashboard(controller.signal)
+      .then(({ raisedIssues, supportedIssues }) => {
+        setRaisedIssues(raisedIssues);
+        setSupportedIssues(supportedIssues);
       })
       .catch(() => {
-        setRaisedIssues([]);
-        setSupportedIssues([]);
+        if (!controller.signal.aborted) setCasesError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCasesLoading(false);
       });
 
     void fetchNotifications(controller.signal)
@@ -217,8 +242,8 @@ export default function DashboardPage() {
             {/* Tabs selector */}
             <div className="flex border-b border-slate-900/5 dark:border-white/5 pb-2 gap-4">
               {([
-                { id: "raised", label: "My Raised Issues", count: raisedIssues.length, icon: FileText },
-                { id: "supported", label: "Backed Petitions", count: supportedIssues.length, icon: Heart },
+                { id: "raised", label: "My Raised Issues", count: casesError ? "!" : casesLoading ? "…" : raisedIssues.length, icon: FileText },
+                { id: "supported", label: "Backed Petitions", count: casesError ? "!" : casesLoading ? "…" : supportedIssues.length, icon: Heart },
                 { id: "alerts", label: "Moderation Alerts", count: notificationsError ? "!" : notificationsLoading ? "…" : notifications.filter(n => !n.read).length, icon: Bell }
               ] as const).map((tab) => (
                 <button
@@ -256,7 +281,14 @@ export default function DashboardPage() {
                     exit={{ opacity: 0, y: 5 }}
                     className="space-y-4"
                   >
-                    {raisedIssues.length > 0 ? (
+                    {casesLoading ? (
+                      <div className="py-10 text-center text-sm text-slate-500" role="status">Loading your cases...</div>
+                    ) : casesError ? (
+                      <div className="rounded-2xl border border-slate-900/10 bg-white/70 p-5 dark:border-white/10 dark:bg-slate-900/40" role="alert">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">Your cases could not load.</p>
+                        <Button variant="outline" className="mt-3 min-h-11 rounded-full" onClick={retryCases}>Try again</Button>
+                      </div>
+                    ) : raisedIssues.length > 0 ? (
                       raisedIssues.map((issue) => (
                         <div 
                           key={issue.$id}
@@ -295,7 +327,14 @@ export default function DashboardPage() {
                     exit={{ opacity: 0, y: 5 }}
                     className="space-y-4"
                   >
-                    {supportedIssues.length > 0 ? (
+                    {casesLoading ? (
+                      <div className="py-10 text-center text-sm text-slate-500" role="status">Loading backed cases...</div>
+                    ) : casesError ? (
+                      <div className="rounded-2xl border border-slate-900/10 bg-white/70 p-5 dark:border-white/10 dark:bg-slate-900/40" role="alert">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">Backed cases could not load.</p>
+                        <Button variant="outline" className="mt-3 min-h-11 rounded-full" onClick={retryCases}>Try again</Button>
+                      </div>
+                    ) : supportedIssues.length > 0 ? (
                       supportedIssues.map((issue) => (
                         <div 
                           key={issue.$id}
