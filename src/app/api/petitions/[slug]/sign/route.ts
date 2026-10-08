@@ -8,6 +8,7 @@ import {
   createDocument,
   incrementDocumentAttribute,
   listDocuments,
+  Query,
 } from "@/lib/appwrite";
 import { notifyNewSignature } from "@/lib/notifications";
 import { updateSignatureCountAfterSave } from "@/lib/petition-signature-count";
@@ -27,7 +28,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
   try {
     const petitionsResponse = await listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [
-      `equal("slug", ["${slug}"])`,
+      Query.equal("slug", [slug]),
+      Query.limit(1),
     ]);
 
     const petitionDoc = ((petitionsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [])[0];
@@ -41,8 +43,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     const createdBy = String(petitionDoc.created_by || "");
 
     const existingSignatures = await listDocuments(appwriteDatabaseId, appwriteSignaturesCollectionId, [
-      `equal("petition_id", ["${petitionId}"])`,
-      `equal("user_id", ["${userId}"])`,
+      Query.equal("petition_id", [petitionId]),
+      Query.equal("user_id", [userId]),
+      Query.limit(1),
     ]);
 
     if (((existingSignatures as { documents?: Array<Record<string, unknown>> }).documents ?? []).length > 0) {
