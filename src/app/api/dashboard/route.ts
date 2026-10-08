@@ -9,6 +9,7 @@ import {
   appwriteSignaturesCollectionId,
   appwriteUsersCollectionId,
   listDocuments,
+  Query,
 } from "@/lib/appwrite";
 
 export const runtime = "nodejs";
@@ -24,8 +25,8 @@ export async function GET() {
   const [issuesResponse, petitionsResponse, supportsResponse, signaturesResponse, usersResponse] = await Promise.all([
     listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, ["orderDesc(\"created_at\")"]),
     listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, ["orderDesc(\"created_at\")"]),
-    listDocuments(appwriteDatabaseId, appwriteSupportsCollectionId, [`equal("user_id", ["${userId}"])`]),
-    listDocuments(appwriteDatabaseId, appwriteSignaturesCollectionId, [`equal("user_id", ["${userId}"])`]),
+    listDocuments(appwriteDatabaseId, appwriteSupportsCollectionId, [Query.equal("user_id", [userId])]),
+    listDocuments(appwriteDatabaseId, appwriteSignaturesCollectionId, [Query.equal("user_id", [userId])]),
     listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, []),
   ]);
 
