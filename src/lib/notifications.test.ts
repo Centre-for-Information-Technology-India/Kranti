@@ -16,7 +16,7 @@ test("notification reads send structured, user-scoped Appwrite queries", async (
     assert.deepEqual(url.searchParams.getAll("queries[]").map((query) => JSON.parse(query)), [
       { method: "equal", attribute: "user_id", values: [userId] },
       { method: "orderDesc", attribute: "created_at" },
-      { method: "limit", values: [requests === 1 ? 50 : 10] },
+      { method: "limit", values: [[50, 10, 100, 1, 50][requests - 1]] },
     ]);
     return Response.json({ documents: [{
       $id: "synthetic_notification",
@@ -35,7 +35,10 @@ test("notification reads send structured, user-scoped Appwrite queries", async (
     assert.equal(notifications[0].user_id, userId);
     assert.equal(notifications[0].title, "Test alert");
     assert.equal((await getUserNotifications(userId, 10)).length, 1);
-    assert.equal(requests, 2);
+    assert.equal((await getUserNotifications(userId, 1000000)).length, 1);
+    assert.equal((await getUserNotifications(userId, -5)).length, 1);
+    assert.equal((await getUserNotifications(userId, Number.NaN)).length, 1);
+    assert.equal(requests, 5);
   } finally {
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
