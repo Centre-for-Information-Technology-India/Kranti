@@ -6,11 +6,11 @@ import {
   appwritePetitionsCollectionId,
   appwriteSignaturesCollectionId,
   createDocument,
-  getDocument,
   listDocuments,
   updateDocument,
 } from "@/lib/appwrite";
 import { notifyNewSignature } from "@/lib/notifications";
+import { updateSignatureCountAfterSave } from "@/lib/petition-signature-count";
 
 export const runtime = "nodejs";
 
@@ -57,9 +57,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     });
 
     const currentCount = Number(petitionDoc.signature_count ?? petitionDoc.signatureCount ?? 0);
-    await updateDocument(appwriteDatabaseId, appwritePetitionsCollectionId, petitionId, {
-      signature_count: currentCount + 1,
-    });
+    const countUpdated = await updateSignatureCountAfterSave(
+      () => updateDocument(appwriteDatabaseId, appwritePetitionsCollectionId, petitionId, {
+        signature_count: currentCount + 1,
+      }),
+      (error) => console.error("Petition signature saved but count update failed:", error),
+    );
 
     // Send notification to petition creator
     if (createdBy && createdBy !== userId) {
@@ -75,7 +78,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       );
     }
 
-    return NextResponse.json({ ok: true, message: "Petition signed successfully" });
+    return NextResponse.json({ ok: true, countUpdated, message: "Petition signed successfully" });
   } catch (error) {
     console.error("Failed to sign petition:", error);
     return NextResponse.json({ error: "Failed to sign petition" }, { status: 500 });

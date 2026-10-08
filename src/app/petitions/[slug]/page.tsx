@@ -90,7 +90,9 @@ export default function PetitionDetailPage() {
       }
 
       setHasSigned(true);
-      setPetition((prev) => prev ? { ...prev, signature_count: prev.signature_count + 1 } : null);
+      if (data.countUpdated !== false) {
+        setPetition((prev) => prev ? { ...prev, signature_count: prev.signature_count + 1 } : null);
+      }
     } catch (error) {
       setSignError(error instanceof Error ? error.message : "Failed to sign petition");
     } finally {
