@@ -16,7 +16,7 @@ export const runtime = "nodejs";
 export async function GET() {
   const { userId } = await auth();
   if (!userId) {
-    return NextResponse.json({ ok: true, raisedIssues: [], supportedIssues: [], raisedPetitions: [], signedPetitions: [], profile: null });
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
   const clerkUser = await currentUser();
