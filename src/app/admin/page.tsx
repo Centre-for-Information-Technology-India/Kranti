@@ -54,22 +54,33 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [accessDenied, setAccessDenied] = useState(false);
   const [roleChecked, setRoleChecked] = useState(false);
+  const [roleError, setRoleError] = useState(false);
+  const [roleCheckAttempt, setRoleCheckAttempt] = useState(0);
 
   // Client-side role guard
   useEffect(() => {
-    fetch("/api/auth/role")
-      .then((res) => res.json())
+    const controller = new AbortController();
+    fetch("/api/auth/role", { signal: controller.signal })
+      .then(async (res) => {
+        if (res.status === 401 || res.status === 403) return { role: "citizen" };
+        if (!res.ok) throw new Error("Role check failed");
+        return res.json();
+      })
       .then((data) => {
+        if (controller.signal.aborted) return;
         if (data.role !== "admin" && data.role !== "moderator") {
           setAccessDenied(true);
         }
+        setRoleError(false);
         setRoleChecked(true);
       })
       .catch(() => {
-        setAccessDenied(true);
+        if (controller.signal.aborted) return;
+        setRoleError(true);
         setRoleChecked(true);
       });
-  }, []);
+    return () => controller.abort();
+  }, [roleCheckAttempt]);
 
   // Derived Statistics
   const stats = useMemo(() => {
@@ -222,15 +233,16 @@ export default function AdminPage() {
     );
   }
 
-  if (accessDenied) {
+  if (roleError || accessDenied) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f4f1ea] dark:bg-slate-950">
         <div className="flex flex-col items-center gap-4 text-center max-w-sm">
           <ShieldAlert className="h-12 w-12 text-rose-500" />
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Access Denied</h2>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">{roleError ? "Role check unavailable" : "Access Denied"}</h2>
           <p className="text-sm text-slate-500">
-            Your account does not have moderator or admin privileges. Contact the platform administrator to request access.
+            {roleError ? "We could not check your access. Please try again." : "Your account does not have moderator or admin privileges. Contact the platform administrator to request access."}
           </p>
+          {roleError && <Button onClick={() => { setRoleChecked(false); setRoleCheckAttempt((attempt) => attempt + 1); }}>Try again</Button>}
         </div>
       </div>
     );
@@ -312,7 +324,7 @@ export default function AdminPage() {
                 ].map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setStatusFilter(tab.id as any)}
+                    onClick={() => setStatusFilter(tab.id as typeof statusFilter)}
                     className={`flex-1 text-[11px] font-semibold py-1.5 px-2.5 rounded-xl transition-all ${
                       statusFilter === tab.id
                         ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-white"
