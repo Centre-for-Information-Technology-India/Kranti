@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listDocuments, appwriteDatabaseId, appwriteCampaignsCollectionId } from "@/lib/appwrite";
+import { listDocuments, appwriteDatabaseId, appwriteCampaignsCollectionId, Query } from "@/lib/appwrite";
 
 export async function GET(
   request: NextRequest,
@@ -9,8 +9,8 @@ export async function GET(
     const { slug } = await context.params;
 
     const response = await listDocuments(appwriteDatabaseId, appwriteCampaignsCollectionId, [
-      `equal("slug", ["${slug}"])`,
-      `limit(1)`,
+      Query.equal("slug", [slug]),
+      Query.limit(1),
     ]);
 
     if (!(response as { documents?: Array<Record<string, unknown>> }).documents || ((response as { documents?: Array<Record<string, unknown>> }).documents ?? []).length === 0) {
