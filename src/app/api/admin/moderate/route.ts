@@ -39,16 +39,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden: insufficient role" }, { status: 403 });
   }
 
-  const body = (await request.json()) as {
+  let body: {
     issueId?: string;
     action?: string;
     reason?: string;
   };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-  const { issueId, action, reason } = body;
+  const { issueId, action, reason } = body ?? {};
 
-  if (!issueId || !action) {
+  if (typeof issueId !== "string" || !issueId.trim() || typeof action !== "string" || !action) {
     return NextResponse.json({ error: "issueId and action are required" }, { status: 400 });
+  }
+
+  if (reason !== undefined && typeof reason !== "string") {
+    return NextResponse.json({ error: "Invalid reason" }, { status: 400 });
   }
 
   const validActions: ModerationAction[] = ["approve", "reject", "escalate", "resolve"];
