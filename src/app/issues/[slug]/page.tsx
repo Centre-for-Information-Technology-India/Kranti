@@ -133,18 +133,27 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
   let commentsResponse: unknown = { documents: [] };
 
   try {
-    const [issueResponse, evidenceResponse, usersResponse, commentsData] = await Promise.all([
-      listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]),
-      listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, []),
-      listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, []),
-      listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, []),
+    const issueResponse = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [
+      Query.equal("slug", [slug]),
+      Query.limit(1),
     ]);
-    commentsResponse = commentsData;
-
     const doc = (issueResponse as { documents?: Array<Record<string, unknown>> }).documents?.[0];
     if (doc) {
       const creatorId = String(doc.created_by ?? doc.createdBy ?? "");
-      const creatorRow = ((usersResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).find((userDocument) => {
+      const issueId = String(doc.$id ?? "");
+      const [evidenceResponse, commentsData, creatorResponses] = await Promise.all([
+        listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [Query.equal("issue_id", [issueId]), Query.limit(100)]),
+        listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, [Query.equal("issue_id", [issueId]), Query.limit(100)]),
+        creatorId
+          ? Promise.all(["clerk_id", "$id"].map((field) =>
+              listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, [creatorId]), Query.limit(1)])
+            ))
+          : Promise.resolve([]),
+      ]);
+      commentsResponse = commentsData;
+      const creatorRow = creatorResponses.flatMap((response) =>
+        (response as { documents?: Array<Record<string, unknown>> }).documents ?? []
+      ).find((userDocument) => {
         return String(userDocument.clerk_id ?? userDocument.clerkUserId ?? userDocument.$id ?? "") === creatorId;
       });
 
