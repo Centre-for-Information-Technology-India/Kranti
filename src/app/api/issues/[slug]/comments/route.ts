@@ -42,8 +42,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
   const user = await currentUser();
   const { slug } = await params;
-  const payload = (await request.json()) as { content?: string; language?: string };
-  const content = payload.content?.trim();
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return NextResponse.json({ error: "Invalid comment details" }, { status: 400 });
+  }
+
+  const details = payload as Record<string, unknown>;
+  if (typeof details.content !== "string" || (details.language !== undefined && typeof details.language !== "string")) {
+    return NextResponse.json({ error: "Invalid comment details" }, { status: 400 });
+  }
+  const content = details.content.trim();
 
   if (!content) {
     return NextResponse.json({ error: "Comment content is required" }, { status: 400 });
@@ -64,7 +78,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     avatar_url: user?.imageUrl ?? null,
     content,
     status: "approved",
-    language: payload.language ?? "en",
+    language: details.language ?? "en",
     created_at: new Date().toISOString(),
   });
 
