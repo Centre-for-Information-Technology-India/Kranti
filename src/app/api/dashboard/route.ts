@@ -22,15 +22,27 @@ export async function GET() {
 
   const clerkUser = await currentUser();
 
-  const [issuesResponse, petitionsResponse, supportsResponse, signaturesResponse, usersResponse] = await Promise.all([
+  const [issuesResponse, petitionsResponse, supportsResponse, signaturesResponse] = await Promise.all([
     listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, ["orderDesc(\"created_at\")"]),
     listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, ["orderDesc(\"created_at\")"]),
     listDocuments(appwriteDatabaseId, appwriteSupportsCollectionId, [Query.equal("user_id", [userId])]),
     listDocuments(appwriteDatabaseId, appwriteSignaturesCollectionId, [Query.equal("user_id", [userId])]),
-    listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, []),
   ]);
 
-  const users = ((usersResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).reduce<Record<string, Record<string, unknown>>>((accumulator, document) => {
+  // Fetch only the profiles needed for the cases on this dashboard page.
+  const issueDocuments = (issuesResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+  const petitionDocuments = (petitionsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+  const creatorIds = [...new Set([...issueDocuments, ...petitionDocuments]
+    .map((document) => String(document.created_by ?? document.createdBy ?? ""))
+    .filter(Boolean))];
+  const userResults = await Promise.all(Array.from({ length: Math.ceil(creatorIds.length / 50) }, (_, index) => {
+    const ids = creatorIds.slice(index * 50, (index + 1) * 50);
+    return Promise.all(["clerk_id", "$id"].map((field) =>
+      listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, ids), Query.limit(50)])
+    ));
+  }));
+
+  const users = userResults.flatMap((batch) => batch.flatMap((result) => (result as { documents?: Array<Record<string, unknown>> }).documents ?? [])).reduce<Record<string, Record<string, unknown>>>((accumulator, document) => {
     const clerkId = String(document.clerk_id ?? document.clerkUserId ?? document.$id ?? "");
     if (clerkId) {
       accumulator[clerkId] = document;
