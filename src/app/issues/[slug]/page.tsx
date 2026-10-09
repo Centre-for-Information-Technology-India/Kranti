@@ -29,6 +29,7 @@ import {
   appwriteUsersCollectionId,
   appwriteIssuesCollectionId,
   listDocuments,
+  Query,
 } from "@/lib/appwrite";
 import { IssueRecord } from "@/lib/content-types";
 import type { Metadata } from "next";
@@ -62,8 +63,8 @@ const statusSteps = [
 async function fetchIssueBySlug(slug: string): Promise<Record<string, unknown> | null> {
   try {
     const res = (await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [
-      `equal("slug", ["${slug}"])`,
-      "limit(1)",
+      Query.equal("slug", [slug]),
+      Query.limit(1),
     ])) as { documents?: Array<Record<string, unknown>> };
     return res.documents?.[0] || null;
   } catch {
@@ -133,7 +134,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
 
   try {
     const [issueResponse, evidenceResponse, usersResponse, commentsData] = await Promise.all([
-      listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [`equal("slug", ["${slug}"])`, "limit(1)"]),
+      listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]),
       listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, []),
       listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, []),
       listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, []),
