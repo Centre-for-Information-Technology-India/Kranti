@@ -48,17 +48,20 @@ export async function POST(request: Request) {
         mimeType: string;
         publicUrl?: string;
       }>;
-    } = {};
+    };
 
     try {
       body = (await request.json()) as typeof body;
-    } catch (error) {
-      console.error("Invalid JSON body for issue submission:", error);
+    } catch {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const submission = issueSubmissionSchema.parse(body.payload);
-    const evidenceFiles = Array.isArray(body.evidence) ? body.evidence : [];
+    const parsed = issueSubmissionSchema.safeParse(body?.payload);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Please check the issue details and try again." }, { status: 400 });
+    }
+    const submission = parsed.data;
+    const evidenceFiles = Array.isArray(body?.evidence) ? body.evidence : [];
 
     const issueId = `issue${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
     const issueSlug = buildIssueSlug(submission.title);
