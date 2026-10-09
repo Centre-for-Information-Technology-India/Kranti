@@ -11,6 +11,7 @@ import {
   listDocuments,
   Query,
 } from "@/lib/appwrite";
+import { dashboardCasesForUser } from "@/lib/dashboard-cases";
 
 export const runtime = "nodejs";
 
@@ -22,16 +23,12 @@ export async function GET() {
 
   const clerkUser = await currentUser();
 
-  const [issuesResponse, petitionsResponse, supportsResponse, signaturesResponse] = await Promise.all([
-    listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, ["orderDesc(\"created_at\")"]),
-    listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, ["orderDesc(\"created_at\")"]),
-    listDocuments(appwriteDatabaseId, appwriteSupportsCollectionId, [Query.equal("user_id", [userId])]),
-    listDocuments(appwriteDatabaseId, appwriteSignaturesCollectionId, [Query.equal("user_id", [userId])]),
+  const [issueDocuments, petitionDocuments] = await Promise.all([
+    dashboardCasesForUser(appwriteIssuesCollectionId, appwriteSupportsCollectionId, "issue_id", userId),
+    dashboardCasesForUser(appwritePetitionsCollectionId, appwriteSignaturesCollectionId, "petition_id", userId),
   ]);
 
   // Fetch only the profiles needed for the cases on this dashboard page.
-  const issueDocuments = (issuesResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
-  const petitionDocuments = (petitionsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
   const creatorIds = [...new Set([...issueDocuments, ...petitionDocuments]
     .map((document) => String(document.created_by ?? document.createdBy ?? ""))
     .filter(Boolean))];
@@ -50,7 +47,7 @@ export async function GET() {
     return accumulator;
   }, {});
 
-  const issues = ((issuesResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).map((document) => {
+  const issues = issueDocuments.map((document) => {
     const creator = users[String(document.created_by ?? document.createdBy ?? "")];
 
     return {
@@ -73,7 +70,7 @@ export async function GET() {
     };
   });
 
-  const petitions = ((petitionsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).map((document) => {
+  const petitions = petitionDocuments.map((document) => {
     const creator = users[String(document.created_by ?? document.createdBy ?? "")];
 
     return {
@@ -100,13 +97,10 @@ export async function GET() {
     };
   });
 
-  const supportedIssueIds = new Set<string>(((supportsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).map((supportDocument) => String(supportDocument.issue_id ?? "")).filter(Boolean));
-  const signedPetitionIds = new Set<string>(((signaturesResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).map((signatureDocument) => String(signatureDocument.petition_id ?? "")).filter(Boolean));
-
   const raisedIssues = issues.filter((issue) => issue.created_by === userId);
-  const supportedIssues = issues.filter((issue) => supportedIssueIds.has(issue.$id) && issue.created_by !== userId);
+  const supportedIssues = issues.filter((issue) => issue.created_by !== userId);
   const raisedPetitions = petitions.filter((petition) => petition.created_by === userId);
-  const signedPetitions = petitions.filter((petition) => signedPetitionIds.has(petition.$id) && petition.created_by !== userId);
+  const signedPetitions = petitions.filter((petition) => petition.created_by !== userId);
 
   return NextResponse.json({
     ok: true,
