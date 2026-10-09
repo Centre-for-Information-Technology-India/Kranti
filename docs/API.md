@@ -12,6 +12,8 @@ Issue support and petition signing return `notificationSaved`: `true` when the c
 
 Public lists require bounded pagination. Never expose an unbounded collection query.
 
+The signed-in dashboard reads only the citizen's own cases and cases they supported or signed. It pages through that citizen's participation records so older cases remain visible.
+
 Keep Appwrite credentials server-side and use least-privileged access.
 
 Do not break existing clients/routes without a migration or compatibility strategy.
