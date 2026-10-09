@@ -1,13 +1,13 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-import { appwriteCommentsCollectionId, appwriteDatabaseId, appwriteIssuesCollectionId, createDocument, listDocuments } from "@/lib/appwrite";
+import { appwriteCommentsCollectionId, appwriteDatabaseId, appwriteIssuesCollectionId, createDocument, listDocuments, Query } from "@/lib/appwrite";
 
 export const runtime = "nodejs";
 
 export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [`equal("slug", ["${slug}"])`, "limit(1)"]);
+  const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]);
   const issue = (issueQuery as { documents?: Array<{ $id: string }> }).documents?.[0];
 
   if (!issue) {
@@ -15,9 +15,9 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   }
 
   const commentsResponse = await listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, [
-    `equal("issue_id", ["${issue.$id}"])`,
-    `equal("status", ["approved"])`,
-    "orderAsc(\"created_at\")",
+    Query.equal("issue_id", [issue.$id]),
+    Query.equal("status", ["approved"]),
+    Query.orderAsc("created_at"),
   ]);
 
   const comments = ((commentsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).map((document) => ({
@@ -48,7 +48,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Comment content is required" }, { status: 400 });
   }
 
-  const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [`equal("slug", ["${slug}"])`, "limit(1)"]);
+  const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]);
   const issue = (issueQuery as { documents?: Array<{ $id: string }> }).documents?.[0];
 
   if (!issue) {
