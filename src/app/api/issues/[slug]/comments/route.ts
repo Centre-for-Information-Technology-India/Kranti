@@ -1,5 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { ID } from "node-appwrite";
 
 import { appwriteCommentsCollectionId, appwriteDatabaseId, appwriteIssuesCollectionId, createDocument, listDocuments, Query } from "@/lib/appwrite";
 
@@ -55,7 +56,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Issue not found" }, { status: 404 });
   }
 
-  const commentId = `comment-${issue.$id}-${userId}-${Date.now()}`.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 36);
+  const commentId = `comment-${ID.unique()}`;
   const document = await createDocument(appwriteDatabaseId, appwriteCommentsCollectionId, commentId, {
     issue_id: issue.$id,
     user_id: userId,
