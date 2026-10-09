@@ -13,6 +13,7 @@ import {
   downloadFile,
   getFileViewUrl,
   listDocuments,
+  Query,
   upsertDocument,
   uploadFileBuffer,
 } from "@/lib/appwrite";
@@ -170,16 +171,24 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const [petitionsResponse, evidenceResponse, usersResponse] = await Promise.all([
+    const [petitionsResponse, evidenceResponse] = await Promise.all([
       listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, ["orderDesc(\"created_at\")"]),
       listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, ["orderDesc(\"created_at\")"]),
-      listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, []),
     ]);
 
-    const users = ((usersResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).reduce<Record<string, Record<string, unknown>>>((accumulator, document) => {
-      const clerkId = String(document.clerk_id ?? document.clerkUserId ?? document.$id ?? "");
-      if (clerkId) {
-        accumulator[clerkId] = document;
+    const petitionDocuments = (petitionsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+    const creatorIds = [...new Set(petitionDocuments
+      .map((document) => String(document.created_by ?? document.createdBy ?? ""))
+      .filter(Boolean))];
+    const userResults = await Promise.all(Array.from({ length: Math.ceil(creatorIds.length / 50) }, (_, index) => {
+      const ids = creatorIds.slice(index * 50, (index + 1) * 50);
+      return Promise.all(["clerk_id", "$id"].map((field) =>
+        listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, ids), Query.limit(50)])
+      ));
+    }));
+    const users = userResults.flatMap((batch) => batch.flatMap((result) => (result as { documents?: Array<Record<string, unknown>> }).documents ?? [])).reduce<Record<string, Record<string, unknown>>>((accumulator, document) => {
+      for (const id of [document.clerk_id, document.clerkUserId, document.$id]) {
+        if (id) accumulator[String(id)] = document;
       }
       return accumulator;
     }, {});
@@ -195,7 +204,7 @@ export async function GET() {
       return accumulator;
     }, {});
 
-    const petitions = ((petitionsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).map((document) => {
+    const petitions = petitionDocuments.map((document) => {
       const createdBy = String(document.created_by ?? document.createdBy ?? "");
       const creator = users[createdBy];
       const petitionEvidence = evidenceByPetition[String(document.$id ?? "")] ?? [];

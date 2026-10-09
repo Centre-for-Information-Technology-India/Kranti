@@ -29,17 +29,21 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
       return NextResponse.json({ error: "Petition not found" }, { status: 404 });
     }
 
-    const [evidenceResponse, usersResponse] = await Promise.all([
+    const createdBy = String(petitionDoc.created_by ?? petitionDoc.createdBy ?? "");
+    const [evidenceResponse, userResults] = await Promise.all([
       listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [
         Query.equal("issue_id", [String(petitionDoc.$id)]),
         Query.limit(100),
       ]),
-      listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, []),
+      createdBy ? Promise.all(["clerk_id", "$id"].map((field) =>
+        listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, [createdBy]), Query.limit(1)])
+      )) : Promise.resolve([]),
     ]);
 
-    const users = ((usersResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).reduce<Record<string, Record<string, unknown>>>((acc, doc) => {
-      const clerkId = String(doc.clerk_id ?? doc.clerkUserId ?? doc.$id ?? "");
-      if (clerkId) acc[clerkId] = doc;
+    const users = userResults.flatMap((result) => (result as { documents?: Array<Record<string, unknown>> }).documents ?? []).reduce<Record<string, Record<string, unknown>>>((acc, doc) => {
+      for (const id of [doc.clerk_id, doc.clerkUserId, doc.$id]) {
+        if (id) acc[String(id)] = doc;
+      }
       return acc;
     }, {});
 
@@ -51,7 +55,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
       return acc;
     }, {});
 
-    const createdBy = String(petitionDoc.created_by ?? petitionDoc.createdBy ?? "");
     const creator = users[createdBy];
     const petitionEvidence = evidenceByPetition[String(petitionDoc.$id ?? "")] ?? [];
 
