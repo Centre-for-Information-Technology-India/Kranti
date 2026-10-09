@@ -1,7 +1,25 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { execFileSync } from "node:child_process";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+function buildRevision(): string {
+  try {
+    const revision = execFileSync("git", ["rev-parse", "HEAD"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    if (/^[0-9a-f]{40}$/.test(revision)) return revision;
+  } catch {
+    // Some deployment builders omit .git; use their commit environment instead.
+  }
+
+  const revision = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA;
+  return revision && /^[0-9a-f]{40}$/.test(revision) ? revision : "unavailable";
+}
+
+const revision = buildRevision();
 
 const nextConfig: NextConfig = {
   // ── non-www → www canonical redirect ─────────────────────────────────────
@@ -22,6 +40,10 @@ const nextConfig: NextConfig = {
   // ── Security & caching headers ─────────────────────────────────────────────
   async headers() {
     return [
+      {
+        source: "/:path*",
+        headers: [{ key: "X-Kranti-Revision", value: revision }],
+      },
       {
         // Allow public pages to be cached by CDN and browser
         source: "/((?!api|_next|sign-in|sign-up|dashboard|admin|issue/new|petition/new|campaign/new|report/new).*)",
