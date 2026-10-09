@@ -11,6 +11,7 @@ import {
   updateDocument,
   upsertDocument,
 } from "@/lib/appwrite";
+import { preservedAccountFields } from "@/lib/account-sync";
 
 export const runtime = "nodejs";
 
@@ -56,8 +57,8 @@ export async function POST() {
       }
     }
 
-    // Preserve existing role (never escalate during sync)
-    const existingRole = existingDoc?.role as string | undefined;
+    // Preserve account decisions made after signup on every later sync.
+    const accountFields = preservedAccountFields(existingDoc);
 
     const document = await upsertDocument(appwriteDatabaseId, appwriteUsersCollectionId, user.id, {
       clerk_id: user.id,
@@ -65,10 +66,10 @@ export async function POST() {
       email: primaryEmail,
       phone: primaryPhone,
       avatar_url: user.imageUrl,
-      role: existingRole ?? "citizen",
+      role: accountFields.role,
       verified: Boolean(user.primaryEmailAddressId || user.primaryPhoneNumberId),
-      trust_score: 10,
-      consent_accepted: true,
+      trust_score: accountFields.trust_score,
+      consent_accepted: accountFields.consent_accepted,
     });
 
     return NextResponse.json({ ok: true, userId: user.id, document });
