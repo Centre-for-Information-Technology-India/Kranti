@@ -73,13 +73,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       (error) => console.error("Petition signature saved but count update failed:", error),
     );
 
-    // Send notification to petition creator
+    // The signature is saved even if the creator's alert fails.
+    let notificationSaved: boolean | null = null;
     if (createdBy && createdBy !== userId) {
       const signerName = user?.firstName && user?.lastName 
         ? `${user.firstName} ${user.lastName}` 
         : user?.username || "Someone";
       
-      await notifyNewSignature(
+      notificationSaved = await notifyNewSignature(
         createdBy,
         petitionTitle,
         signerName,
@@ -87,7 +88,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       );
     }
 
-    return NextResponse.json({ ok: true, countUpdated, message: "Petition signed successfully" });
+    return NextResponse.json({ ok: true, countUpdated, notificationSaved, message: "Petition signed successfully" });
   } catch (error) {
     console.error("Failed to sign petition:", error);
     return NextResponse.json({ error: "Failed to sign petition" }, { status: 500 });

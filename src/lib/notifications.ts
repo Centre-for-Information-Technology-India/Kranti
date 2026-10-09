@@ -29,7 +29,7 @@ export interface NotificationRecord {
   created_at: string;
 }
 
-export async function createNotification(data: NotificationData): Promise<void> {
+export async function createNotification(data: NotificationData): Promise<boolean> {
   try {
     const notificationId = ID.unique();
     await createDocument(appwriteDatabaseId, appwriteNotificationsCollectionId, notificationId, {
@@ -41,8 +41,10 @@ export async function createNotification(data: NotificationData): Promise<void> 
       read: false,
       created_at: new Date().toISOString(),
     });
+    return true;
   } catch (error) {
     console.error("Failed to create notification:", error);
+    return false;
   }
 }
 
@@ -143,8 +145,8 @@ export async function notifyNewSupport(
   contentTitle: string,
   supporterName: string,
   link: string
-): Promise<void> {
-  await createNotification({
+): Promise<boolean> {
+  return createNotification({
     userId,
     type: "support",
     title: "New Support",
@@ -158,8 +160,8 @@ export async function notifyNewSignature(
   petitionTitle: string,
   signerName: string,
   link: string
-): Promise<void> {
-  await createNotification({
+): Promise<boolean> {
+  return createNotification({
     userId,
     type: "signature",
     title: "New Signature",

@@ -1,6 +1,28 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+test("notification creation reports storage failure without undoing a saved action", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  const originalError = console.error;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+  const { createNotification } = await import("./notifications");
+  const data = { userId: "synthetic_owner", type: "support" as const, title: "Test", message: "Synthetic fixture only" };
+
+  try {
+    globalThis.fetch = async () => Response.json({ $id: "synthetic_alert" });
+    assert.equal(await createNotification(data), true);
+    console.error = () => {};
+    globalThis.fetch = async () => Response.json({ message: "synthetic failure" }, { status: 503 });
+    assert.equal(await createNotification(data), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.error = originalError;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});
+
 test("notification reads send structured, user-scoped Appwrite queries", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;

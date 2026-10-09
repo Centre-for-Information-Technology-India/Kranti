@@ -63,6 +63,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ slug: str
 
   let supportCount = issue.supporter_count ?? 0;
   let countUpdated = false;
+  let notificationSaved: boolean | null = null;
 
   if (supportDoc) {
     try {
@@ -80,7 +81,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ slug: str
         ? `${user.firstName} ${user.lastName}` 
         : user?.username || "Someone";
       
-      await notifyNewSupport(
+      notificationSaved = await notifyNewSupport(
         issue.created_by,
         "issue",
         issue.title || "your issue",
@@ -90,5 +91,5 @@ export async function POST(_: Request, { params }: { params: Promise<{ slug: str
     }
   }
 
-  return NextResponse.json({ ok: true, supportCount, countUpdated, alreadySupported: !supportDoc });
+  return NextResponse.json({ ok: true, supportCount, countUpdated, notificationSaved, alreadySupported: !supportDoc });
 }
