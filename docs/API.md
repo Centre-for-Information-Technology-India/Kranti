@@ -16,6 +16,8 @@ The public petition list reads evidence only for petitions in its bounded result
 
 The public issue list reads evidence and creator profiles only for issues in its bounded result set.
 
+An issue detail page reads only evidence and comments linked to that issue and the creator's profile. These reads are bounded.
+
 The signed-in dashboard reads only the citizen's own cases and cases they supported or signed. It pages through that citizen's participation records so older cases remain visible.
 
 New petition addresses contain a readable English title prefix when available, followed by the petition ID. Hindi-only titles use `petition` as the prefix. Existing addresses stay unchanged.
