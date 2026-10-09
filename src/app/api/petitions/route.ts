@@ -171,12 +171,18 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const [petitionsResponse, evidenceResponse] = await Promise.all([
-      listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, ["orderDesc(\"created_at\")"]),
-      listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, ["orderDesc(\"created_at\")"]),
+    const petitionsResponse = await listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [
+      Query.orderDesc("created_at"),
+      Query.limit(25),
     ]);
-
     const petitionDocuments = (petitionsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+    const petitionIds = petitionDocuments.map((document) => String(document.$id ?? "")).filter(Boolean);
+    const evidenceResponse = petitionIds.length > 0
+      ? await listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [
+        Query.equal("issue_id", petitionIds),
+        Query.limit(100),
+      ])
+      : { documents: [] };
     const creatorIds = [...new Set(petitionDocuments
       .map((document) => String(document.created_by ?? document.createdBy ?? ""))
       .filter(Boolean))];
