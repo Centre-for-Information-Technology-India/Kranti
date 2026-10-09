@@ -14,6 +14,8 @@ Public lists require bounded pagination. Never expose an unbounded collection qu
 
 The signed-in dashboard reads only the citizen's own cases and cases they supported or signed. It pages through that citizen's participation records so older cases remain visible.
 
+New petition addresses contain a readable English title prefix when available, followed by the petition ID. Hindi-only titles use `petition` as the prefix. Existing addresses stay unchanged.
+
 Keep Appwrite credentials server-side and use least-privileged access.
 
 Do not break existing clients/routes without a migration or compatibility strategy.

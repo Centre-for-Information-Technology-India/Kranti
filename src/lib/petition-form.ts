@@ -45,11 +45,15 @@ export const petitionDefaultValues: PetitionSubmissionValues = {
   consent: false,
 };
 
-export function buildPetitionSlug(title: string): string {
-  return title
+export function buildPetitionSlug(title: string, petitionId: string): string {
+  const readable = title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
-    .slice(0, 100);
+    .replace(/^-|-$/g, "")
+    .slice(0, 78)
+    .replace(/-$/g, "");
+
+  return `${readable || "petition"}-${petitionId}`;
 }
