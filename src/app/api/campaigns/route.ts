@@ -10,15 +10,7 @@ import {
   Query,
 } from "@/lib/appwrite";
 import { campaignFormSchema } from "@/lib/campaign-form";
-
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .substring(0, 100);
-}
+import { buildCampaignSlug } from "@/lib/campaign-slug";
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,8 +38,8 @@ export async function POST(request: NextRequest) {
     const userName = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username || "Anonymous";
     const userAvatar = user.imageUrl;
 
-    const slug = generateSlug(validatedData.title);
     const campaignId = ID.unique();
+    const slug = buildCampaignSlug(validatedData.title, campaignId);
 
     const campaignData = {
       title: validatedData.title,
