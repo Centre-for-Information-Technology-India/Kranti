@@ -27,8 +27,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const validatedData = campaignFormSchema.parse(body);
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    const parsed = campaignFormSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Please check the campaign details and try again." }, { status: 400 });
+    }
+    const validatedData = parsed.data;
 
     const client = await clerkClient();
     const user = await client.users.getUser(userId);
@@ -66,10 +76,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Campaign creation error:", error);
-
-    if (error instanceof Error && error.message.includes("ZodError")) {
-      return NextResponse.json({ error: "Invalid campaign data" }, { status: 400 });
-    }
 
     return NextResponse.json({ error: "Failed to create campaign" }, { status: 500 });
   }
