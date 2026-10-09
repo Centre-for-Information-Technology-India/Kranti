@@ -106,3 +106,43 @@ test("notification mutations enforce ownership and surface storage failures", as
     globalThis.fetch = originalFetch;
   }
 });
+
+test("mark all reads every page of a user's alerts", async () => {
+  const originalFetch = globalThis.fetch;
+  const notifications = Array.from({ length: 102 }, (_, index) => ({
+    $id: `synthetic_${index}`,
+    user_id: "owner",
+    read: index === 50,
+    created_at: "2026-10-09T00:00:00.000Z",
+  }));
+  const offsets: number[] = [];
+  const updated = new Set<string>();
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    if (init?.method === "PATCH") {
+      updated.add(url.pathname.split("/").at(-1) ?? "");
+      return Response.json({});
+    }
+    const queries = url.searchParams.getAll("queries[]").map((query) => JSON.parse(query));
+    assert.ok(queries.some((query) => query.attribute === "user_id" && query.values[0] === "owner"));
+    const id = queries.find((query) => query.attribute === "$id")?.values[0];
+    if (id) return Response.json({ documents: notifications.filter((item) => item.$id === id) });
+    const offset = queries.find((query) => query.method === "offset")?.values[0];
+    const limit = queries.find((query) => query.method === "limit")?.values[0];
+    assert.equal(limit, 100);
+    offsets.push(offset);
+    return Response.json({ documents: notifications.slice(offset, offset + limit) });
+  };
+
+  try {
+    const { markAllNotificationsAsRead } = await import("./notifications");
+    await markAllNotificationsAsRead("owner");
+    assert.deepEqual(offsets, [0, 100]);
+    assert.equal(updated.size, 101);
+    assert.ok(updated.has("synthetic_101"));
+    assert.ok(!updated.has("synthetic_50"));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

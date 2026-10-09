@@ -84,14 +84,24 @@ export async function markNotificationAsRead(notificationId: string, userId: str
 
 export async function markAllNotificationsAsRead(userId: string): Promise<void> {
   if (!userId) throw new Error("Notification owner is required");
-  const response = await listDocuments(appwriteDatabaseId, appwriteNotificationsCollectionId, [
-    Query.equal("user_id", [userId]),
-    Query.orderDesc("created_at"),
-    Query.limit(100),
-  ]);
-  await Promise.all(response.documents
-    .filter((notification: NotificationRecord) => !notification.read)
-    .map((notification: NotificationRecord) => markNotificationAsRead(notification.$id, userId)));
+  const pageSize = 100;
+  let offset = 0;
+
+  while (true) {
+    const response = await listDocuments(appwriteDatabaseId, appwriteNotificationsCollectionId, [
+      Query.equal("user_id", [userId]),
+      Query.orderDesc("created_at"),
+      Query.limit(pageSize),
+      Query.offset(offset),
+    ]);
+    const notifications = response.documents as NotificationRecord[];
+    await Promise.all(notifications
+      .filter((notification) => !notification.read)
+      .map((notification) => markNotificationAsRead(notification.$id, userId)));
+
+    if (notifications.length < pageSize) return;
+    offset += notifications.length;
+  }
 }
 
 // Helper functions to create specific notification types
