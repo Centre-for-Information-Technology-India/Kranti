@@ -57,3 +57,41 @@ test("dashboard user lookups keep a quoted Clerk ID exact", async () => {
     else process.env.APPWRITE_API_KEY = originalKey;
   }
 });
+
+test("comment lookups keep quoted slugs and issue IDs exact", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+  const { listDocuments, Query } = await import("./appwrite");
+  const slug = 'streetlight"], "other-issue';
+  const issueId = 'issue"], "other-issue';
+  const seen: unknown[][] = [];
+
+  try {
+    globalThis.fetch = async (input) => {
+      const url = new URL(String(input));
+      seen.push(url.searchParams.getAll("queries[]").map((query) => JSON.parse(query)));
+      return Response.json({ documents: [] });
+    };
+
+    await listDocuments("test", "issues", [Query.equal("slug", [slug]), Query.limit(1)]);
+    await listDocuments("test", "comments", [
+      Query.equal("issue_id", [issueId]),
+      Query.equal("status", ["approved"]),
+      Query.orderAsc("created_at"),
+    ]);
+
+    assert.deepEqual(seen, [
+      [{ method: "equal", attribute: "slug", values: [slug] }, { method: "limit", values: [1] }],
+      [
+        { method: "equal", attribute: "issue_id", values: [issueId] },
+        { method: "equal", attribute: "status", values: ["approved"] },
+        { method: "orderAsc", attribute: "created_at" },
+      ],
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});
