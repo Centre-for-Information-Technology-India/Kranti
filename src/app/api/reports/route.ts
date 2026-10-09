@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unable to load Clerk user" }, { status: 400 });
   }
 
-  const body = (await request.json()) as {
+  let body: {
     payload?: unknown;
     evidence?: Array<{
       fileId: string;
@@ -46,9 +46,18 @@ export async function POST(request: Request) {
       publicUrl?: string;
     }>;
   };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-  const submission = reportSubmissionSchema.parse(body.payload);
-  const evidenceFiles = Array.isArray(body.evidence) ? body.evidence : [];
+  const parsed = reportSubmissionSchema.safeParse(body?.payload);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Please check the report details and try again." }, { status: 400 });
+  }
+  const submission = parsed.data;
+  const evidenceFiles = Array.isArray(body?.evidence) ? body.evidence : [];
 
   if (evidenceFiles.length === 0) {
     return NextResponse.json({ error: "Evidence is mandatory for incident reports" }, { status: 400 });
