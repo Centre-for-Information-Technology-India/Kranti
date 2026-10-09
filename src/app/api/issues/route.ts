@@ -13,6 +13,7 @@ import {
   downloadFile,
   getFileViewUrl,
   listDocuments,
+  Query,
   upsertDocument,
   uploadFileBuffer,
 } from "@/lib/appwrite";
@@ -176,16 +177,26 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const [issuesResponse, evidenceResponse, usersResponse] = await Promise.all([
-      listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, []),
-      listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, []),
-      listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, []),
+    const issuesResponse = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.limit(25)]);
+    const issueDocuments = (issuesResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+    const issueIds = issueDocuments.map((document) => String(document.$id ?? "")).filter(Boolean);
+    const creatorIds = [...new Set(issueDocuments
+      .map((document) => String(document.created_by ?? document.createdBy ?? ""))
+      .filter(Boolean))];
+    const [evidenceResponse, userResults] = await Promise.all([
+      issueIds.length > 0
+        ? listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [Query.equal("issue_id", issueIds), Query.limit(100)])
+        : Promise.resolve({ documents: [] }),
+      creatorIds.length > 0
+        ? Promise.all(["clerk_id", "$id"].map((field) =>
+          listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, creatorIds), Query.limit(25)])
+        ))
+        : Promise.resolve([]),
     ]);
 
-    const users = ((usersResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).reduce<Record<string, Record<string, unknown>>>((accumulator, document) => {
-      const clerkId = String(document.clerk_id ?? document.clerkUserId ?? document.$id ?? "");
-      if (clerkId) {
-        accumulator[clerkId] = document;
+    const users = userResults.flatMap((result) => (result as { documents?: Array<Record<string, unknown>> }).documents ?? []).reduce<Record<string, Record<string, unknown>>>((accumulator, document) => {
+      for (const id of [document.clerk_id, document.clerkUserId, document.$id]) {
+        if (id) accumulator[String(id)] = document;
       }
       return accumulator;
     }, {});
@@ -201,7 +212,7 @@ export async function GET() {
       return accumulator;
     }, {});
 
-    const issues = ((issuesResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).map((document) => {
+    const issues = issueDocuments.map((document) => {
       const createdBy = String(document.created_by ?? document.createdBy ?? "");
       const creator = users[createdBy];
       const issueEvidence = evidenceByIssue[String(document.$id ?? "")] ?? [];
