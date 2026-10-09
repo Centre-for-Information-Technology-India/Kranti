@@ -7,6 +7,7 @@ import {
   appwriteCampaignsCollectionId,
   createDocument,
   listDocuments,
+  Query,
 } from "@/lib/appwrite";
 import { campaignFormSchema } from "@/lib/campaign-form";
 
@@ -92,25 +93,25 @@ export async function GET(request: NextRequest) {
     const queries: string[] = [];
 
     if (category) {
-      queries.push(`equal("category", ["${category}"])`);
+      queries.push(Query.equal("category", [category]));
     }
 
     if (state) {
-      queries.push(`equal("state", ["${state}"])`);
+      queries.push(Query.equal("state", [state]));
     }
 
     if (status) {
-      queries.push(`equal("status", ["${status}"])`);
+      queries.push(Query.equal("status", [status]));
     } else {
       queries.push(`notEqual("status", ["pending_review"])`);
     }
 
     if (featured === "true") {
-      queries.push(`equal("featured", [true])`);
+      queries.push(Query.equal("featured", [true]));
     }
 
-    queries.push(`orderDesc("created_at")`);
-    queries.push(`limit(100)`);
+    queries.push(Query.orderDesc("created_at"));
+    queries.push(Query.limit(100));
 
     const response = await listDocuments(appwriteDatabaseId, appwriteCampaignsCollectionId, queries);
 
