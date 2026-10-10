@@ -49,13 +49,12 @@ export const issueDefaultValues: IssueSubmissionValues = {
   consent: false,
 };
 
-export function buildIssueSlug(title: string) {
+export function buildIssueSlug(title: string, issueId: string) {
   const base = title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
 
-  const suffix = Math.random().toString(36).slice(2, 8);
-  return `${base || "issue"}-${suffix}`;
+  return `${base || "issue"}-${issueId}`;
 }

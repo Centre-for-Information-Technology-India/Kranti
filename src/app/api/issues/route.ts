@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     const evidenceFiles = Array.isArray(body?.evidence) ? body.evidence : [];
 
     const issueId = `issue${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
-    const issueSlug = buildIssueSlug(submission.title);
+    const issueSlug = buildIssueSlug(submission.title, issueId);
     const uploadedEvidence = [] as Array<{
       fileId: string;
       name: string;
