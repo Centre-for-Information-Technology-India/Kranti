@@ -27,3 +27,33 @@ test("Appwrite failures keep HTTP status so account sync can distinguish missing
     else process.env.APPWRITE_API_KEY = originalKey;
   }
 });
+
+test("Appwrite document IDs stay within one request path segment", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+  const { getDocument, updateDocument, deleteDocument } = await import("./appwrite");
+  const urls: string[] = [];
+
+  try {
+    globalThis.fetch = async (input) => {
+      urls.push(String(input));
+      return Response.json({ $id: "synthetic" });
+    };
+
+    const id = "test/record?other=true#part";
+    await getDocument("test", "issues", id);
+    await updateDocument("test", "issues", id, { status: "open" });
+    await deleteDocument("test", "issues", id);
+
+    assert.equal(urls.length, 3);
+    for (const url of urls) {
+      assert.match(url, /\/documents\/test%2Frecord%3Fother%3Dtrue%23part$/);
+      assert.doesNotMatch(url, /\?other=true/);
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});

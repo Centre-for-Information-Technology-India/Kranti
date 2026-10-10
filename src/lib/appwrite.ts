@@ -57,7 +57,7 @@ async function appwriteRequest(path: string, init: RequestInit = {}) {
 }
 
 export async function createDocument(databaseId: string, collectionId: string, documentId: string, data: AppwriteJson) {
-  return appwriteRequest(`/databases/${databaseId}/collections/${collectionId}/documents`, {
+  return appwriteRequest(`/databases/${encodeURIComponent(databaseId)}/collections/${encodeURIComponent(collectionId)}/documents`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ documentId, data }),
@@ -65,7 +65,7 @@ export async function createDocument(databaseId: string, collectionId: string, d
 }
 
 export async function updateDocument(databaseId: string, collectionId: string, documentId: string, data: AppwriteJson) {
-  return appwriteRequest(`/databases/${databaseId}/collections/${collectionId}/documents/${documentId}`, {
+  return appwriteRequest(`/databases/${encodeURIComponent(databaseId)}/collections/${encodeURIComponent(collectionId)}/documents/${encodeURIComponent(documentId)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ data }),
@@ -93,13 +93,13 @@ export async function upsertDocument(databaseId: string, collectionId: string, d
 }
 
 export async function getDocument(databaseId: string, collectionId: string, documentId: string) {
-  return appwriteRequest(`/databases/${databaseId}/collections/${collectionId}/documents/${documentId}`);
+  return appwriteRequest(`/databases/${encodeURIComponent(databaseId)}/collections/${encodeURIComponent(collectionId)}/documents/${encodeURIComponent(documentId)}`);
 }
 
 export async function listDocuments(databaseId: string, collectionId: string, queries: string[] = []) {
   const normalizedQueries = queries.map(normalizeQuery);
   const queryString = normalizedQueries.map((query) => `queries[]=${encodeURIComponent(query)}`).join("&");
-  const path = `/databases/${databaseId}/collections/${collectionId}/documents${queryString ? `?${queryString}` : ""}`;
+  const path = `/databases/${encodeURIComponent(databaseId)}/collections/${encodeURIComponent(collectionId)}/documents${queryString ? `?${queryString}` : ""}`;
 
   return appwriteRequest(path);
 }
@@ -159,7 +159,7 @@ export const Query = {
 };
 
 export async function deleteDocument(databaseId: string, collectionId: string, documentId: string) {
-  return appwriteRequest(`/databases/${databaseId}/collections/${collectionId}/documents/${documentId}`, {
+  return appwriteRequest(`/databases/${encodeURIComponent(databaseId)}/collections/${encodeURIComponent(collectionId)}/documents/${encodeURIComponent(documentId)}`, {
     method: "DELETE",
   });
 }
@@ -169,7 +169,7 @@ export async function uploadFile(bucketId: string, fileId: string, file: File) {
   formData.append("fileId", fileId);
   formData.append("file", file, file.name);
 
-  return appwriteRequest(`/storage/buckets/${bucketId}/files`, {
+  return appwriteRequest(`/storage/buckets/${encodeURIComponent(bucketId)}/files`, {
     method: "POST",
     body: formData,
   });
@@ -180,14 +180,14 @@ export async function uploadFileBuffer(bucketId: string, fileId: string, fileNam
   formData.append("fileId", fileId);
   formData.append("file", new File([new Uint8Array(buffer)], fileName, { type: mimeType }), fileName);
 
-  return appwriteRequest(`/storage/buckets/${bucketId}/files`, {
+  return appwriteRequest(`/storage/buckets/${encodeURIComponent(bucketId)}/files`, {
     method: "POST",
     body: formData,
   });
 }
 
 export async function deleteFile(bucketId: string, fileId: string) {
-  return appwriteRequest(`/storage/buckets/${bucketId}/files/${fileId}`, {
+  return appwriteRequest(`/storage/buckets/${encodeURIComponent(bucketId)}/files/${encodeURIComponent(fileId)}`, {
     method: "DELETE",
   });
 }
@@ -195,7 +195,7 @@ export async function deleteFile(bucketId: string, fileId: string) {
 export async function downloadFile(bucketId: string, fileId: string) {
   requireApiKey();
 
-  const response = await fetch(`${appwriteEndpoint}/storage/buckets/${bucketId}/files/${fileId}/download`, {
+  const response = await fetch(`${appwriteEndpoint}/storage/buckets/${encodeURIComponent(bucketId)}/files/${encodeURIComponent(fileId)}/download`, {
     headers: {
       "X-Appwrite-Project": appwriteProjectId,
       "X-Appwrite-Key": appwriteApiKey as string,
@@ -211,5 +211,5 @@ export async function downloadFile(bucketId: string, fileId: string) {
 }
 
 export function getFileViewUrl(bucketId: string, fileId: string) {
-  return `${appwriteEndpoint}/storage/buckets/${bucketId}/files/${fileId}/view?project=${appwriteProjectId}`;
+  return `${appwriteEndpoint}/storage/buckets/${encodeURIComponent(bucketId)}/files/${encodeURIComponent(fileId)}/view?project=${encodeURIComponent(appwriteProjectId)}`;
 }
