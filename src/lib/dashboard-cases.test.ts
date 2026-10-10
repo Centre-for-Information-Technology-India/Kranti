@@ -19,6 +19,7 @@ test("dashboard includes cases after the first page without reading unrelated ca
     const ids = queries.find((query) => query.attribute === "$id")?.values;
     if (ids) return { documents: [{ $id: "joined-1", created_by: "other-user", created_at: "200" }] };
     assert.deepEqual(queries.find((query) => query.attribute === "created_by")?.values, ["test-user"]);
+    assert.equal(queries.some((query) => query.method === "orderDesc"), false);
     return { documents: owned.slice(offset, offset + 100) };
   };
 
