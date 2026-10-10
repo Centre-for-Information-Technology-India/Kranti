@@ -23,7 +23,7 @@ export async function dashboardCasesForUser(
   list: List = listDocuments,
 ): Promise<Document[]> {
   const [owned, participation] = await Promise.all([
-    allPages(collectionId, [Query.equal("created_by", [userId]), Query.orderDesc("created_at")], list),
+    allPages(collectionId, [Query.equal("created_by", [userId])], list),
     allPages(participationCollectionId, [Query.equal("user_id", [userId])], list),
   ]);
 
