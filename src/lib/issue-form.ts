@@ -20,11 +20,11 @@ export const evidenceLevels = ["low", "medium", "high"] as const;
 export const issueLanguages = ["en", "hi"] as const;
 
 export const issueSubmissionSchema = z.object({
-  title: z.string().min(12, "Add a specific title."),
+  title: z.string().min(12, "Add a specific title.").max(180, "Keep the title within 180 characters."),
   description: z.string().min(80, "Add enough context for a moderator to understand the issue."),
   category: z.enum(issueCategories),
-  state: z.string().min(2, "State is required."),
-  district: z.string().min(2, "District is required."),
+  state: z.string().min(2, "State is required.").max(100, "Keep the state within 100 characters."),
+  district: z.string().min(2, "District is required.").max(100, "Keep the district within 100 characters."),
   landmark: z.string().min(3, "Add a nearby landmark or locality."),
   evidenceLevel: z.enum(evidenceLevels),
   evidenceLinks: z.string().url("Must be a valid URL").array().optional(),
