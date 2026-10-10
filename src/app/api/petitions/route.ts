@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 
 import {
+  AppwriteRequestError,
   appwriteStorageBucketId,
   appwriteDatabaseId,
   appwriteEvidenceCollectionId,
@@ -27,6 +28,18 @@ function safeFileId(seed: string) {
 }
 
 export async function POST(request: Request) {
+  try {
+    return await createPetition(request);
+  } catch (error) {
+    console.error("Petition creation failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : error);
+    return NextResponse.json(
+      { error: "We couldn't confirm your petition was saved. Check your dashboard before trying again." },
+      { status: 503 },
+    );
+  }
+}
+
+async function createPetition(request: Request) {
   const { userId } = await auth();
 
   if (!userId) {
