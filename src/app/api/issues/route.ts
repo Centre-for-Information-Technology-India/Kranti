@@ -175,10 +175,16 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const rawOffset = new URL(request.url).searchParams.get("offset") ?? "0";
+  if (!/^(0|[1-9]\d*)$/.test(rawOffset) || Number(rawOffset) > 10000) {
+    return NextResponse.json({ ok: false, error: "Invalid issue offset" }, { status: 400 });
+  }
+  const offset = Number(rawOffset);
   try {
-    const issuesResponse = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.limit(25)]);
-    const issueDocuments = (issuesResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+    const issuesResponse = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.limit(26), Query.offset(offset)]);
+    const pageDocuments = (issuesResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+    const issueDocuments = pageDocuments.slice(0, 25);
     const issueIds = issueDocuments.map((document) => String(document.$id ?? "")).filter(Boolean);
     const creatorIds = [...new Set(issueDocuments
       .map((document) => String(document.created_by ?? document.createdBy ?? ""))
@@ -245,7 +251,7 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ ok: true, issues });
+    return NextResponse.json({ ok: true, issues, hasMore: pageDocuments.length > 25 });
   } catch (error) {
     console.error("Failed to list issues from Appwrite:", error);
     return NextResponse.json({ ok: false, error: "Issues are temporarily unavailable. Please try again." }, { status: 503 });
