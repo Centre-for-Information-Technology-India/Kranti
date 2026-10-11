@@ -18,7 +18,7 @@ import {
   upsertDocument,
   uploadFileBuffer,
 } from "@/lib/appwrite";
-import { buildPetitionSlug, petitionSubmissionSchema } from "@/lib/petition-form";
+import { buildPetitionSlug, petitionEvidenceSchema, petitionSubmissionSchema } from "@/lib/petition-form";
 import { detectEvidenceType } from "@/lib/evidence";
 
 export const runtime = "nodejs";
@@ -73,7 +73,11 @@ async function createPetition(request: Request) {
     return NextResponse.json({ error: "Please check the petition details and try again." }, { status: 400 });
   }
   const submission = parsed.data;
-  const evidenceFiles = Array.isArray(body?.evidence) ? body.evidence : [];
+  const evidenceResult = petitionEvidenceSchema.safeParse(body?.evidence);
+  if (!evidenceResult.success) {
+    return NextResponse.json({ error: "Invalid evidence metadata" }, { status: 400 });
+  }
+  const evidenceFiles = evidenceResult.data;
 
   const petitionId = `petition${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
   const petitionSlug = buildPetitionSlug(submission.title, petitionId);
@@ -88,10 +92,6 @@ async function createPetition(request: Request) {
   }>;
 
   for (const file of evidenceFiles) {
-    if (!file.fileId || !file.name || !file.size || !file.mimeType) {
-      return NextResponse.json({ error: "Invalid evidence metadata" }, { status: 400 });
-    }
-
     const isImage = file.mimeType.startsWith("image/");
     const publicUrl = file.publicUrl ?? getFileViewUrl(appwriteStorageBucketId, file.fileId);
 

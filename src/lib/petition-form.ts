@@ -28,6 +28,14 @@ export const petitionSubmissionSchema = z.object({
   consent: z.boolean().refine((val) => val === true, "You must agree to the terms"),
 });
 
+export const petitionEvidenceSchema = z.array(z.object({
+  fileId: z.string().min(1),
+  name: z.string().min(1),
+  size: z.number().positive().finite(),
+  mimeType: z.string().min(1),
+  publicUrl: z.string().optional(),
+})).default([]);
+
 export type PetitionSubmissionValues = z.infer<typeof petitionSubmissionSchema>;
 
 export const petitionDefaultValues: PetitionSubmissionValues = {
