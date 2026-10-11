@@ -14,7 +14,7 @@ import {
   upsertDocument,
   uploadFileBuffer,
 } from "@/lib/appwrite";
-import { buildReportSlug, reportSubmissionSchema } from "@/lib/report-form";
+import { buildReportSlug, reportEvidenceSchema, reportSubmissionSchema } from "@/lib/report-form";
 import { detectEvidenceType } from "@/lib/evidence";
 
 export const runtime = "nodejs";
@@ -57,11 +57,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Please check the report details and try again." }, { status: 400 });
   }
   const submission = parsed.data;
-  const evidenceFiles = Array.isArray(body?.evidence) ? body.evidence : [];
-
-  if (evidenceFiles.length === 0) {
-    return NextResponse.json({ error: "Evidence is mandatory for incident reports" }, { status: 400 });
+  const evidenceResult = reportEvidenceSchema.safeParse(body?.evidence);
+  if (!evidenceResult.success) {
+    const error = Array.isArray(body?.evidence) && body.evidence.length === 0
+      ? "Evidence is mandatory for incident reports"
+      : "Invalid evidence metadata";
+    return NextResponse.json({ error }, { status: 400 });
   }
+  const evidenceFiles = evidenceResult.data;
 
   const reportId = `report${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
   const reportSlug = buildReportSlug(submission.title);
@@ -76,10 +79,6 @@ export async function POST(request: Request) {
   }>;
 
   for (const file of evidenceFiles) {
-    if (!file.fileId || !file.name || !file.size || !file.mimeType) {
-      return NextResponse.json({ error: "Invalid evidence metadata" }, { status: 400 });
-    }
-
     const isImage = file.mimeType.startsWith("image/");
     const publicUrl = file.publicUrl ?? getFileViewUrl(appwriteStorageBucketId, file.fileId);
 

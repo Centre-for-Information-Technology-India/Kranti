@@ -25,6 +25,14 @@ export const reportSubmissionSchema = z.object({
   consent: z.boolean().refine((val) => val === true, "You must agree to the terms"),
 });
 
+export const reportEvidenceSchema = z.array(z.object({
+  fileId: z.string().min(1),
+  name: z.string().min(1),
+  size: z.number().positive().finite(),
+  mimeType: z.string().min(1),
+  publicUrl: z.string().optional(),
+})).min(1);
+
 export type ReportSubmissionValues = z.infer<typeof reportSubmissionSchema>;
 
 export const reportDefaultValues: ReportSubmissionValues = {
