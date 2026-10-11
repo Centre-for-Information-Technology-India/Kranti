@@ -23,7 +23,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { IssueRecord } from "@/lib/content-types";
+import { IssueRecord, PetitionRecord } from "@/lib/content-types";
 import type { NotificationRecord } from "@/lib/notifications";
 
 async function fetchNotifications(signal?: AbortSignal): Promise<NotificationRecord[]> {
@@ -34,14 +34,23 @@ async function fetchNotifications(signal?: AbortSignal): Promise<NotificationRec
   return data.notifications;
 }
 
-async function fetchDashboard(signal?: AbortSignal): Promise<{ raisedIssues: IssueRecord[]; supportedIssues: IssueRecord[] }> {
+type DashboardCases = {
+  raisedIssues: IssueRecord[];
+  supportedIssues: IssueRecord[];
+  raisedPetitions: PetitionRecord[];
+  signedPetitions: PetitionRecord[];
+};
+
+async function fetchDashboard(signal?: AbortSignal): Promise<DashboardCases> {
   const response = await fetch("/api/dashboard", { signal });
   if (!response.ok) throw new Error("Could not load cases");
   const data = await response.json();
-  if (!Array.isArray(data?.raisedIssues) || !Array.isArray(data?.supportedIssues)) {
+  if (!Array.isArray(data?.raisedIssues) || !Array.isArray(data?.supportedIssues)
+    || !Array.isArray(data?.raisedPetitions) || !Array.isArray(data?.signedPetitions)) {
     throw new Error("Invalid cases response");
   }
-  return { raisedIssues: data.raisedIssues, supportedIssues: data.supportedIssues };
+  return { raisedIssues: data.raisedIssues, supportedIssues: data.supportedIssues,
+    raisedPetitions: data.raisedPetitions, signedPetitions: data.signedPetitions };
 }
 
 export default function DashboardPage() {
@@ -50,6 +59,8 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<"raised" | "supported" | "alerts">("raised");
   const [raisedIssues, setRaisedIssues] = useState<IssueRecord[]>([]);
   const [supportedIssues, setSupportedIssues] = useState<IssueRecord[]>([]);
+  const [raisedPetitions, setRaisedPetitions] = useState<PetitionRecord[]>([]);
+  const [signedPetitions, setSignedPetitions] = useState<PetitionRecord[]>([]);
   const [casesError, setCasesError] = useState(false);
   const [casesLoading, setCasesLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
@@ -69,9 +80,11 @@ export default function DashboardPage() {
     setCasesLoading(true);
     setCasesError(false);
     void fetchDashboard()
-      .then(({ raisedIssues, supportedIssues }) => {
+      .then(({ raisedIssues, supportedIssues, raisedPetitions, signedPetitions }) => {
         setRaisedIssues(raisedIssues);
         setSupportedIssues(supportedIssues);
+        setRaisedPetitions(raisedPetitions);
+        setSignedPetitions(signedPetitions);
       })
       .catch(() => setCasesError(true))
       .finally(() => setCasesLoading(false));
@@ -81,9 +94,11 @@ export default function DashboardPage() {
     const controller = new AbortController();
 
     void fetchDashboard(controller.signal)
-      .then(({ raisedIssues, supportedIssues }) => {
+      .then(({ raisedIssues, supportedIssues, raisedPetitions, signedPetitions }) => {
         setRaisedIssues(raisedIssues);
         setSupportedIssues(supportedIssues);
+        setRaisedPetitions(raisedPetitions);
+        setSignedPetitions(signedPetitions);
       })
       .catch(() => {
         if (!controller.signal.aborted) setCasesError(true);
@@ -240,18 +255,18 @@ export default function DashboardPage() {
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           
           {/* Left Column: Interactive tabs & list */}
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             {/* Tabs selector */}
-            <div className="flex border-b border-slate-900/5 dark:border-white/5 pb-2 gap-4">
+            <div className="flex overflow-x-auto border-b border-slate-900/5 dark:border-white/5 pb-2 gap-4">
               {([
-                { id: "raised", label: "My Raised Issues", count: casesError ? "!" : casesLoading ? "…" : raisedIssues.length, icon: FileText },
-                { id: "supported", label: "Backed Petitions", count: casesError ? "!" : casesLoading ? "…" : supportedIssues.length, icon: Heart },
+                { id: "raised", label: "My Raised Issues and Petitions", count: casesError ? "!" : casesLoading ? "…" : raisedIssues.length + raisedPetitions.length, icon: FileText },
+                { id: "supported", label: "Backed Petitions and Issues", count: casesError ? "!" : casesLoading ? "…" : supportedIssues.length + signedPetitions.length, icon: Heart },
                 { id: "alerts", label: "Moderation Alerts", count: notificationsError ? "!" : notificationsLoading ? "…" : notifications.filter(n => !n.read).length, icon: Bell }
               ] as const).map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative pb-2.5 text-sm font-semibold transition-all flex items-center gap-2 ${
+                  className={`relative shrink-0 whitespace-nowrap pb-2.5 text-sm font-semibold transition-all flex items-center gap-2 ${
                     activeTab === tab.id
                       ? "text-slate-950 dark:text-white"
                       : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-350"
@@ -290,23 +305,24 @@ export default function DashboardPage() {
                         <p className="text-sm font-medium text-slate-900 dark:text-white">Your cases could not load.</p>
                         <Button variant="outline" className="mt-3 min-h-11 rounded-full" onClick={retryCases}>Try again</Button>
                       </div>
-                    ) : raisedIssues.length > 0 ? (
-                      raisedIssues.map((issue) => (
+                    ) : raisedIssues.length + raisedPetitions.length > 0 ? (
+                      [...raisedIssues.map((record) => ({ kind: "issue" as const, record })),
+                        ...raisedPetitions.map((record) => ({ kind: "petition" as const, record }))].map(({ kind, record }) => (
                         <div 
-                          key={issue.$id}
+                          key={`${kind}-${record.$id}`}
                           className="flex items-center justify-between gap-4 p-5 rounded-3xl border border-slate-900/5 bg-white/70 dark:border-white/5 dark:bg-slate-900/40"
                         >
                           <div className="space-y-1">
-                            <h4 className="font-semibold text-slate-900 dark:text-white leading-tight">{issue.title}</h4>
+                            <h4 className="font-semibold text-slate-900 dark:text-white leading-tight">{record.title}</h4>
                             <div className="flex items-center gap-2 text-xs text-slate-500">
-                              <span>{issue.district}, {issue.state}</span>
+                              <span>{kind === "petition" ? "Petition" : "Issue"} · {[record.district, record.state].filter(Boolean).join(", ")}</span>
                               <span>•</span>
-                              <Badge className={`border uppercase text-[9px] font-semibold px-2 py-0 rounded-full ${getStatusBadgeColor(issue.status)}`}>
-                                {issue.status.replace("_", " ")}
+                              <Badge className={`border uppercase text-[9px] font-semibold px-2 py-0 rounded-full ${getStatusBadgeColor(record.status)}`}>
+                                {record.status.replace("_", " ")}
                               </Badge>
                             </div>
                           </div>
-                          <Link href={`/issues/${issue.slug}`}>
+                          <Link href={`/${kind === "petition" ? "petitions" : "issues"}/${record.slug}`} aria-label={`View ${kind}: ${record.title}`}>
                             <Button variant="ghost" size="icon" className="rounded-full shrink-0 border border-slate-900/10 dark:border-white/10">
                               <ArrowRight className="h-4 w-4" />
                             </Button>
@@ -315,7 +331,7 @@ export default function DashboardPage() {
                       ))
                     ) : (
                       <div className="text-center py-10 text-slate-500">
-                        You have not submitted any issues yet.
+                        You have not submitted any issues or petitions yet.
                       </div>
                     )}
                   </motion.div>
@@ -336,26 +352,27 @@ export default function DashboardPage() {
                         <p className="text-sm font-medium text-slate-900 dark:text-white">Backed cases could not load.</p>
                         <Button variant="outline" className="mt-3 min-h-11 rounded-full" onClick={retryCases}>Try again</Button>
                       </div>
-                    ) : supportedIssues.length > 0 ? (
-                      supportedIssues.map((issue) => (
+                    ) : supportedIssues.length + signedPetitions.length > 0 ? (
+                      [...supportedIssues.map((record) => ({ kind: "issue" as const, record })),
+                        ...signedPetitions.map((record) => ({ kind: "petition" as const, record }))].map(({ kind, record }) => (
                         <div 
-                          key={issue.$id}
+                          key={`${kind}-${record.$id}`}
                           className="flex items-center justify-between gap-4 p-5 rounded-3xl border border-slate-900/5 bg-white/70 dark:border-white/5 dark:bg-slate-900/40"
                         >
                           <div className="space-y-1">
-                            <h4 className="font-semibold text-slate-900 dark:text-white leading-tight">{issue.title}</h4>
+                            <h4 className="font-semibold text-slate-900 dark:text-white leading-tight">{record.title}</h4>
                             <div className="flex items-center gap-2 text-xs text-slate-500">
                               <span className="flex items-center gap-1">
                                 <Users className="h-3.5 w-3.5" />
-                                {issue.supporter_count} total supporters
+                                {kind === "petition" ? `${record.signature_count} signatures` : `${record.supporter_count} total supporters`}
                               </span>
                               <span>•</span>
-                              <Badge className={`border uppercase text-[9px] font-semibold px-2 py-0 rounded-full ${getStatusBadgeColor(issue.status)}`}>
-                                {issue.status.replace("_", " ")}
+                              <Badge className={`border uppercase text-[9px] font-semibold px-2 py-0 rounded-full ${getStatusBadgeColor(record.status)}`}>
+                                {record.status.replace("_", " ")}
                               </Badge>
                             </div>
                           </div>
-                          <Link href={`/issues/${issue.slug}`}>
+                          <Link href={`/${kind === "petition" ? "petitions" : "issues"}/${record.slug}`} aria-label={`View ${kind}: ${record.title}`}>
                             <Button variant="ghost" size="icon" className="rounded-full shrink-0 border border-slate-900/10 dark:border-white/10">
                               <ArrowRight className="h-4 w-4" />
                             </Button>
@@ -364,7 +381,7 @@ export default function DashboardPage() {
                       ))
                     ) : (
                       <div className="text-center py-10 text-slate-500">
-                        You have not backed any petitions yet.
+                        You have not backed any issues or petitions yet.
                       </div>
                     )}
                   </motion.div>
