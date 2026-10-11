@@ -106,7 +106,8 @@ export default function DashboardPage() {
 
   const handleMarkAllAsRead = async () => {
     try {
-      await fetch("/api/notifications", { method: "PATCH" });
+      const response = await fetch("/api/notifications", { method: "PATCH" });
+      if (!response.ok) throw new Error("Could not mark alerts as read");
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (error) {
       console.error("Failed to mark notifications as read:", error);
@@ -115,7 +116,8 @@ export default function DashboardPage() {
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
-      await fetch(`/api/notifications/${notificationId}`, { method: "PATCH" });
+      const response = await fetch(`/api/notifications/${notificationId}`, { method: "PATCH" });
+      if (!response.ok) throw new Error("Could not mark alert as read");
       setNotifications((prev) =>
         prev.map((n) => (n.$id === notificationId ? { ...n, read: true } : n))
       );
