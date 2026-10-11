@@ -17,6 +17,7 @@ Public lists require bounded pagination. Never expose an unbounded collection qu
 The public petition list reads evidence only for petitions in its bounded result set.
 
 The public issue list reads evidence and creator profiles only for issues in its bounded result set.
+The public issue list returns up to 25 issues per request. Use an `offset` from 0 to 10000 and the `hasMore` flag to read older issues.
 
 An issue detail page reads only evidence and comments linked to that issue and the creator's profile. These reads are bounded.
 

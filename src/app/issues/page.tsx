@@ -35,6 +35,9 @@ export default function IssuesPage() {
   const [issues, setIssues] = useState<IssueRecord[]>([]);
   const [loadError, setLoadError] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedState, setSelectedState] = useState("All States");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
@@ -54,6 +57,8 @@ export default function IssuesPage() {
       .then((data) => {
         if (!Array.isArray(data?.issues)) throw new Error("Invalid issue list");
         setIssues(data.issues);
+        setHasMore(data.hasMore === true);
+        setLoadMoreError(false);
       })
       .catch(() => {
         if (!controller.signal.aborted) setLoadError(true);
@@ -61,6 +66,27 @@ export default function IssuesPage() {
 
     return () => controller.abort();
   }, [loadAttempt]);
+
+  const loadMoreIssues = async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    setLoadMoreError(false);
+    try {
+      const response = await fetch(`/api/issues?offset=${issues.length}`);
+      if (!response.ok) throw new Error("Issue list unavailable");
+      const data = await response.json();
+      if (!Array.isArray(data?.issues)) throw new Error("Invalid issue list");
+      setIssues((current) => {
+        const seen = new Set(current.map((issue) => issue.$id));
+        return [...current, ...data.issues.filter((issue: IssueRecord) => !seen.has(issue.$id))];
+      });
+      setHasMore(data.hasMore === true);
+    } catch {
+      setLoadMoreError(true);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   // Filter & Sort logic
   const filteredIssues = useMemo(() => {
@@ -339,6 +365,20 @@ export default function IssuesPage() {
             </motion.div>
           )}
         </AnimatePresence>
+        )}
+
+        {!loadError && hasMore && (
+          <div className="flex flex-col items-center gap-3">
+            {loadMoreError && <p role="alert" className="text-sm text-slate-700 dark:text-slate-200">More issues could not load. Try again.</p>}
+            <Button
+              variant="outline"
+              className="h-11 rounded-full border-slate-900/15 bg-white px-6 dark:border-white/15 dark:bg-slate-900"
+              onClick={loadMoreIssues}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore ? "Loading more issues..." : "Load more issues"}
+            </Button>
+          </div>
         )}
 
         {/* Raise Issue Callout */}
