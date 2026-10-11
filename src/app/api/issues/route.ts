@@ -17,7 +17,7 @@ import {
   upsertDocument,
   uploadFileBuffer,
 } from "@/lib/appwrite";
-import { buildIssueSlug, issueSubmissionSchema } from "@/lib/issue-form";
+import { buildIssueSlug, issueEvidenceSchema, issueSubmissionSchema } from "@/lib/issue-form";
 import { detectEvidenceType } from "@/lib/evidence";
 
 export const runtime = "nodejs";
@@ -62,7 +62,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please check the issue details and try again." }, { status: 400 });
     }
     const submission = parsed.data;
-    const evidenceFiles = Array.isArray(body?.evidence) ? body.evidence : [];
+    const evidenceResult = issueEvidenceSchema.safeParse(body?.evidence);
+    if (!evidenceResult.success) {
+      return NextResponse.json({ error: "Invalid evidence metadata" }, { status: 400 });
+    }
+    const evidenceFiles = evidenceResult.data;
 
     const issueId = `issue${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
     const issueSlug = buildIssueSlug(submission.title, issueId);
@@ -77,10 +81,6 @@ export async function POST(request: Request) {
     }>;
 
     for (const file of evidenceFiles) {
-      if (!file.fileId || !file.name || !file.size || !file.mimeType) {
-        return NextResponse.json({ error: "Invalid evidence metadata" }, { status: 400 });
-      }
-
       const isImage = file.mimeType.startsWith("image/");
       const publicUrl = file.publicUrl ?? getFileViewUrl(appwriteStorageBucketId, file.fileId);
 

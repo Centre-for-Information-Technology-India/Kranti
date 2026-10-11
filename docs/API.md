@@ -10,6 +10,8 @@ Prefer idempotent mutations where retries are possible. External side effects mu
 
 Issue support and petition signing return `notificationSaved`: `true` when the creator alert was saved, `false` when its write failed, and `null` when no alert was attempted. A saved support or signature remains successful when its secondary alert fails.
 
+Issue creation accepts no evidence or a list of valid evidence metadata. Malformed evidence metadata returns HTTP 400 before file or issue writes.
+
 Public lists require bounded pagination. Never expose an unbounded collection query.
 
 The public petition list reads evidence only for petitions in its bounded result set.

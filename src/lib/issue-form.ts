@@ -34,6 +34,14 @@ export const issueSubmissionSchema = z.object({
   }),
 });
 
+export const issueEvidenceSchema = z.array(z.object({
+  fileId: z.string().min(1),
+  name: z.string().min(1),
+  size: z.number().positive().finite(),
+  mimeType: z.string().min(1),
+  publicUrl: z.string().optional(),
+})).default([]);
+
 export type IssueSubmissionValues = z.infer<typeof issueSubmissionSchema>;
 
 export const issueDefaultValues: IssueSubmissionValues = {
