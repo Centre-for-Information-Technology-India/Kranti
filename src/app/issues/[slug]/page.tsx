@@ -60,7 +60,7 @@ const statusSteps = [
 ];
 
 // Lightweight fetcher used by both generateMetadata and the page
-async function fetchIssueBySlug(slug: string): Promise<Record<string, unknown> | null> {
+async function fetchIssueBySlug(slug: string): Promise<Record<string, unknown> | null | undefined> {
   try {
     const res = (await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [
       Query.equal("slug", [slug]),
@@ -68,7 +68,7 @@ async function fetchIssueBySlug(slug: string): Promise<Record<string, unknown> |
     ])) as { documents?: Array<Record<string, unknown>> };
     return res.documents?.[0] || null;
   } catch {
-    return null;
+    return undefined;
   }
 }
 
@@ -79,6 +79,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const doc = await fetchIssueBySlug(slug);
+
+  if (doc === undefined) {
+    return {
+      title: "Issue temporarily unavailable",
+      robots: { index: false, follow: false },
+    };
+  }
 
   if (!doc || doc.status === "pending_review") {
     return {
@@ -191,6 +198,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
     }
   } catch (err) {
     console.warn("Appwrite lookup failed:", err);
+    throw new Error("Issue details are temporarily unavailable");
   }
 
   if (!issue) {
@@ -425,7 +433,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
                   <CardTitle className="text-xl">Lawful Civic Escalation Pathways</CardTitle>
                 </div>
                 <CardDescription>
-                  Under India's civic governance framework, citizens can pursue these actionable pathways for immediate resolution.
+                  Under India&apos;s civic governance framework, citizens can pursue these actionable pathways for immediate resolution.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
