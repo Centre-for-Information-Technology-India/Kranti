@@ -43,7 +43,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ slug: str
   }
 
   if (legacySupport && belongsToSupporter(legacySupport, issue.$id, userId)) {
-    return NextResponse.json({ ok: true, supportCount: issue.supporter_count ?? 0, countUpdated: false, alreadySupported: true });
+    return NextResponse.json({ ok: true, supportCount: issue.supporter_count ?? 0, countUpdated: false, notificationSaved: null, alreadySupported: true });
   }
 
   const supportId = supportDocumentId(issue.$id, userId);

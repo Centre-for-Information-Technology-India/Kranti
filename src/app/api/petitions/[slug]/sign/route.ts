@@ -49,7 +49,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     ]);
 
     if (((existingSignatures as { documents?: Array<Record<string, unknown>> }).documents ?? []).length > 0) {
-      return NextResponse.json({ ok: true, alreadySigned: true, countUpdated: false });
+      return NextResponse.json({ ok: true, alreadySigned: true, countUpdated: false, notificationSaved: null });
     }
 
     const signatureId = signatureDocumentId(petitionId, userId);
@@ -63,7 +63,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     } catch (error) {
       // Another request can save the same signature after the lookup above.
       if (isExistingSignature(error)) {
-        return NextResponse.json({ ok: true, alreadySigned: true, countUpdated: false });
+        return NextResponse.json({ ok: true, alreadySigned: true, countUpdated: false, notificationSaved: null });
       }
       throw error;
     }
