@@ -3,11 +3,11 @@ import test from "node:test";
 
 import { dashboardCasesForUser } from "./dashboard-cases";
 
-test("dashboard includes cases after the first page without reading unrelated cases", async () => {
+test("dashboard pages owned cases without querying the absent created_at field", async () => {
   const owned = Array.from({ length: 101 }, (_, index) => ({
     $id: `own-${index}`,
     created_by: "test-user",
-    created_at: String(index).padStart(3, "0"),
+    $createdAt: String(index).padStart(3, "0"),
   }));
   const participation = [{ issue_id: "joined-1" }, { issue_id: "joined-1" }, { issue_id: "own-0" }];
   const calls: Array<{ collection: string; queries: Array<{ method: string; attribute?: string; values: unknown[] }> }> = [];
@@ -17,7 +17,7 @@ test("dashboard includes cases after the first page without reading unrelated ca
     const offset = Number(queries.find((query) => query.method === "offset")?.values[0] ?? 0);
     if (collection === "supports") return { documents: offset === 0 ? participation : [] };
     const ids = queries.find((query) => query.attribute === "$id")?.values;
-    if (ids) return { documents: [{ $id: "joined-1", created_by: "other-user", created_at: "200" }] };
+    if (ids) return { documents: [{ $id: "joined-1", created_by: "other-user", $createdAt: "200" }] };
     assert.deepEqual(queries.find((query) => query.attribute === "created_by")?.values, ["test-user"]);
     assert.equal(queries.some((query) => query.method === "orderDesc"), false);
     return { documents: owned.slice(offset, offset + 100) };
