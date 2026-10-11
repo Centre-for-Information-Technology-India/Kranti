@@ -6,19 +6,27 @@ import { appwriteCommentsCollectionId, appwriteDatabaseId, appwriteIssuesCollect
 
 export const runtime = "nodejs";
 
-export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+  const offsetParam = new URL(request.url).searchParams.get("offset");
+  const offset = offsetParam === null ? 0 : Number(offsetParam);
+  if (!Number.isSafeInteger(offset) || offset < 0) {
+    return NextResponse.json({ error: "Invalid comment offset" }, { status: 400 });
+  }
+
   const { slug } = await params;
   const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]);
   const issue = (issueQuery as { documents?: Array<{ $id: string }> }).documents?.[0];
 
   if (!issue) {
-    return NextResponse.json({ ok: true, comments: [] });
+    return NextResponse.json({ ok: true, comments: [], hasMore: false });
   }
 
   const commentsResponse = await listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, [
     Query.equal("issue_id", [issue.$id]),
     Query.equal("status", ["approved"]),
     Query.orderAsc("created_at"),
+    Query.limit(100),
+    Query.offset(offset),
   ]);
 
   const comments = ((commentsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).map((document) => ({
@@ -31,7 +39,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
     createdAt: String(document.created_at ?? document.createdAt ?? document.$createdAt ?? new Date().toISOString()),
   }));
 
-  return NextResponse.json({ ok: true, comments });
+  const total = Number((commentsResponse as { total?: number }).total ?? 0);
+  return NextResponse.json({ ok: true, comments, hasMore: offset + comments.length < total });
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
