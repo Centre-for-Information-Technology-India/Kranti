@@ -10,14 +10,41 @@ interface IssueCommentsProps {
   issueSlug: string;
   issueId: string;
   initialComments: IssueComment[];
+  initialHasMore: boolean;
 }
 
-export default function IssueComments({ issueSlug, issueId, initialComments }: IssueCommentsProps) {
+export default function IssueComments({ issueSlug, issueId, initialComments, initialHasMore }: IssueCommentsProps) {
   const { user, isLoaded } = useUser();
   const [comments, setComments] = useState<IssueComment[]>(initialComments);
   const [newCommentText, setNewCommentText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [loadedCount, setLoadedCount] = useState(initialComments.length);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState("");
+
+  const loadMore = async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    setLoadError("");
+    try {
+      const response = await fetch(`/api/issues/${encodeURIComponent(issueSlug)}/comments?offset=${loadedCount}`);
+      const data = await response.json();
+      if (!response.ok || !Array.isArray(data?.comments)) throw new Error("Comment page failed");
+      const nextComments = data.comments as IssueComment[];
+      setComments((current) => {
+        const ids = new Set(current.map((comment) => comment.$id));
+        return [...current, ...nextComments.filter((comment) => !ids.has(comment.$id))];
+      });
+      setLoadedCount((count) => count + nextComments.length);
+      setHasMore(data.hasMore === true && nextComments.length > 0 && loadedCount + nextComments.length <= 10000);
+    } catch {
+      setLoadError("Older comments could not load. Please try again.");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +74,7 @@ export default function IssueComments({ issueSlug, issueId, initialComments }: I
         createdAt: String(data.comment.createdAt ?? new Date().toISOString()),
       };
 
-      setComments((current) => [addedComment, ...current]);
+      setComments((current) => [...current, addedComment]);
       setNewCommentText("");
     } catch {
       setSubmitError("Your comment could not be saved. Please try again.");
@@ -138,6 +165,14 @@ export default function IssueComments({ issueSlug, issueId, initialComments }: I
           </div>
         ))}
       </div>
+      {loadError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{loadError}</p>}
+      {hasMore && (
+        <div className="flex justify-center">
+          <Button type="button" variant="outline" onClick={loadMore} disabled={isLoadingMore} className="rounded-full">
+            {isLoadingMore ? "Loading comments..." : "Load older comments"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
