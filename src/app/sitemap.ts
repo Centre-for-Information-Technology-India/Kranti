@@ -7,6 +7,7 @@ import {
   appwritePetitionsCollectionId,
   appwriteCampaignsCollectionId,
   listDocuments,
+  Query,
 } from "@/lib/appwrite";
 
 // Revalidate every hour — picks up new content without being fully dynamic
@@ -32,11 +33,21 @@ async function fetchPublicSlugs(
   publicStatuses: string[]
 ): Promise<Array<{ slug: string; lastModified: string }>> {
   try {
-    const res = (await listDocuments(appwriteDatabaseId, collectionId, [
-      "limit(500)",
-    ])) as { documents?: DocWithSlug[] };
+    const documents: DocWithSlug[] = [];
+    const pageSize = 100;
+    // Bound each hourly sitemap refresh while including cases beyond the first page.
+    for (let offset = 0; offset < 10000; offset += pageSize) {
+      const res = (await listDocuments(appwriteDatabaseId, collectionId, [
+        Query.orderAsc("$id"),
+        Query.limit(pageSize),
+        Query.offset(offset),
+      ])) as { documents?: DocWithSlug[] };
+      const page = res.documents ?? [];
+      documents.push(...page);
+      if (page.length < pageSize) break;
+    }
 
-    return (res.documents || [])
+    return documents
       .filter((d) => d.slug && d.status && publicStatuses.includes(d.status))
       .map((d) => ({
         slug: d.slug as string,
