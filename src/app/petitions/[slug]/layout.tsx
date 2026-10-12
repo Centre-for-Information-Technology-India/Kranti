@@ -4,6 +4,7 @@ import {
   appwriteDatabaseId,
   appwritePetitionsCollectionId,
   listDocuments,
+  Query,
 } from "@/lib/appwrite";
 import { canonical, SITE_URL, buildBreadcrumbSchema } from "@/lib/seo";
 
@@ -15,8 +16,8 @@ interface Props {
 async function fetchPetitionBySlug(slug: string): Promise<Record<string, unknown> | null> {
   try {
     const res = (await listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [
-      `equal("slug", ["${slug}"])`,
-      "limit(1)",
+      Query.equal("slug", [slug]),
+      Query.limit(1),
     ])) as { documents?: Array<Record<string, unknown>> };
     return res.documents?.[0] || null;
   } catch {
