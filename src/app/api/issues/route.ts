@@ -182,7 +182,11 @@ export async function GET(request: Request) {
   }
   const offset = Number(rawOffset);
   try {
-    const issuesResponse = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.limit(26), Query.offset(offset)]);
+    const issuesResponse = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [
+      Query.orderDesc("$createdAt"),
+      Query.limit(26),
+      Query.offset(offset),
+    ]);
     const pageDocuments = (issuesResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
     const issueDocuments = pageDocuments.slice(0, 25);
     const issueIds = issueDocuments.map((document) => String(document.$id ?? "")).filter(Boolean);
