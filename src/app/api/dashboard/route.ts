@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import {
@@ -20,8 +20,6 @@ export async function GET() {
   if (!userId) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
-
-  const clerkUser = await currentUser();
 
   const [issueDocuments, petitionDocuments] = await Promise.all([
     dashboardCasesForUser(appwriteIssuesCollectionId, appwriteSupportsCollectionId, "issue_id", userId),
@@ -108,6 +106,5 @@ export async function GET() {
     supportedIssues,
     raisedPetitions,
     signedPetitions,
-    profile: clerkUser,
   });
 }

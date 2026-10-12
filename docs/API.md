@@ -28,6 +28,7 @@ The public issue-comment endpoint returns at most 100 approved comments per requ
 The default public campaign list returns up to 25 campaigns per request. Use an `offset` from 0 to 10000 and the `hasMore` flag to read older campaigns. Existing visibility filters still apply. Explicit status queries keep their prior 100-result limit and do not accept a later offset while campaign review remains pending.
 
 The signed-in dashboard reads only the citizen's own cases and cases they supported or signed. It pages through that citizen's participation records so older cases remain visible.
+The dashboard response contains case lists only. The client reads its signed-in profile from Clerk; the case API does not return that profile.
 
 New petition addresses contain a readable English title prefix when available, followed by the petition ID. Hindi-only titles use `petition` as the prefix. Existing addresses stay unchanged.
 
