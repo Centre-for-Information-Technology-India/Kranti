@@ -16,6 +16,7 @@ Public lists require bounded pagination. Never expose an unbounded collection qu
 
 The public petition list reads evidence only for petitions in its bounded result set.
 The public petition list returns up to 25 petitions per request. Use an `offset` from 0 to 10000 and the `hasMore` flag to read older petitions.
+At the offset cap, `hasMore` is false even when more records exist beyond the supported range.
 
 The public issue list reads evidence and creator profiles only for issues in its bounded result set.
 The public issue list returns up to 25 issues per request, newest first by Appwrite creation time. Use an `offset` from 0 to 10000 and the `hasMore` flag to read older issues.
