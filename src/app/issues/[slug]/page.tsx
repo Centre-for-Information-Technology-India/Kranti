@@ -153,7 +153,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
         listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, [
           Query.equal("issue_id", [issueId]),
           Query.equal("status", ["approved"]),
-          Query.orderAsc("created_at"),
+          Query.orderAsc("$createdAt"),
           Query.limit(100),
         ]),
         creatorId
