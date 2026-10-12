@@ -7,11 +7,11 @@ import { appwriteCommentsCollectionId, appwriteDatabaseId, appwriteIssuesCollect
 export const runtime = "nodejs";
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
-  const offsetParam = new URL(request.url).searchParams.get("offset");
-  const offset = offsetParam === null ? 0 : Number(offsetParam);
-  if (!Number.isSafeInteger(offset) || offset < 0) {
+  const rawOffset = new URL(request.url).searchParams.get("offset") ?? "0";
+  if (!/^(0|[1-9]\d*)$/.test(rawOffset) || Number(rawOffset) > 10000) {
     return NextResponse.json({ error: "Invalid comment offset" }, { status: 400 });
   }
+  const offset = Number(rawOffset);
 
   const { slug } = await params;
   const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]);
