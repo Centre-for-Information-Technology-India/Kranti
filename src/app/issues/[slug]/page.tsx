@@ -150,7 +150,12 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
       const issueId = String(doc.$id ?? "");
       const [evidenceResponse, commentsData, creatorResponses] = await Promise.all([
         listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [Query.equal("issue_id", [issueId]), Query.limit(100)]),
-        listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, [Query.equal("issue_id", [issueId]), Query.limit(100)]),
+        listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, [
+          Query.equal("issue_id", [issueId]),
+          Query.equal("status", ["approved"]),
+          Query.orderAsc("created_at"),
+          Query.limit(100),
+        ]),
         creatorId
           ? Promise.all(["clerk_id", "$id"].map((field) =>
               listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, [creatorId]), Query.limit(1)])
@@ -485,7 +490,12 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
             {/* Comments Section */}
             <Card className="border-slate-900/10 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-900/70">
               <CardContent className="p-6 md:p-8">
-                <IssueComments issueSlug={issue.slug} issueId={issue.$id} initialComments={comments} />
+                <IssueComments
+                  issueSlug={issue.slug}
+                  issueId={issue.$id}
+                  initialComments={comments}
+                  initialHasMore={comments.length < Number((commentsResponse as { total?: number }).total ?? comments.length)}
+                />
               </CardContent>
             </Card>
 
