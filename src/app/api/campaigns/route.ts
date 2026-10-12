@@ -75,12 +75,20 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const rawOffset = new URL(request.url).searchParams.get("offset") ?? "0";
+  if (!/^(0|[1-9]\d*)$/.test(rawOffset) || Number(rawOffset) > 10000) {
+    return NextResponse.json({ error: "Invalid campaign offset" }, { status: 400 });
+  }
+  const offset = Number(rawOffset);
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const state = searchParams.get("state");
     const status = searchParams.get("status");
     const featured = searchParams.get("featured");
+    if (status && offset !== 0) {
+      return NextResponse.json({ error: "Campaign offset is unavailable for status filters" }, { status: 400 });
+    }
 
     const queries: string[] = [];
 
@@ -103,11 +111,13 @@ export async function GET(request: NextRequest) {
     }
 
     queries.push(Query.orderDesc("created_at"));
-    queries.push(Query.limit(100));
+    queries.push(Query.limit(status ? 100 : 26));
+    if (!status) queries.push(Query.offset(offset));
 
     const response = await listDocuments(appwriteDatabaseId, appwriteCampaignsCollectionId, queries);
 
-    const campaigns = ((response as { documents?: Array<Record<string, unknown>> }).documents ?? []).map((doc: Record<string, unknown>) => ({
+    const pageDocuments = (response as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+    const campaigns = (status ? pageDocuments : pageDocuments.slice(0, 25)).map((doc: Record<string, unknown>) => ({
       $id: doc.$id,
       title: doc.title,
       slug: doc.slug,
@@ -127,7 +137,7 @@ export async function GET(request: NextRequest) {
       createdAt: doc.created_at,
     }));
 
-    return NextResponse.json({ campaigns });
+    return NextResponse.json({ campaigns, hasMore: !status && pageDocuments.length > 25 && offset + 25 <= 10000 });
   } catch (error) {
     console.error("Campaigns fetch error:", error);
     return NextResponse.json({ error: "Failed to fetch campaigns" }, { status: 500 });
