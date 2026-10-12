@@ -40,7 +40,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   }));
 
   const total = Number((commentsResponse as { total?: number }).total ?? 0);
-  return NextResponse.json({ ok: true, comments, hasMore: offset + comments.length < total });
+  return NextResponse.json({ ok: true, comments, hasMore: offset + comments.length < total && offset + comments.length <= 10000 });
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
