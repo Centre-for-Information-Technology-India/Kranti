@@ -182,13 +182,20 @@ async function createPetition(request: Request) {
   });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const rawOffset = new URL(request.url).searchParams.get("offset") ?? "0";
+  if (!/^(0|[1-9]\d*)$/.test(rawOffset) || Number(rawOffset) > 10000) {
+    return NextResponse.json({ ok: false, error: "Invalid petition offset" }, { status: 400 });
+  }
+  const offset = Number(rawOffset);
   try {
     const petitionsResponse = await listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [
       Query.orderDesc("created_at"),
-      Query.limit(25),
+      Query.limit(26),
+      Query.offset(offset),
     ]);
-    const petitionDocuments = (petitionsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+    const pageDocuments = (petitionsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+    const petitionDocuments = pageDocuments.slice(0, 25);
     const petitionIds = petitionDocuments.map((document) => String(document.$id ?? "")).filter(Boolean);
     const evidenceResponse = petitionIds.length > 0
       ? await listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [
@@ -259,7 +266,7 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ ok: true, petitions });
+    return NextResponse.json({ ok: true, petitions, hasMore: pageDocuments.length > 25 });
   } catch (error) {
     console.error("Failed to list petitions from Appwrite:", error);
     return NextResponse.json({ error: "Petitions are temporarily unavailable. Please try again." }, { status: 503 });
