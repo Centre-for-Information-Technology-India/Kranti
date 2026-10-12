@@ -255,7 +255,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ ok: true, issues, hasMore: pageDocuments.length > 25 });
+    return NextResponse.json({ ok: true, issues, hasMore: pageDocuments.length > 25 && offset + 25 <= 10000 });
   } catch (error) {
     console.error("Failed to list issues from Appwrite:", error);
     return NextResponse.json({ ok: false, error: "Issues are temporarily unavailable. Please try again." }, { status: 503 });
