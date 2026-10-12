@@ -22,7 +22,7 @@ The public issue list returns up to 25 issues per request, newest first by Appwr
 
 An issue detail page reads only evidence and comments linked to that issue and the creator's profile. These reads are bounded.
 
-The public issue-comment endpoint returns at most 100 approved comments per request. Use a non-negative `offset` query value and the `hasMore` response flag to read later pages.
+The public issue-comment endpoint returns at most 100 approved comments per request. Use an `offset` from 0 to 10000 and the `hasMore` response flag to read later pages.
 
 The signed-in dashboard reads only the citizen's own cases and cases they supported or signed. It pages through that citizen's participation records so older cases remain visible.
 
