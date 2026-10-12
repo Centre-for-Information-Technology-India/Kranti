@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   const commentsResponse = await listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, [
     Query.equal("issue_id", [issue.$id]),
     Query.equal("status", ["approved"]),
-    Query.orderAsc("created_at"),
+    Query.orderAsc("$createdAt"),
     Query.limit(100),
     Query.offset(offset),
   ]);
