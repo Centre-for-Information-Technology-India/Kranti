@@ -6,6 +6,7 @@ import {
   listDocuments,
   Query,
 } from "@/lib/appwrite";
+import { belongsToClerkAccount } from "@/lib/account-sync";
 
 type RoleLookup = {
   getDocument: typeof getDocument;
@@ -19,7 +20,7 @@ export async function getUserRole(
 ): Promise<string> {
   try {
     const doc = await lookup.getDocument(appwriteDatabaseId, appwriteUsersCollectionId, clerkId) as Record<string, unknown>;
-    return String(doc.role ?? "citizen");
+    return belongsToClerkAccount(doc, clerkId) ? String(doc.role ?? "citizen") : "citizen";
   } catch (error) {
     // Only a missing document permits the seeded-user fallback.
     if (!(error instanceof AppwriteRequestError) || error.status !== 404) throw error;
@@ -30,7 +31,7 @@ export async function getUserRole(
     Query.limit(1),
   ]);
   const linkedUser = (byClerkId as { documents?: Array<Record<string, unknown>> }).documents?.[0];
-  if (linkedUser) return String(linkedUser.role ?? "citizen");
+  if (linkedUser && belongsToClerkAccount(linkedUser, clerkId)) return String(linkedUser.role ?? "citizen");
 
   if (email) {
     const byEmail = await lookup.listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [
@@ -38,7 +39,7 @@ export async function getUserRole(
       Query.limit(1),
     ]);
     const seededUser = (byEmail as { documents?: Array<Record<string, unknown>> }).documents?.[0];
-    if (seededUser) return String(seededUser.role ?? "citizen");
+    if (seededUser && belongsToClerkAccount(seededUser, clerkId)) return String(seededUser.role ?? "citizen");
   }
 
   return "citizen";

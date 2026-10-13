@@ -11,7 +11,7 @@ import {
   updateDocument,
   upsertDocument,
 } from "@/lib/appwrite";
-import { preservedAccountFields } from "@/lib/account-sync";
+import { belongsToClerkAccount, preservedAccountFields, verifiedPrimaryEmail } from "@/lib/account-sync";
 
 export const runtime = "nodejs";
 
@@ -28,7 +28,8 @@ export async function POST() {
     return NextResponse.json({ error: "Unable to load Clerk user" }, { status: 400 });
   }
 
-  const primaryEmail = user.emailAddresses.find((emailAddress) => emailAddress.id === user.primaryEmailAddressId)?.emailAddress ?? null;
+  const primaryEmail = user.emailAddresses.find((address) => address.id === user.primaryEmailAddressId)?.emailAddress ?? null;
+  const verifiedEmail = verifiedPrimaryEmail(user);
   const primaryPhone = user.phoneNumbers.find((phoneNumber) => phoneNumber.id === user.primaryPhoneNumberId)?.phoneNumber ?? null;
 
   try {
@@ -39,15 +40,21 @@ export async function POST() {
     } catch (error) {
       if (!(error instanceof AppwriteRequestError) || error.status !== 404) throw error;
     }
+    if (existingDoc && !belongsToClerkAccount(existingDoc, user.id)) {
+      return NextResponse.json({ error: "This account record belongs to another sign-in." }, { status: 409 });
+    }
 
     // If not found by Clerk ID, check if a seeded user exists with this email
-    if (!existingDoc && primaryEmail) {
+    if (!existingDoc && verifiedEmail) {
       const result = await listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [
-          Query.equal("email", [primaryEmail]),
+          Query.equal("email", [verifiedEmail]),
           Query.limit(1),
       ]);
       const found = (result as { documents?: Array<Record<string, unknown>> }).documents?.[0];
       if (found) {
+        if (!belongsToClerkAccount(found, user.id)) {
+          return NextResponse.json({ error: "This account record belongs to another sign-in." }, { status: 409 });
+        }
         // Link the seeded document with the real Clerk ID.
         const document = await updateDocument(appwriteDatabaseId, appwriteUsersCollectionId, found.$id as string, {
           clerk_id: user.id,

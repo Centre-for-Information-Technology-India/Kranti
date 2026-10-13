@@ -1,5 +1,6 @@
 import { clerkClient, clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { belongsToClerkAccount, verifiedPrimaryEmail } from "@/lib/account-sync";
 
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
@@ -35,7 +36,7 @@ async function getUserRole(clerkId: string, email?: string | null): Promise<stri
   const docById = await appwriteFetch(
     `/databases/${DATABASE_ID}/collections/${USERS_COLLECTION_ID}/documents/${clerkId}`
   );
-  if (docById?.role) return docById.role;
+  if (docById?.role && belongsToClerkAccount(docById, clerkId)) return docById.role;
 
   // 2. Try by clerk_id field
   const queryClerkId = JSON.stringify({ method: "equal", attribute: "clerk_id", values: [clerkId] });
@@ -43,7 +44,8 @@ async function getUserRole(clerkId: string, email?: string | null): Promise<stri
   const byClerkId = await appwriteFetch(
     `/databases/${DATABASE_ID}/collections/${USERS_COLLECTION_ID}/documents?queries[]=${encodeURIComponent(queryClerkId)}&queries[]=${encodeURIComponent(limitQ)}`
   );
-  if (byClerkId?.documents?.[0]?.role) return byClerkId.documents[0].role;
+  const linkedUser = byClerkId?.documents?.[0];
+  if (linkedUser?.role && belongsToClerkAccount(linkedUser, clerkId)) return linkedUser.role;
 
   // 3. Try by email (for seeded users)
   if (email) {
@@ -51,7 +53,8 @@ async function getUserRole(clerkId: string, email?: string | null): Promise<stri
     const byEmail = await appwriteFetch(
       `/databases/${DATABASE_ID}/collections/${USERS_COLLECTION_ID}/documents?queries[]=${encodeURIComponent(queryEmail)}&queries[]=${encodeURIComponent(limitQ)}`
     );
-    if (byEmail?.documents?.[0]?.role) return byEmail.documents[0].role;
+    const seededUser = byEmail?.documents?.[0];
+    if (seededUser?.role && belongsToClerkAccount(seededUser, clerkId)) return seededUser.role;
   }
 
   return "citizen";
@@ -74,9 +77,7 @@ export default clerkMiddleware(async (auth, request) => {
       try {
         const client = await clerkClient();
         const clerkUser = await client.users.getUser(userId);
-        email = clerkUser.emailAddresses.find(
-          (e) => e.id === clerkUser.primaryEmailAddressId
-        )?.emailAddress ?? null;
+        email = verifiedPrimaryEmail(clerkUser);
       } catch {
         // If we can't get email, proceed with ID-only lookup
       }
