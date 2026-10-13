@@ -84,7 +84,7 @@ export async function upsertDocument(databaseId: string, collectionId: string, d
   try {
     return await createDocument(databaseId, collectionId, documentId, data);
   } catch (error) {
-    if (!(error instanceof Error) || !error.message.toLowerCase().includes("already exists")) {
+    if (!(error instanceof AppwriteRequestError) || error.status !== 409) {
       throw error;
     }
 
