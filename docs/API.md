@@ -14,6 +14,7 @@ Issue creation accepts no evidence or a list of valid evidence metadata. Malform
 Issue creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
 Petition creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
 Incident report creation rejects JSON request bodies over 1 MiB with HTTP 413 before evidence processing or Appwrite writes.
+Moderator actions reject JSON request bodies over 1 MiB with HTTP 413 before issue or moderation-log writes.
 
 Public lists require bounded pagination. Never expose an unbounded collection query.
 
