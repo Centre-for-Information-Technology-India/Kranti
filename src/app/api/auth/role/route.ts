@@ -1,6 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getUserRole } from "@/lib/role-lookup";
+import { verifiedPrimaryEmail } from "@/lib/account-sync";
 
 export const runtime = "nodejs";
 
@@ -14,7 +15,7 @@ export async function GET() {
   try {
     const user = await currentUser();
     if (!user) throw new Error("Clerk user unavailable");
-    const email = user.emailAddresses.find((e) => e.id === user.primaryEmailAddressId)?.emailAddress ?? null;
+    const email = verifiedPrimaryEmail(user);
     const role = await getUserRole(userId, email);
     return NextResponse.json({ role });
   } catch {
