@@ -16,6 +16,7 @@ import {
 } from "@/lib/appwrite";
 import { buildReportSlug, reportEvidenceSchema, reportSubmissionSchema } from "@/lib/report-form";
 import { detectEvidenceType } from "@/lib/evidence";
+import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
 
 export const runtime = "nodejs";
 
@@ -47,8 +48,11 @@ export async function POST(request: Request) {
     }>;
   };
   try {
-    body = (await request.json()) as typeof body;
-  } catch {
+    body = (await readJsonWithLimit(request, 1024 * 1024)) as typeof body;
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return NextResponse.json({ error: "Report details are too large. Shorten the text and try again." }, { status: 413 });
+    }
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
