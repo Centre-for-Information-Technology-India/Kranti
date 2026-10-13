@@ -20,6 +20,7 @@ import {
 } from "@/lib/appwrite";
 import { buildPetitionSlug, petitionEvidenceSchema, petitionSubmissionSchema } from "@/lib/petition-form";
 import { detectEvidenceType } from "@/lib/evidence";
+import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
 
 export const runtime = "nodejs";
 
@@ -63,8 +64,11 @@ async function createPetition(request: Request) {
     }>;
   };
   try {
-    body = (await request.json()) as typeof body;
-  } catch {
+    body = (await readJsonWithLimit(request, 1024 * 1024)) as typeof body;
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return NextResponse.json({ error: "Petition details are too large. Shorten the text and try again." }, { status: 413 });
+    }
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
