@@ -1,6 +1,55 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+test("upsert retries a create only for HTTP conflict", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+  const { upsertDocument } = await import("./appwrite");
+  const methods: string[] = [];
+
+  try {
+    globalThis.fetch = async (_input, init) => {
+      methods.push(init?.method ?? "GET");
+      if (init?.method === "POST") return Response.json({ message: "Duplicate document ID" }, { status: 409 });
+      return Response.json({ $id: "marked-test", saved: true });
+    };
+
+    const result = await upsertDocument("test", "users", "marked-test", { consent_accepted: true });
+    assert.deepEqual(result, { $id: "marked-test", saved: true });
+    assert.deepEqual(methods, ["POST", "PATCH"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});
+
+test("upsert does not overwrite after a non-conflict error", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+  const { upsertDocument, AppwriteRequestError } = await import("./appwrite");
+  const methods: string[] = [];
+
+  try {
+    globalThis.fetch = async (_input, init) => {
+      methods.push(init?.method ?? "GET");
+      return Response.json({ message: "Value already exists in another field" }, { status: 400 });
+    };
+
+    await assert.rejects(
+      upsertDocument("test", "users", "marked-test", { consent_accepted: true }),
+      (error: unknown) => error instanceof AppwriteRequestError && error.status === 400,
+    );
+    assert.deepEqual(methods, ["POST"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});
+
 test("Appwrite query preserves quoted input as one exact value", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;
