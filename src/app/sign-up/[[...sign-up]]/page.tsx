@@ -1,5 +1,6 @@
 import { SignUp } from "@clerk/nextjs";
 import type { Metadata } from "next";
+import { safeAuthRedirect } from "@/lib/auth-redirect";
 
 export const metadata: Metadata = {
   title: "Join Kranti",
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ redirect_url?: string }>;
+  searchParams: Promise<{ redirect_url?: string | string[] }>;
 }
 
 export default async function SignUpPage({ searchParams }: Props) {
@@ -18,7 +19,7 @@ export default async function SignUpPage({ searchParams }: Props) {
       <SignUp
         path="/sign-up"
         routing="path"
-        forceRedirectUrl={redirect_url || "/dashboard"}
+        forceRedirectUrl={safeAuthRedirect(redirect_url)}
         fallbackRedirectUrl="/dashboard"
       />
     </div>

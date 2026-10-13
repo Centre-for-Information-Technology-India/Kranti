@@ -1,5 +1,6 @@
 import { SignIn } from "@clerk/nextjs";
 import type { Metadata } from "next";
+import { safeAuthRedirect } from "@/lib/auth-redirect";
 
 export const metadata: Metadata = {
   title: "Sign In",
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ redirect_url?: string }>;
+  searchParams: Promise<{ redirect_url?: string | string[] }>;
 }
 
 export default async function SignInPage({ searchParams }: Props) {
@@ -19,7 +20,7 @@ export default async function SignInPage({ searchParams }: Props) {
         path="/sign-in"
         routing="path"
         // After sign-in, redirect back to the page the user came from
-        forceRedirectUrl={redirect_url || "/dashboard"}
+        forceRedirectUrl={safeAuthRedirect(redirect_url)}
         fallbackRedirectUrl="/dashboard"
       />
     </div>
