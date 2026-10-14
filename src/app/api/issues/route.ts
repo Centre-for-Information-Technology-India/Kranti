@@ -188,6 +188,8 @@ export async function GET(request: Request) {
   const offset = Number(rawOffset);
   try {
     const issuesResponse = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [
+      // Filter before offset so rejected cases cannot appear in any public page.
+      Query.equal("status", ["pending_review", "open", "in_progress", "escalated", "resolved"]),
       Query.orderDesc("$createdAt"),
       Query.limit(26),
       Query.offset(offset),
