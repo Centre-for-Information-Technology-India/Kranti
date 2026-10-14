@@ -68,8 +68,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/petitions`,   lastModified: now, changeFrequency: "hourly",  priority: 0.95 },
     { url: `${SITE_URL}/campaigns`,   lastModified: now, changeFrequency: "daily",   priority: 0.9  },
     { url: `${SITE_URL}/guides`,      lastModified: now, changeFrequency: "weekly",  priority: 0.9  },
-    // /create is intentionally noindexed (see src/app/create/layout.tsx) so it
-    // must not be listed in the sitemap.
+    { url: `${SITE_URL}/create`,      lastModified: now, changeFrequency: "weekly",  priority: 0.8  },
     { url: `${SITE_URL}/transparency`,lastModified: now, changeFrequency: "weekly",  priority: 0.7  },
     { url: `${SITE_URL}/about`,       lastModified: now, changeFrequency: "monthly", priority: 0.6  },
     { url: `${SITE_URL}/guidelines`,  lastModified: now, changeFrequency: "monthly", priority: 0.5  },
