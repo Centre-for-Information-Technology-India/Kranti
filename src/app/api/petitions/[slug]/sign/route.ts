@@ -2,6 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import {
+  AppwriteRequestError,
   appwriteDatabaseId,
   appwritePetitionsCollectionId,
   appwriteSignaturesCollectionId,
@@ -17,16 +18,16 @@ import { isExistingSignature, signatureDocumentId } from "@/lib/petition-signatu
 export const runtime = "nodejs";
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const user = await currentUser();
-  const { slug } = await params;
-
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await currentUser();
+    const { slug } = await params;
+
     const petitionsResponse = await listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [
       Query.equal("slug", [slug]),
       Query.limit(1),
@@ -90,7 +91,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
     return NextResponse.json({ ok: true, countUpdated, notificationSaved, message: "Petition signed successfully" });
   } catch (error) {
-    console.error("Failed to sign petition:", error);
-    return NextResponse.json({ error: "Failed to sign petition" }, { status: 500 });
+    console.error("Petition signing failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+    return NextResponse.json(
+      { error: "We couldn't confirm your signature was saved. Check this petition before trying again." },
+      { status: 503 },
+    );
   }
 }
