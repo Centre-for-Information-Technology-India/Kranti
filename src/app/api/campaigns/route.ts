@@ -3,6 +3,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { ID } from "node-appwrite";
 
 import {
+  AppwriteRequestError,
   appwriteDatabaseId,
   appwriteCampaignsCollectionId,
   createDocument,
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
       slug,
     });
   } catch (error) {
-    console.error("Campaign creation error:", error);
+    console.error("Campaign creation error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
 
     return NextResponse.json({ error: "Failed to create campaign" }, { status: 500 });
   }
