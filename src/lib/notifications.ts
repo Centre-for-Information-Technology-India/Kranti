@@ -1,5 +1,6 @@
 import { ID } from "node-appwrite";
 import {
+  AppwriteRequestError,
   appwriteDatabaseId,
   appwriteNotificationsCollectionId,
   createDocument,
@@ -43,7 +44,7 @@ export async function createNotification(data: NotificationData): Promise<boolea
     });
     return true;
   } catch (error) {
-    console.error("Failed to create notification:", error);
+    console.error("Failed to create notification:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return false;
   }
 }

@@ -12,9 +12,11 @@ test("notification creation reports storage failure without undoing a saved acti
   try {
     globalThis.fetch = async () => Response.json({ $id: "synthetic_alert" });
     assert.equal(await createNotification(data), true);
-    console.error = () => {};
-    globalThis.fetch = async () => Response.json({ message: "synthetic failure" }, { status: 503 });
+    const logged: unknown[][] = [];
+    console.error = (...args: unknown[]) => { logged.push(args); };
+    globalThis.fetch = async () => Response.json({ message: "private synthetic alert detail" }, { status: 503 });
     assert.equal(await createNotification(data), false);
+    assert.deepEqual(logged, [["Failed to create notification:", "Appwrite status 503"]]);
   } finally {
     globalThis.fetch = originalFetch;
     console.error = originalError;
