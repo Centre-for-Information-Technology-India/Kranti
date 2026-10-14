@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   try {
     return await createPetition(request);
   } catch (error) {
-    console.error("Petition creation failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : error);
+    console.error("Petition creation failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json(
       { error: "We couldn't confirm your petition was saved. Check your dashboard before trying again." },
       { status: 503 },
