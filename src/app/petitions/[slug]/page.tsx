@@ -33,6 +33,7 @@ export default function PetitionDetailPage() {
   const [hasSigned, setHasSigned] = useState(false);
   const [isSigningLoading, setIsSigningLoading] = useState(false);
   const [signError, setSignError] = useState<string | null>(null);
+  const [countUpdateFailed, setCountUpdateFailed] = useState(false);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "not-found" | "error">("loading");
   const [loadAttempt, setLoadAttempt] = useState(0);
 
@@ -76,6 +77,7 @@ export default function PetitionDetailPage() {
 
     setIsSigningLoading(true);
     setSignError(null);
+    setCountUpdateFailed(false);
 
     try {
       const response = await fetch(`/api/petitions/${slug}/sign`, {
@@ -90,7 +92,8 @@ export default function PetitionDetailPage() {
       }
 
       setHasSigned(true);
-      if (data.countUpdated !== false) {
+      setCountUpdateFailed(data.countUpdated === false && !data.alreadySigned);
+      if (data.countUpdated !== false && !data.alreadySigned) {
         setPetition((prev) => prev ? { ...prev, signature_count: prev.signature_count + 1 } : null);
       }
     } catch (error) {
@@ -221,6 +224,11 @@ export default function PetitionDetailPage() {
                   <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-600 mb-2" />
                   <p className="font-semibold text-emerald-900 dark:text-emerald-100">You&apos;ve signed this petition</p>
                   <p className="text-sm text-emerald-700 dark:text-emerald-200 mt-1">Thank you for your support!</p>
+                  {countUpdateFailed && (
+                    <p role="status" className="mt-2 text-sm text-emerald-900 dark:text-emerald-100">
+                      Your signature was saved, but the public count did not update.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">
