@@ -11,6 +11,7 @@ import {
 } from "@/lib/appwrite";
 import { campaignFormSchema } from "@/lib/campaign-form";
 import { buildCampaignSlug } from "@/lib/campaign-slug";
+import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,8 +23,11 @@ export async function POST(request: NextRequest) {
 
     let body: unknown;
     try {
-      body = await request.json();
-    } catch {
+      body = await readJsonWithLimit(request, 1024 * 1024);
+    } catch (error) {
+      if (error instanceof RequestBodyTooLargeError) {
+        return NextResponse.json({ error: "Campaign details are too large. Shorten the text and try again." }, { status: 413 });
+      }
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 

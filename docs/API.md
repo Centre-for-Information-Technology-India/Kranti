@@ -16,6 +16,7 @@ Petition creation rejects JSON request bodies over 1 MiB with HTTP 413 before an
 Incident report creation rejects JSON request bodies over 1 MiB with HTTP 413 before evidence processing or Appwrite writes.
 Moderator actions reject JSON request bodies over 1 MiB with HTTP 413 before issue or moderation-log writes.
 Issue comments reject JSON request bodies over 1 MiB with HTTP 413 before issue lookup or comment writes.
+Campaign creation rejects JSON request bodies over 1 MiB with HTTP 413 before campaign lookups or writes.
 
 Public lists require bounded pagination. Never expose an unbounded collection query.
 
