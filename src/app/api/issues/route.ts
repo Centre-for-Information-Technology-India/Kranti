@@ -8,6 +8,7 @@ import {
   appwriteEvidenceCollectionId,
   appwriteIssuesCollectionId,
   appwriteUsersCollectionId,
+  AppwriteRequestError,
   createDocument,
   deleteFile,
   downloadFile,
@@ -174,7 +175,7 @@ export async function POST(request: Request) {
       uploadedEvidence,
     });
   } catch (error) {
-    console.error("Failed to create issue:", error);
+    console.error("Failed to create issue:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json({ error: "Failed to create issue" }, { status: 500 });
   }
 }
