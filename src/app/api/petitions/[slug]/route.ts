@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import {
+  AppwriteRequestError,
   appwriteDatabaseId,
   appwritePetitionsCollectionId,
   appwriteSignaturesCollectionId,
@@ -100,7 +101,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
     return NextResponse.json({ ok: true, petition, hasSigned });
   } catch (error) {
-    console.error("Failed to fetch petition:", error);
+    console.error("Failed to fetch petition:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json({ error: "Failed to fetch petition" }, { status: 500 });
   }
 }
