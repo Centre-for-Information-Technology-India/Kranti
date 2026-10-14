@@ -84,7 +84,7 @@ async function saveSupport(_: Request, { params }: { params: Promise<{ slug: str
       countUpdated = true;
     } catch (error) {
       // The support is already saved. Keep the response successful so a retry cannot mislead the citizen.
-      console.error("Issue support saved but count update failed:", error);
+      console.error("Issue support saved but count update failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     }
 
     // Send notification to issue creator
