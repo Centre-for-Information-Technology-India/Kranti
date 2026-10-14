@@ -9,6 +9,7 @@ Public responses contain only intentionally public fields. Do not return raw App
 Prefer idempotent mutations where retries are possible. External side effects must record enough state to prevent accidental duplicates.
 
 Issue support and petition signing return `notificationSaved`: `true` when the creator alert was saved, `false` when its write failed, and `null` when no alert was attempted. A saved support or signature remains successful when its secondary alert fails.
+Issue support returns a safe HTTP 503 JSON response when its result cannot be confirmed. Retrying the same support cannot create a second support record.
 
 Issue creation accepts no evidence or a list of valid evidence metadata. Malformed evidence metadata returns HTTP 400 before file or issue writes.
 Issue creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.

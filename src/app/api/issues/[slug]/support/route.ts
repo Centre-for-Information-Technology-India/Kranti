@@ -17,7 +17,19 @@ import { belongsToSupporter, legacySupportDocumentId, supportDocumentId } from "
 
 export const runtime = "nodejs";
 
-export async function POST(_: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function POST(request: Request, context: { params: Promise<{ slug: string }> }) {
+  try {
+    return await saveSupport(request, context);
+  } catch (error) {
+    console.error("Issue support failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+    return NextResponse.json(
+      { error: "We couldn't confirm your support was saved. Check this issue before trying again." },
+      { status: 503 },
+    );
+  }
+}
+
+async function saveSupport(_: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { userId } = await auth();
 
   if (!userId) {
