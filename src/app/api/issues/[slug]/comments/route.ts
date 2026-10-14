@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { ID } from "node-appwrite";
 
 import { appwriteCommentsCollectionId, appwriteDatabaseId, appwriteIssuesCollectionId, createDocument, listDocuments, Query } from "@/lib/appwrite";
+import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
 
 export const runtime = "nodejs";
 
@@ -53,8 +54,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   const { slug } = await params;
   let payload: unknown;
   try {
-    payload = await request.json();
-  } catch {
+    payload = await readJsonWithLimit(request, 1024 * 1024);
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return NextResponse.json({ error: "Comment is too large. Shorten it and try again." }, { status: 413 });
+    }
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
