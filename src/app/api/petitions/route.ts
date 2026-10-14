@@ -272,7 +272,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ ok: true, petitions, hasMore: pageDocuments.length > 25 && offset + 25 <= 10000 });
   } catch (error) {
-    console.error("Failed to list petitions from Appwrite:", error);
+    console.error("Failed to list petitions from Appwrite:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json({ error: "Petitions are temporarily unavailable. Please try again." }, { status: 503 });
   }
 }
