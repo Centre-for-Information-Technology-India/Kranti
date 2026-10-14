@@ -71,7 +71,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
     const countUpdated = await updateSignatureCountAfterSave(
       () => incrementDocumentAttribute(appwriteDatabaseId, appwritePetitionsCollectionId, petitionId, "signature_count"),
-      (error) => console.error("Petition signature saved but count update failed:", error),
+      (error) => console.error("Petition signature saved but count update failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error"),
     );
 
     // The signature is saved even if the creator's alert fails.
