@@ -22,17 +22,16 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await currentUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unable to load Clerk user" }, { status: 400 });
-  }
-
-  const primaryEmail = user.emailAddresses.find((address) => address.id === user.primaryEmailAddressId)?.emailAddress ?? null;
-  const verifiedEmail = verifiedPrimaryEmail(user);
-  const primaryPhone = user.phoneNumbers.find((phoneNumber) => phoneNumber.id === user.primaryPhoneNumberId)?.phoneNumber ?? null;
-
   try {
+    const user = await currentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
+    }
+
+    const primaryEmail = user.emailAddresses.find((address) => address.id === user.primaryEmailAddressId)?.emailAddress ?? null;
+    const verifiedEmail = verifiedPrimaryEmail(user);
+    const primaryPhone = user.phoneNumbers.find((phoneNumber) => phoneNumber.id === user.primaryPhoneNumberId)?.phoneNumber ?? null;
+
     // Check if a document already exists with this Clerk ID
     let existingDoc: Record<string, unknown> | null = null;
     try {
