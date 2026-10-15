@@ -2,7 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { ID } from "node-appwrite";
 
-import { appwriteCommentsCollectionId, appwriteDatabaseId, appwriteIssuesCollectionId, createDocument, listDocuments, Query } from "@/lib/appwrite";
+import { AppwriteRequestError, appwriteCommentsCollectionId, appwriteDatabaseId, appwriteIssuesCollectionId, createDocument, listDocuments, Query } from "@/lib/appwrite";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
 
 export const runtime = "nodejs";
@@ -14,34 +14,39 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   }
   const offset = Number(rawOffset);
 
-  const { slug } = await params;
-  const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]);
-  const issue = (issueQuery as { documents?: Array<{ $id: string }> }).documents?.[0];
+  try {
+    const { slug } = await params;
+    const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]);
+    const issue = (issueQuery as { documents?: Array<{ $id: string }> }).documents?.[0];
 
-  if (!issue) {
-    return NextResponse.json({ ok: true, comments: [], hasMore: false });
+    if (!issue) {
+      return NextResponse.json({ ok: true, comments: [], hasMore: false });
+    }
+
+    const commentsResponse = await listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, [
+      Query.equal("issue_id", [issue.$id]),
+      Query.equal("status", ["approved"]),
+      Query.orderAsc("$createdAt"),
+      Query.limit(100),
+      Query.offset(offset),
+    ]);
+
+    const comments = ((commentsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).map((document) => ({
+      $id: String(document.$id ?? ""),
+      issue_id: String(document.issue_id ?? ""),
+      user_name: String(document.user_name ?? "Citizen"),
+      avatar_url: String(document.avatar_url ?? ""),
+      content: String(document.content ?? ""),
+      status: String(document.status ?? "approved"),
+      createdAt: String(document.created_at ?? document.createdAt ?? document.$createdAt ?? new Date().toISOString()),
+    }));
+
+    const total = Number((commentsResponse as { total?: number }).total ?? 0);
+    return NextResponse.json({ ok: true, comments, hasMore: offset + comments.length < total && offset + comments.length <= 10000 });
+  } catch (error) {
+    console.error("Issue comments fetch error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+    return NextResponse.json({ error: "Older comments could not load. Please try again." }, { status: 503 });
   }
-
-  const commentsResponse = await listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, [
-    Query.equal("issue_id", [issue.$id]),
-    Query.equal("status", ["approved"]),
-    Query.orderAsc("$createdAt"),
-    Query.limit(100),
-    Query.offset(offset),
-  ]);
-
-  const comments = ((commentsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).map((document) => ({
-    $id: String(document.$id ?? ""),
-    issue_id: String(document.issue_id ?? ""),
-    user_name: String(document.user_name ?? "Citizen"),
-    avatar_url: String(document.avatar_url ?? ""),
-    content: String(document.content ?? ""),
-    status: String(document.status ?? "approved"),
-    createdAt: String(document.created_at ?? document.createdAt ?? document.$createdAt ?? new Date().toISOString()),
-  }));
-
-  const total = Number((commentsResponse as { total?: number }).total ?? 0);
-  return NextResponse.json({ ok: true, comments, hasMore: offset + comments.length < total && offset + comments.length <= 10000 });
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
