@@ -25,7 +25,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await currentUser();
     const { slug } = await params;
 
     const petitionsResponse = await listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [
@@ -77,6 +76,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     // The signature is saved even if the creator's alert fails.
     let notificationSaved: boolean | null = null;
     if (createdBy && createdBy !== userId) {
+      let user: Awaited<ReturnType<typeof currentUser>> = null;
+      try {
+        user = await currentUser();
+      } catch {
+        // The verified Clerk userId already owns the signature. A display name is optional.
+        console.warn("Petition signer display name unavailable");
+      }
       const signerName = user?.firstName && user?.lastName 
         ? `${user.firstName} ${user.lastName}` 
         : user?.username || "Someone";
