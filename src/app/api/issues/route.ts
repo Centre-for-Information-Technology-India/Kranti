@@ -176,7 +176,10 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Failed to create issue:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
-    return NextResponse.json({ error: "Failed to create issue" }, { status: 500 });
+    return NextResponse.json(
+      { error: "We couldn't confirm your issue was saved. Check your dashboard before trying again." },
+      { status: 503 },
+    );
   }
 }
 
