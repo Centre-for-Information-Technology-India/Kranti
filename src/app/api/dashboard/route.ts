@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import {
+  AppwriteRequestError,
   appwriteDatabaseId,
   appwriteIssuesCollectionId,
   appwritePetitionsCollectionId,
@@ -21,6 +22,15 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  try {
+    return await loadDashboard(userId);
+  } catch (error) {
+    console.error("Dashboard cases fetch error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+    return NextResponse.json({ ok: false, error: "Your cases could not load. Please try again." }, { status: 503 });
+  }
+}
+
+async function loadDashboard(userId: string) {
   const [issueDocuments, petitionDocuments] = await Promise.all([
     dashboardCasesForUser(appwriteIssuesCollectionId, appwriteSupportsCollectionId, "issue_id", userId),
     dashboardCasesForUser(appwritePetitionsCollectionId, appwriteSignaturesCollectionId, "petition_id", userId),
