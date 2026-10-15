@@ -66,6 +66,7 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [notificationsError, setNotificationsError] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [markReadError, setMarkReadError] = useState(false);
 
   function retryNotifications() {
     setNotificationsLoading(true);
@@ -120,16 +121,20 @@ export default function DashboardPage() {
   }, []);
 
   const handleMarkAllAsRead = async () => {
+    setMarkReadError(false);
     try {
       const response = await fetch("/api/notifications", { method: "PATCH" });
       if (!response.ok) throw new Error("Could not mark alerts as read");
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (error) {
       console.error("Failed to mark notifications as read:", error);
+      setMarkReadError(true);
+      void fetchNotifications().then(setNotifications).catch(() => setNotificationsError(true));
     }
   };
 
   const handleMarkAsRead = async (notificationId: string) => {
+    setMarkReadError(false);
     try {
       const response = await fetch(`/api/notifications/${notificationId}`, { method: "PATCH" });
       if (!response.ok) throw new Error("Could not mark alert as read");
@@ -138,6 +143,8 @@ export default function DashboardPage() {
       );
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
+      setMarkReadError(true);
+      void fetchNotifications().then(setNotifications).catch(() => setNotificationsError(true));
     }
   };
 
@@ -395,6 +402,11 @@ export default function DashboardPage() {
                     exit={{ opacity: 0, y: 5 }}
                     className="space-y-3"
                   >
+                    {!notificationsLoading && !notificationsError && markReadError && (
+                      <p role="alert" className="rounded-xl border border-amber-900/20 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-400/20 dark:bg-amber-950/20 dark:text-amber-100">
+                        Couldn&apos;t confirm the alert update. Check the read status before trying again.
+                      </p>
+                    )}
                     {notificationsLoading ? (
                       <div className="py-10 text-center text-sm text-slate-500" role="status">
                         Loading alerts...
