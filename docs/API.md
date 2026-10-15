@@ -13,6 +13,7 @@ Issue support returns a safe HTTP 503 JSON response when its result cannot be co
 
 Issue creation accepts no evidence or a list of valid evidence metadata. Malformed evidence metadata returns HTTP 400 before file or issue writes.
 Issue creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
+Issue creation returns safe HTTP 503 when a save result cannot be confirmed. The citizen must check the dashboard before retrying.
 Petition creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
 Incident report creation rejects JSON request bodies over 1 MiB with HTTP 413 before evidence processing or Appwrite writes.
 Moderator actions reject JSON request bodies over 1 MiB with HTTP 413 before issue or moderation-log writes.
