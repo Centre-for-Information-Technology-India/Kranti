@@ -50,7 +50,7 @@ async function createPetition(request: Request) {
   const clerkUser = await currentUser();
 
   if (!clerkUser) {
-    return NextResponse.json({ error: "Unable to load Clerk user" }, { status: 400 });
+    return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
   }
 
   let body: {

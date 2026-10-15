@@ -17,6 +17,7 @@ Issue creation accepts no evidence or a list of valid evidence metadata. Malform
 Issue creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
 Issue creation returns safe HTTP 503 when a save result cannot be confirmed. The citizen must check the dashboard before retrying.
 Petition creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
+Petition creation returns safe HTTP 503 JSON when Clerk cannot load the signed-in account. No Appwrite write starts in that case.
 Incident report creation rejects JSON request bodies over 1 MiB with HTTP 413 before evidence processing or Appwrite writes.
 Moderator actions reject JSON request bodies over 1 MiB with HTTP 413 before issue or moderation-log writes.
 Moderator actions return safe HTTP 503 JSON when a status update or its audit write cannot be confirmed. After an audit failure, refresh the issue and check its review record before trying again.
