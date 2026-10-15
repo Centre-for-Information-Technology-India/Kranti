@@ -16,6 +16,7 @@ Issue creation rejects JSON request bodies over 1 MiB with HTTP 413 before any A
 Petition creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
 Incident report creation rejects JSON request bodies over 1 MiB with HTTP 413 before evidence processing or Appwrite writes.
 Moderator actions reject JSON request bodies over 1 MiB with HTTP 413 before issue or moderation-log writes.
+Moderator actions return safe HTTP 503 JSON when a status update or its audit write cannot be confirmed. After an audit failure, refresh the issue and check its review record before trying again.
 Issue comments reject JSON request bodies over 1 MiB with HTTP 413 before issue lookup or comment writes.
 Campaign creation rejects JSON request bodies over 1 MiB with HTTP 413 before campaign lookups or writes.
 

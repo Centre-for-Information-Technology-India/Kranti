@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import {
+  AppwriteRequestError,
   appwriteDatabaseId,
   appwriteIssuesCollectionId,
   appwriteModerationLogsCollectionId,
@@ -72,20 +73,30 @@ export async function POST(request: Request) {
   const newStatus = ACTION_STATUS_MAP[action as ModerationAction];
 
   // Update issue status
-  await updateDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId, {
-    status: newStatus,
-  });
+  try {
+    await updateDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId, {
+      status: newStatus,
+    });
+  } catch (error) {
+    console.error("Moderation status update failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+    return NextResponse.json({ error: "Could not confirm the action. Refresh the issue before trying again." }, { status: 503 });
+  }
 
   // Write moderation log (action enum: flag/hide/delete/ban/restore/escalate/approve/reject)
   // Map 'resolve' to 'approve' since DB enum doesn't have 'resolve'
   const dbAction = action === "resolve" ? "approve" : action;
   const logId = `log${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`.slice(0, 32);
-  await createDocument(appwriteDatabaseId, appwriteModerationLogsCollectionId, logId, {
-    action: dbAction,
-    admin_id: userId,
-    reason: reason || `Action: ${action} performed by moderator.`,
-    content_id: issueId,
-  });
+  try {
+    await createDocument(appwriteDatabaseId, appwriteModerationLogsCollectionId, logId, {
+      action: dbAction,
+      admin_id: userId,
+      reason: reason || `Action: ${action} performed by moderator.`,
+      content_id: issueId,
+    });
+  } catch (error) {
+    console.error("Moderation audit write failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+    return NextResponse.json({ error: "The issue status may have changed, but its review record was not confirmed. Refresh it and ask an administrator to check the action before trying again." }, { status: 503 });
+  }
 
   return NextResponse.json({ ok: true, issueId, newStatus, action });
 }
