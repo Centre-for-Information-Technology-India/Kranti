@@ -193,6 +193,11 @@ export default async function GuidePage({
               </Button>
             </a>
           </div>
+          {guide.id === "rti-guide" && (
+            <p className="text-sm leading-7 text-slate-600 dark:text-slate-300">
+              For a local service problem, <Link href="/issue/new" className="font-medium text-slate-900 underline underline-offset-4 dark:text-white">raise an issue</Link> on Kranti. To gather support for a shared request, <Link href="/petition/new" className="font-medium text-slate-900 underline underline-offset-4 dark:text-white">start a petition</Link>.
+            </p>
+          )}
         </article>
       </div>
     </>
