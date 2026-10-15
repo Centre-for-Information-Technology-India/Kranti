@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listDocuments, appwriteDatabaseId, appwriteCampaignsCollectionId, Query } from "@/lib/appwrite";
+import { AppwriteRequestError, listDocuments, appwriteDatabaseId, appwriteCampaignsCollectionId, Query } from "@/lib/appwrite";
 
 export async function GET(
   request: NextRequest,
@@ -41,7 +41,7 @@ export async function GET(
 
     return NextResponse.json({ campaign });
   } catch (error) {
-    console.error("Campaign fetch error:", error);
+    console.error("Campaign fetch error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json({ error: "Failed to fetch campaign" }, { status: 500 });
   }
 }
