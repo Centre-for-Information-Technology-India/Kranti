@@ -23,6 +23,7 @@ import { SupportButton } from "@/components/support-button";
 import IssueComments from "@/components/issue-comments";
 import { ShareButtons } from "@/components/share-buttons";
 import {
+  AppwriteRequestError,
   appwriteDatabaseId,
   appwriteEvidenceCollectionId,
   appwriteCommentsCollectionId,
@@ -202,7 +203,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
       };
     }
   } catch (err) {
-    console.warn("Appwrite lookup failed:", err);
+    console.warn("Appwrite lookup failed:", err instanceof AppwriteRequestError ? `Appwrite status ${err.status}` : "Unexpected error");
     throw new Error("Issue details are temporarily unavailable");
   }
 
