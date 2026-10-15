@@ -23,26 +23,36 @@ export default function CampaignDetailPage() {
   const params = useParams();
   const slug = params?.slug as string;
   const [campaign, setCampaign] = useState<CampaignRecord | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchCampaign = async () => {
-    try {
-      const response = await fetch(`/api/campaigns/${slug}`);
-      if (!response.ok) throw new Error("Campaign not found");
-      const data = await response.json();
-      setCampaign(data.campaign);
-    } catch (error) {
-      console.error("Error fetching campaign:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "not-found" | "error">("loading");
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
-    if (slug) {
-      fetchCampaign();
-    }
-  }, [slug]);
+    if (!slug) return;
+
+    const controller = new AbortController();
+    fetch(`/api/campaigns/${encodeURIComponent(slug)}`, { signal: controller.signal })
+      .then((response) => {
+        if (response.status === 404) {
+          if (!controller.signal.aborted) setLoadState("not-found");
+          return null;
+        }
+        if (!response.ok) throw new Error("Campaign request failed");
+        return response.json();
+      })
+      .then((data) => {
+        if (!data) return;
+        if (!data.campaign) throw new Error("Invalid campaign response");
+        if (!controller.signal.aborted) {
+          setCampaign(data.campaign);
+          setLoadState("ready");
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setLoadState("error");
+      });
+
+    return () => controller.abort();
+  }, [slug, loadAttempt]);
 
   const handleShare = () => {
     if (navigator.share) {
@@ -57,7 +67,7 @@ export default function CampaignDetailPage() {
     }
   };
 
-  if (isLoading) {
+  if (loadState === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f4f1ea] dark:bg-slate-950">
         <Loader2 className="h-8 w-8 animate-spin text-slate-600" />
@@ -65,13 +75,22 @@ export default function CampaignDetailPage() {
     );
   }
 
-  if (!campaign) {
+  if (loadState !== "ready" || !campaign) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f4f1ea] dark:bg-slate-950">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Campaign not found</CardTitle>
-            <CardDescription>The campaign you're looking for doesn't exist.</CardDescription>
+            <CardTitle>{loadState === "not-found" ? "Campaign not found" : "Campaign could not load"}</CardTitle>
+            <CardDescription>
+              {loadState === "not-found"
+                ? "The campaign you're looking for doesn't exist."
+                : "We couldn't load this campaign. Please try again."}
+            </CardDescription>
+            {loadState === "error" && (
+              <Button className="mt-4" onClick={() => { setLoadState("loading"); setLoadAttempt((attempt) => attempt + 1); }}>
+                Try again
+              </Button>
+            )}
           </CardHeader>
         </Card>
       </div>
@@ -186,7 +205,7 @@ export default function CampaignDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                Join {campaign.volunteer_count} volunteers working towards this campaign's goals. Share this campaign to spread awareness and build support.
+                Join {campaign.volunteer_count} volunteers working towards this campaign&apos;s goals. Share this campaign to spread awareness and build support.
               </p>
               <div className="flex gap-3">
                 <Button className="flex-1" disabled>
@@ -209,7 +228,7 @@ export default function CampaignDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
               <p>
-                This campaign is part of Kranti's civic action platform. All campaigns are moderated to ensure they promote lawful, evidence-based action.
+                This campaign is part of Kranti&apos;s civic action platform. All campaigns are moderated to ensure they promote lawful, evidence-based action.
               </p>
               <p>
                 If you notice any issues with this campaign, please report it to our moderation team.
