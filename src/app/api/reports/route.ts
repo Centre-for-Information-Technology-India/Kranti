@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 
 import {
+  AppwriteRequestError,
   appwriteStorageBucketId,
   appwriteDatabaseId,
   appwriteEvidenceCollectionId,
@@ -25,6 +26,18 @@ function safeFileId(seed: string) {
 }
 
 export async function POST(request: Request) {
+  try {
+    return await createReport(request);
+  } catch (error) {
+    console.error("Incident report creation failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+    return NextResponse.json(
+      { error: "We couldn't confirm your report was saved. Check your dashboard before trying again." },
+      { status: 503 },
+    );
+  }
+}
+
+async function createReport(request: Request) {
   const { userId } = await auth();
 
   if (!userId) {
