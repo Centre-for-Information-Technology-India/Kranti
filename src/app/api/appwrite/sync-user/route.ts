@@ -55,18 +55,18 @@ export async function POST() {
           return NextResponse.json({ error: "This account record belongs to another sign-in." }, { status: 409 });
         }
         // Link the seeded document with the real Clerk ID.
-        const document = await updateDocument(appwriteDatabaseId, appwriteUsersCollectionId, found.$id as string, {
+        await updateDocument(appwriteDatabaseId, appwriteUsersCollectionId, found.$id as string, {
           clerk_id: user.id,
           avatar_url: user.imageUrl,
         });
-        return NextResponse.json({ ok: true, userId: user.id, document, linked: true });
+        return NextResponse.json({ ok: true, userId: user.id, linked: true });
       }
     }
 
     // Preserve account decisions made after signup on every later sync.
     const accountFields = preservedAccountFields(existingDoc);
 
-    const document = await upsertDocument(appwriteDatabaseId, appwriteUsersCollectionId, user.id, {
+    await upsertDocument(appwriteDatabaseId, appwriteUsersCollectionId, user.id, {
       clerk_id: user.id,
       display_name: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || primaryEmail || "Kranti user",
       email: primaryEmail,
@@ -78,7 +78,7 @@ export async function POST() {
       consent_accepted: accountFields.consent_accepted,
     });
 
-    return NextResponse.json({ ok: true, userId: user.id, document });
+    return NextResponse.json({ ok: true, userId: user.id });
   } catch {
     return NextResponse.json({ error: "Unable to sync your account. Please try again." }, { status: 503 });
   }
