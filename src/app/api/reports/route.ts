@@ -129,7 +129,7 @@ async function createReport(request: Request) {
     });
   }
 
-  const reportDocument = await upsertDocument(appwriteDatabaseId, appwriteReportsCollectionId, reportId, {
+  await upsertDocument(appwriteDatabaseId, appwriteReportsCollectionId, reportId, {
     created_by: clerkUser.id,
     title: submission.title,
     slug: reportSlug,
@@ -179,7 +179,5 @@ async function createReport(request: Request) {
     ok: true,
     reportId,
     reportSlug,
-    reportDocument,
-    uploadedEvidence,
   });
 }
