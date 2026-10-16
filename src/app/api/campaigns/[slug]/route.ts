@@ -42,6 +42,6 @@ export async function GET(
     return NextResponse.json({ campaign });
   } catch (error) {
     console.error("Campaign fetch error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
-    return NextResponse.json({ error: "Failed to fetch campaign" }, { status: 500 });
+    return NextResponse.json({ error: "Campaign could not load. Please try again." }, { status: 503 });
   }
 }

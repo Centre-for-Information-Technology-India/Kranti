@@ -56,3 +56,33 @@ test("campaign pages remain bounded and reject invalid offsets", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test("campaign reads distinguish a missing campaign from a temporary data failure", async () => {
+  const originalFetch = globalThis.fetch;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+  const { GET: listCampaigns } = await import("./route");
+  const { GET: getCampaign } = await import("./[slug]/route");
+
+  try {
+    globalThis.fetch = async () => Response.json({ documents: [] });
+    const missing = await getCampaign(new NextRequest("https://example.test/api/campaigns/missing"), {
+      params: Promise.resolve({ slug: "missing" }),
+    });
+    assert.equal(missing.status, 404);
+
+    globalThis.fetch = async () => { throw new Error("synthetic private database detail"); };
+    for (const response of [
+      await listCampaigns(new NextRequest("https://example.test/api/campaigns")),
+      await getCampaign(new NextRequest("https://example.test/api/campaigns/test"), {
+        params: Promise.resolve({ slug: "test" }),
+      }),
+    ]) {
+      assert.equal(response.status, 503);
+      const body = await response.json();
+      assert.match(body.error, /try again/i);
+      assert.doesNotMatch(body.error, /private database detail/i);
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
