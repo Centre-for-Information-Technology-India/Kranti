@@ -36,7 +36,6 @@ async function saveSupport(_: Request, { params }: { params: Promise<{ slug: str
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await currentUser();
   const { slug } = await params;
 
   const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]);
@@ -89,6 +88,13 @@ async function saveSupport(_: Request, { params }: { params: Promise<{ slug: str
 
     // Send notification to issue creator
     if (issue.created_by && issue.created_by !== userId) {
+      let user: Awaited<ReturnType<typeof currentUser>> = null;
+      try {
+        user = await currentUser();
+      } catch {
+        // The authenticated userId owns the support. The alert name is optional.
+        console.warn("Issue supporter display name unavailable");
+      }
       const supporterName = user?.firstName && user?.lastName 
         ? `${user.firstName} ${user.lastName}` 
         : user?.username || "Someone";
