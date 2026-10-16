@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ notifications });
   } catch (error) {
     console.error("Notifications fetch error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
-    return NextResponse.json({ error: "Failed to fetch notifications" }, { status: 500 });
+    return NextResponse.json({ error: "Alerts could not load. Please try again." }, { status: 503 });
   }
 }
 
