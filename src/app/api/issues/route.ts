@@ -121,7 +121,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const issueDocument = await upsertDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId, {
+    await upsertDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId, {
       created_by: clerkUser.id,
       title: submission.title,
       slug: issueSlug,
@@ -171,8 +171,6 @@ export async function POST(request: Request) {
       ok: true,
       issueId,
       issueSlug,
-      issueDocument,
-      uploadedEvidence,
     });
   } catch (error) {
     console.error("Failed to create issue:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
