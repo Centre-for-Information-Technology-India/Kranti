@@ -100,5 +100,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     created_at: new Date().toISOString(),
   });
 
-  return NextResponse.json({ ok: true, comment: document });
+  return NextResponse.json({
+    ok: true,
+    comment: {
+      $id: String(document.$id ?? ""),
+      issue_id: String(document.issue_id ?? ""),
+      user_name: String(document.user_name ?? "Citizen"),
+      avatar_url: String(document.avatar_url ?? ""),
+      content: String(document.content ?? ""),
+      status: String(document.status ?? "approved"),
+      createdAt: String(document.created_at ?? document.$createdAt ?? ""),
+    },
+  });
 }
