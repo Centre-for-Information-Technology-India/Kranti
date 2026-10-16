@@ -28,6 +28,7 @@ Successful petition creation returns only `ok`, `petitionId`, and `petitionSlug`
 Incident report creation rejects JSON request bodies over 1 MiB with HTTP 413 before evidence processing or Appwrite writes.
 Incident report creation returns safe HTTP 503 JSON before any Appwrite write when Clerk cannot load the signed-in account.
 Incident report creation returns safe HTTP 503 JSON when its save result cannot be confirmed. Check the dashboard before retrying.
+Successful incident report creation returns only `ok`, `reportId`, and `reportSlug`. It does not return the stored report document or evidence metadata.
 Moderator actions reject JSON request bodies over 1 MiB with HTTP 413 before issue or moderation-log writes.
 Moderator actions return safe HTTP 503 JSON when a status update or its audit write cannot be confirmed. After an audit failure, refresh the issue and check its review record before trying again.
 Issue comments reject JSON request bodies over 1 MiB with HTTP 413 before issue lookup or comment writes.
