@@ -145,6 +145,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ campaigns, hasMore: !status && pageDocuments.length > 25 && offset + 25 <= 10000 });
   } catch (error) {
     console.error("Campaigns fetch error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
-    return NextResponse.json({ error: "Failed to fetch campaigns" }, { status: 500 });
+    return NextResponse.json({ error: "Campaigns are temporarily unavailable. Please try again." }, { status: 503 });
   }
 }
