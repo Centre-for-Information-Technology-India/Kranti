@@ -129,7 +129,7 @@ async function createPetition(request: Request) {
     });
   }
 
-  const petitionDocument = await upsertDocument(appwriteDatabaseId, appwritePetitionsCollectionId, petitionId, {
+  await upsertDocument(appwriteDatabaseId, appwritePetitionsCollectionId, petitionId, {
     created_by: clerkUser.id,
     title: submission.title,
     slug: petitionSlug,
@@ -181,8 +181,6 @@ async function createPetition(request: Request) {
     ok: true,
     petitionId,
     petitionSlug,
-    petitionDocument,
-    uploadedEvidence,
   });
 }
 

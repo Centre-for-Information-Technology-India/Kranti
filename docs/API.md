@@ -23,6 +23,7 @@ Issue creation returns safe HTTP 503 when a save result cannot be confirmed. The
 Issue creation returns safe HTTP 503 before any Appwrite write when Clerk cannot load the signed-in account.
 Petition creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
 Petition creation returns safe HTTP 503 JSON when Clerk cannot load the signed-in account. No Appwrite write starts in that case.
+Successful petition creation returns only `ok`, `petitionId`, and `petitionSlug`. It does not return the stored petition document or evidence metadata.
 Incident report creation rejects JSON request bodies over 1 MiB with HTTP 413 before evidence processing or Appwrite writes.
 Incident report creation returns safe HTTP 503 JSON before any Appwrite write when Clerk cannot load the signed-in account.
 Incident report creation returns safe HTTP 503 JSON when its save result cannot be confirmed. Check the dashboard before retrying.
