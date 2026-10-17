@@ -76,3 +76,40 @@ test("petition detail stays available when optional creator profiles fail", asyn
     else process.env.APPWRITE_API_KEY = originalKey;
   }
 });
+
+test("petition list keeps cases when optional creator profiles fail", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+
+  try {
+    const { GET } = await import("./route");
+    globalThis.fetch = async (input) => {
+      const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
+      if (collection === "users") return Response.json({ message: "profile unavailable" }, { status: 503 });
+      return Response.json({ documents: collection === "petitions"
+        ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", created_by: "private-clerk-id" }]
+        : [] });
+    };
+
+    const response = await GET(new Request("https://example.test/api/petitions"));
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.petitions[0].title, "Synthetic petition");
+    assert.equal(body.petitions[0].creatorName, "Citizen");
+    assert.equal("created_by" in body.petitions[0], false);
+
+    globalThis.fetch = async (input) => {
+      const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
+      if (collection === "evidence") return Response.json({ message: "evidence unavailable" }, { status: 503 });
+      return Response.json({ documents: collection === "petitions"
+        ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", created_by: "private-clerk-id" }]
+        : [] });
+    };
+    assert.equal((await GET(new Request("https://example.test/api/petitions"))).status, 503);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});
