@@ -21,6 +21,7 @@ import {
 import { buildIssueSlug, issueEvidenceSchema, issueSubmissionSchema } from "@/lib/issue-form";
 import { detectEvidenceType } from "@/lib/evidence";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
+import { getUserRole } from "@/lib/role-lookup";
 
 export const runtime = "nodejs";
 
@@ -187,6 +188,16 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "Invalid issue offset" }, { status: 400 });
   }
   const offset = Number(rawOffset);
+  let canViewCreatorId = false;
+  try {
+    const { userId } = await auth();
+    if (userId) {
+      const role = await getUserRole(userId, null);
+      canViewCreatorId = role === "admin" || role === "moderator";
+    }
+  } catch {
+    // Public list access does not depend on a private role lookup.
+  }
   try {
     const issuesResponse = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [
       // Filter before offset so rejected cases cannot appear in any public page.
@@ -246,7 +257,7 @@ export async function GET(request: Request) {
         status: document.status,
         supporter_count: Number(document.supporter_count ?? document.supportCount ?? 0),
         evidence_count: Number(document.evidence_count ?? document.evidenceCount ?? issueEvidence.length),
-        created_by: createdBy,
+        ...(canViewCreatorId ? { created_by: createdBy } : {}),
         creatorName: String(creator?.display_name ?? creator?.full_name ?? creator?.username ?? "Citizen Reporter"),
         creatorAvatar: String(creator?.avatar_url ?? creator?.imageUrl ?? ""),
         language: document.language ?? "en",
