@@ -18,6 +18,7 @@ Alert list replies include display fields and read status, but not the stored ow
 Account sync returns safe HTTP 503 JSON when Clerk cannot load the signed-in account. No Appwrite write starts in that case.
 Account sync returns only success, the authenticated account ID, and an optional linked flag. It never returns the stored account document.
 Role checks use the authenticated Clerk ID first. The role API loads a Clerk profile only for the verified-email fallback to a seeded account; profile failures cannot block already-linked roles.
+The admin page gate also checks linked roles before asking Clerk for a verified email. A foreign Clerk ID cannot inherit a stored admin or moderator role.
 
 Issue creation accepts no evidence or a list of valid evidence metadata. Malformed evidence metadata returns HTTP 400 before file or issue writes.
 Issue creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
