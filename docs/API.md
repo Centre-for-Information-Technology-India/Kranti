@@ -24,6 +24,7 @@ Issue creation accepts no evidence or a list of valid evidence metadata. Malform
 Issue creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
 Issue creation returns safe HTTP 503 when a save result cannot be confirmed. The citizen must check the dashboard before retrying.
 Issue creation returns safe HTTP 503 before any Appwrite write when Clerk cannot load the signed-in account.
+An account lookup exception uses the same pre-write retry message. It does not imply an issue may already have saved.
 Successful issue creation returns only `ok`, `issueId`, and `issueSlug`. It does not return the stored issue document or evidence metadata.
 Petition creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
 Petition creation returns safe HTTP 503 JSON when Clerk cannot load the signed-in account. No Appwrite write starts in that case.
