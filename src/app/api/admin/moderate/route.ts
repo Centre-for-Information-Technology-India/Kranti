@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import {
@@ -10,6 +10,7 @@ import {
   updateDocument,
 } from "@/lib/appwrite";
 import { getUserRole } from "@/lib/role-lookup";
+import { verifiedPrimaryEmail } from "@/lib/account-sync";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
 
 export const runtime = "nodejs";
@@ -33,7 +34,11 @@ export async function POST(request: Request) {
   // Verify caller is admin or moderator in Appwrite
   let role: string;
   try {
-    role = await getUserRole(userId, null);
+    role = await getUserRole(userId, null, undefined, async () => {
+      const user = await currentUser();
+      if (!user) throw new Error("Clerk user unavailable");
+      return verifiedPrimaryEmail(user);
+    });
   } catch {
     return NextResponse.json({ error: "Unable to check your role. Please try again." }, { status: 503 });
   }
