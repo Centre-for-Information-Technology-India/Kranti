@@ -158,14 +158,16 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
           Query.limit(100),
         ]),
         creatorId
-          ? Promise.all(["clerk_id", "$id"].map((field) =>
+          ? Promise.allSettled(["clerk_id", "$id"].map((field) =>
               listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, [creatorId]), Query.limit(1)])
             ))
           : Promise.resolve([]),
       ]);
       commentsResponse = commentsData;
-      const creatorRow = creatorResponses.flatMap((response) =>
-        (response as { documents?: Array<Record<string, unknown>> }).documents ?? []
+      const creatorRow = creatorResponses.flatMap((result) =>
+        result.status === "fulfilled"
+          ? (result.value as { documents?: Array<Record<string, unknown>> }).documents ?? []
+          : []
       ).find((userDocument) => {
         return String(userDocument.clerk_id ?? userDocument.clerkUserId ?? userDocument.$id ?? "") === creatorId;
       });

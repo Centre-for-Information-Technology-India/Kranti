@@ -59,6 +59,7 @@ Public issue list replies omit stored creator account IDs. Signed-in moderators 
 The public issue list returns up to 25 issues per request, newest first by Appwrite creation time. Use an `offset` from 0 to 10000 and the `hasMore` flag to read older issues.
 
 An issue detail page reads only evidence and comments linked to that issue and the creator's profile. These reads are bounded.
+Creator-profile lookups are optional for issue details. Missing names use "Citizen Reporter"; issue, evidence, and comment failures still stop the page.
 
 The public issue-comment endpoint returns at most 100 approved comments per request. Use an `offset` from 0 to 10000 and the `hasMore` response flag to read later pages. Issue detail pages start with the first 100 approved comments and let readers load later pages.
 
