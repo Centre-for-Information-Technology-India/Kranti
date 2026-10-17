@@ -40,14 +40,20 @@ async function loadDashboard(userId: string) {
   const creatorIds = [...new Set([...issueDocuments, ...petitionDocuments]
     .map((document) => String(document.created_by ?? document.createdBy ?? ""))
     .filter(Boolean))];
-  const userResults = await Promise.all(Array.from({ length: Math.ceil(creatorIds.length / 50) }, (_, index) => {
+  const profileQueries = Array.from({ length: Math.ceil(creatorIds.length / 50) }, (_, index) => {
     const ids = creatorIds.slice(index * 50, (index + 1) * 50);
-    return Promise.all(["clerk_id", "$id"].map((field) =>
+    return ["clerk_id", "$id"].map((field) =>
       listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, ids), Query.limit(50)])
-    ));
-  }));
+    );
+  }).flat();
+  const profileResults = await Promise.allSettled(profileQueries);
+  if (profileResults.some((result) => result.status === "rejected")) {
+    console.warn("Dashboard creator names unavailable");
+  }
 
-  const users = userResults.flatMap((batch) => batch.flatMap((result) => (result as { documents?: Array<Record<string, unknown>> }).documents ?? [])).reduce<Record<string, Record<string, unknown>>>((accumulator, document) => {
+  const users = profileResults.flatMap((result) => result.status === "fulfilled"
+    ? (result.value as { documents?: Array<Record<string, unknown>> }).documents ?? []
+    : []).reduce<Record<string, Record<string, unknown>>>((accumulator, document) => {
     const clerkId = String(document.clerk_id ?? document.clerkUserId ?? document.$id ?? "");
     if (clerkId) {
       accumulator[clerkId] = document;

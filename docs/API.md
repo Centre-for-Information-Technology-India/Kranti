@@ -65,6 +65,7 @@ The default public campaign list returns up to 25 campaigns per request. Use an 
 The signed-in dashboard reads only the citizen's own cases and cases they supported or signed. It pages through that citizen's participation records so older cases remain visible.
 The dashboard response contains case lists only. The client reads its signed-in profile from Clerk; the case API does not return that profile.
 Dashboard case lists omit stored creator IDs. The server uses those IDs only to group owned and backed cases.
+Creator-name lookups are optional for dashboard case lists. If a profile query fails, the cases still load with generic creator names.
 
 New petition addresses contain a readable English title prefix when available, followed by the petition ID. Hindi-only titles use `petition` as the prefix. Existing addresses stay unchanged.
 
