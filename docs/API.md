@@ -39,6 +39,7 @@ Successful issue comment creation returns the public comment fields used by the 
 Issue comment creation uses the authenticated Clerk account ID. A failed optional profile lookup falls back to a generic display name and does not block the save.
 Issue comment creation returns safe HTTP 503 JSON if its save cannot be confirmed. Check the discussion before retrying to avoid duplicate comments.
 Campaign creation rejects JSON request bodies over 1 MiB with HTTP 413 before campaign lookups or writes.
+Campaign creation returns safe HTTP 503 JSON before any Appwrite write when Clerk cannot load the signed-in account.
 
 Public lists require bounded pagination. Never expose an unbounded collection query.
 

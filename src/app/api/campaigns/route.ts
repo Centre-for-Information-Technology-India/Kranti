@@ -38,8 +38,13 @@ export async function POST(request: NextRequest) {
     }
     const validatedData = parsed.data;
 
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
+    let user;
+    try {
+      const client = await clerkClient();
+      user = await client.users.getUser(userId);
+    } catch {
+      return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
+    }
     const userName = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username || "Anonymous";
     const userAvatar = user.imageUrl;
 
