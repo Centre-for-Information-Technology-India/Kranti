@@ -133,7 +133,6 @@ export async function GET(request: NextRequest) {
       status: doc.status,
       volunteer_count: doc.volunteer_count,
       featured: doc.featured,
-      created_by: doc.created_by,
       creatorName: doc.creator_name,
       creatorAvatar: doc.creator_avatar,
       language: doc.language,
