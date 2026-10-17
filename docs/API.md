@@ -45,6 +45,7 @@ Public campaign list and detail reads return safe HTTP 503 JSON when the data se
 Public campaign list and detail replies omit stored creator account IDs. Creator display names remain available.
 
 Petition detail reads return safe HTTP 503 JSON when Appwrite is unavailable. The page offers retry.
+Petition detail still loads with a generic creator name if optional creator-profile lookups fail.
 The public petition list reads evidence only for petitions in its bounded result set.
 Public petition list and detail replies omit the stored creator account ID. Creator display names remain available.
 The public petition list returns up to 25 petitions per request. Use an `offset` from 0 to 10000 and the `hasMore` flag to read older petitions.

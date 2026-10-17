@@ -36,12 +36,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
         Query.equal("issue_id", [String(petitionDoc.$id)]),
         Query.limit(100),
       ]),
-      createdBy ? Promise.all(["clerk_id", "$id"].map((field) =>
+      createdBy ? Promise.allSettled(["clerk_id", "$id"].map((field) =>
         listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, [createdBy]), Query.limit(1)])
       )) : Promise.resolve([]),
     ]);
 
-    const users = userResults.flatMap((result) => (result as { documents?: Array<Record<string, unknown>> }).documents ?? []).reduce<Record<string, Record<string, unknown>>>((acc, doc) => {
+    const users = userResults.flatMap((result) =>
+      result.status === "fulfilled"
+        ? (result.value as { documents?: Array<Record<string, unknown>> }).documents ?? []
+        : []
+    ).reduce<Record<string, Record<string, unknown>>>((acc, doc) => {
       for (const id of [doc.clerk_id, doc.clerkUserId, doc.$id]) {
         if (id) acc[String(id)] = doc;
       }
