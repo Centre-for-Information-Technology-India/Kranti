@@ -39,6 +39,7 @@ Campaign creation rejects JSON request bodies over 1 MiB with HTTP 413 before ca
 Public lists require bounded pagination. Never expose an unbounded collection query.
 
 Public campaign list and detail reads return safe HTTP 503 JSON when the data service fails. Missing campaign details still return HTTP 404. The campaign pages offer retry.
+Public campaign list and detail replies omit stored creator account IDs. Creator display names remain available.
 
 Petition detail reads return safe HTTP 503 JSON when Appwrite is unavailable. The page offers retry.
 The public petition list reads evidence only for petitions in its bounded result set.
