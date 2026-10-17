@@ -55,7 +55,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await currentUser();
   const { slug } = await params;
   let payload: unknown;
   try {
@@ -86,6 +85,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
   if (!issue) {
     return NextResponse.json({ error: "Issue not found" }, { status: 404 });
+  }
+
+  let user: Awaited<ReturnType<typeof currentUser>> = null;
+  try {
+    user = await currentUser();
+  } catch {
+    // The authenticated user ID owns the comment. A display name is optional.
+    console.warn("Issue commenter display name unavailable");
   }
 
   const commentId = `comment-${ID.unique()}`;
