@@ -217,9 +217,14 @@ export async function GET(request: Request) {
         ? listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [Query.equal("issue_id", issueIds), Query.limit(100)])
         : Promise.resolve({ documents: [] }),
       creatorIds.length > 0
-        ? Promise.all(["clerk_id", "$id"].map((field) =>
-          listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, creatorIds), Query.limit(25)])
-        ))
+        ? Promise.all(["clerk_id", "$id"].map(async (field) => {
+          try {
+            return await listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, creatorIds), Query.limit(25)]);
+          } catch (error) {
+            console.warn("Issue creator names unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+            return { documents: [] };
+          }
+        }))
         : Promise.resolve([]),
     ]);
 
