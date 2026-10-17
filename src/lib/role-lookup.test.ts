@@ -73,3 +73,33 @@ test("verified email fallback can read an unlinked seeded role", async () => {
   });
   assert.equal(role, "moderator");
 });
+
+test("a linked role does not require a Clerk profile lookup", async () => {
+  let profileCalls = 0;
+  const role = await getUserRole("user-current", null, {
+    getDocument: async () => ({ role: "moderator", clerk_id: "user-current" }),
+    listDocuments: async () => { throw new Error("Unneeded linked lookup"); },
+  }, async () => {
+    profileCalls += 1;
+    throw new Error("Clerk profile unavailable");
+  });
+  assert.equal(role, "moderator");
+  assert.equal(profileCalls, 0);
+});
+
+test("a missing ID role requests a verified email only for seeded fallback", async () => {
+  let profileCalls = 0;
+  const role = await getUserRole("user-current", null, {
+    getDocument: async () => { throw new AppwriteRequestError("Not found", 404); },
+    listDocuments: async (_database, _collection, queries) => ({
+      documents: queries?.some((query) => query.includes('"attribute":"email"'))
+        ? [{ role: "moderator" }]
+        : [],
+    }),
+  }, async () => {
+    profileCalls += 1;
+    return "verified@example.invalid";
+  });
+  assert.equal(role, "moderator");
+  assert.equal(profileCalls, 1);
+});

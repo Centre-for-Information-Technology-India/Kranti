@@ -17,6 +17,7 @@ export async function getUserRole(
   clerkId: string,
   email: string | null,
   lookup: RoleLookup = { getDocument, listDocuments },
+  resolveEmail?: () => Promise<string | null>,
 ): Promise<string> {
   try {
     const doc = await lookup.getDocument(appwriteDatabaseId, appwriteUsersCollectionId, clerkId) as Record<string, unknown>;
@@ -33,9 +34,10 @@ export async function getUserRole(
   const linkedUser = (byClerkId as { documents?: Array<Record<string, unknown>> }).documents?.[0];
   if (linkedUser && belongsToClerkAccount(linkedUser, clerkId)) return String(linkedUser.role ?? "citizen");
 
-  if (email) {
+  const fallbackEmail = email ?? (resolveEmail ? await resolveEmail() : null);
+  if (fallbackEmail) {
     const byEmail = await lookup.listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [
-      Query.equal("email", [email]),
+      Query.equal("email", [fallbackEmail]),
       Query.limit(1),
     ]);
     const seededUser = (byEmail as { documents?: Array<Record<string, unknown>> }).documents?.[0];
