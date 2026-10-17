@@ -13,10 +13,11 @@ export async function GET() {
   }
 
   try {
-    const user = await currentUser();
-    if (!user) throw new Error("Clerk user unavailable");
-    const email = verifiedPrimaryEmail(user);
-    const role = await getUserRole(userId, email);
+    const role = await getUserRole(userId, null, undefined, async () => {
+      const user = await currentUser();
+      if (!user) throw new Error("Clerk user unavailable");
+      return verifiedPrimaryEmail(user);
+    });
     return NextResponse.json({ role });
   } catch {
     return NextResponse.json({ error: "Unable to check your role. Please try again." }, { status: 503 });
