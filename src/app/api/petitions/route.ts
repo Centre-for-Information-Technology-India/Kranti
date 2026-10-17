@@ -210,11 +210,15 @@ export async function GET(request: Request) {
       .filter(Boolean))];
     const userResults = await Promise.all(Array.from({ length: Math.ceil(creatorIds.length / 50) }, (_, index) => {
       const ids = creatorIds.slice(index * 50, (index + 1) * 50);
-      return Promise.all(["clerk_id", "$id"].map((field) =>
+      return Promise.allSettled(["clerk_id", "$id"].map((field) =>
         listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, ids), Query.limit(50)])
       ));
     }));
-    const users = userResults.flatMap((batch) => batch.flatMap((result) => (result as { documents?: Array<Record<string, unknown>> }).documents ?? [])).reduce<Record<string, Record<string, unknown>>>((accumulator, document) => {
+    const users = userResults.flatMap((batch) => batch.flatMap((result) =>
+      result.status === "fulfilled"
+        ? (result.value as { documents?: Array<Record<string, unknown>> }).documents ?? []
+        : []
+    )).reduce<Record<string, Record<string, unknown>>>((accumulator, document) => {
       for (const id of [document.clerk_id, document.clerkUserId, document.$id]) {
         if (id) accumulator[String(id)] = document;
       }
