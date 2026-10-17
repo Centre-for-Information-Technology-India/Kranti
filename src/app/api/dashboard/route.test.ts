@@ -11,11 +11,16 @@ test("dashboard groups synthetic cases without returning creator IDs", async () 
 
   try {
     const { GET } = await import("./route");
+    let profileFailure = false;
     globalThis.fetch = async (input) => {
       const url = new URL(String(input));
       const collection = url.pathname.split("/collections/")[1]?.split("/")[0];
       const queries = url.searchParams.getAll("queries[]").map((query) => JSON.parse(query));
       const field = (name: string) => queries.find((query) => query.method === "equal" && query.attribute === name)?.values;
+      if (collection === "users") {
+        if (profileFailure) return Response.json({ message: "Synthetic profile outage" }, { status: 503 });
+        return Response.json({ documents: [{ $id: "synthetic_profile", clerk_id: "synthetic_other", display_name: "Case creator" }] });
+      }
       const documents = collection === "issues"
         ? field("created_by") ? [{ $id: "owned_issue", title: "Owned issue", created_by: "synthetic_owner", private_note: "private" }]
           : field("$id") ? [{ $id: "backed_issue", title: "Backed issue", created_by: "synthetic_other", private_note: "private" }] : []
@@ -40,6 +45,17 @@ test("dashboard groups synthetic cases without returning creator IDs", async () 
       assert.equal("created_by" in group[0], false);
       assert.equal("private_note" in group[0], false);
     }
+    assert.equal(body.supportedIssues[0].creatorName, "Case creator");
+
+    profileFailure = true;
+    const outageResponse = await GET();
+    assert.equal(outageResponse.status, 200);
+    const outageBody = await outageResponse.json();
+    assert.equal(outageBody.supportedIssues[0].creatorName, "Citizen Reporter");
+    assert.equal(outageBody.signedPetitions[0].creatorName, "Citizen");
+    assert.equal(outageBody.raisedIssues.length, 1);
+    assert.equal(outageBody.signedPetitions.length, 1);
+    assert.equal("created_by" in outageBody.supportedIssues[0], false);
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
     else delete require.cache[clerkPath];
