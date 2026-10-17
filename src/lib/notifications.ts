@@ -21,7 +21,6 @@ export interface NotificationData {
 
 export interface NotificationRecord {
   $id: string;
-  user_id: string;
   type: NotificationType;
   title: string;
   message: string;
@@ -59,7 +58,6 @@ export async function getUserNotifications(userId: string, limit = 50): Promise<
 
   return response.documents.map((doc: Record<string, unknown>) => ({
     $id: doc.$id as string,
-    user_id: doc.user_id as string,
     type: doc.type as NotificationType,
     title: doc.title as string,
     message: doc.message as string,
@@ -97,7 +95,7 @@ export async function markAllNotificationsAsRead(userId: string): Promise<void> 
       Query.limit(pageSize),
       Query.offset(offset),
     ]);
-    const notifications = response.documents as NotificationRecord[];
+    const notifications = response.documents as Array<{ $id: string; read: boolean }>;
     await Promise.all(notifications
       .filter((notification) => !notification.read)
       .map((notification) => markNotificationAsRead(notification.$id, userId)));

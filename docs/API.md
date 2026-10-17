@@ -14,6 +14,7 @@ Issue support returns a safe HTTP 503 JSON response when its result cannot be co
 Issue support uses the authenticated Clerk user ID. If the optional supporter profile lookup fails, the support still saves and the creator alert uses a generic name.
 Alert read updates return safe HTTP 503 JSON when Appwrite cannot confirm the result. The dashboard reloads alerts before another try.
 Alert list reads return safe HTTP 503 JSON when Appwrite cannot load alerts. The dashboard offers retry.
+Alert list replies include display fields and read status, but not the stored owner ID or other Appwrite metadata. Ownership remains enforced by the server-side query.
 Account sync returns safe HTTP 503 JSON when Clerk cannot load the signed-in account. No Appwrite write starts in that case.
 Account sync returns only success, the authenticated account ID, and an optional linked flag. It never returns the stored account document.
 
