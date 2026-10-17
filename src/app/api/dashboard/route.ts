@@ -55,7 +55,7 @@ async function loadDashboard(userId: string) {
     return accumulator;
   }, {});
 
-  const issues = issueDocuments.map((document) => {
+  const toIssue = (document: Record<string, unknown>) => {
     const creator = users[String(document.created_by ?? document.createdBy ?? "")];
 
     return {
@@ -69,16 +69,15 @@ async function loadDashboard(userId: string) {
       status: String(document.status ?? "pending_review"),
       supporter_count: Number(document.supporter_count ?? document.supportCount ?? 0),
       evidence_count: Number(document.evidence_count ?? document.evidenceCount ?? 0),
-      created_by: String(document.created_by ?? document.createdBy ?? ""),
       creatorName: String(creator?.display_name ?? creator?.full_name ?? creator?.username ?? "Citizen Reporter"),
       creatorAvatar: String(creator?.avatar_url ?? creator?.imageUrl ?? ""),
       language: String(document.language ?? "en"),
       createdAt: String(document.created_at ?? document.createdAt ?? document.$createdAt ?? new Date().toISOString()),
       evidence: [],
     };
-  });
+  };
 
-  const petitions = petitionDocuments.map((document) => {
+  const toPetition = (document: Record<string, unknown>) => {
     const creator = users[String(document.created_by ?? document.createdBy ?? "")];
 
     return {
@@ -95,7 +94,6 @@ async function loadDashboard(userId: string) {
       signature_count: Number(document.signature_count ?? document.signatureCount ?? 0),
       signature_goal: Number(document.signature_goal ?? document.signatureGoal ?? 1000),
       evidence_count: Number(document.evidence_count ?? document.evidenceCount ?? 0),
-      created_by: String(document.created_by ?? document.createdBy ?? ""),
       creatorName: String(creator?.display_name ?? creator?.full_name ?? creator?.username ?? "Citizen"),
       creatorAvatar: String(creator?.avatar_url ?? creator?.imageUrl ?? ""),
       language: String(document.language ?? "en"),
@@ -103,12 +101,13 @@ async function loadDashboard(userId: string) {
       createdAt: String(document.created_at ?? document.createdAt ?? document.$createdAt ?? new Date().toISOString()),
       evidence: [],
     };
-  });
+  };
 
-  const raisedIssues = issues.filter((issue) => issue.created_by === userId);
-  const supportedIssues = issues.filter((issue) => issue.created_by !== userId);
-  const raisedPetitions = petitions.filter((petition) => petition.created_by === userId);
-  const signedPetitions = petitions.filter((petition) => petition.created_by !== userId);
+  const isOwned = (document: Record<string, unknown>) => String(document.created_by ?? document.createdBy ?? "") === userId;
+  const raisedIssues = issueDocuments.filter(isOwned).map(toIssue);
+  const supportedIssues = issueDocuments.filter((document) => !isOwned(document)).map(toIssue);
+  const raisedPetitions = petitionDocuments.filter(isOwned).map(toPetition);
+  const signedPetitions = petitionDocuments.filter((document) => !isOwned(document)).map(toPetition);
 
   return NextResponse.json({
     ok: true,
