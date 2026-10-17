@@ -70,3 +70,46 @@ test("comment replies keep private fields out and survive a Clerk profile outage
     else process.env.APPWRITE_API_KEY = originalKey;
   }
 });
+
+test("an uncertain comment save returns safe retry guidance", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  const clerkPath = require.resolve("@clerk/nextjs/server");
+  const originalClerk = require.cache[clerkPath];
+  const originalError = console.error;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+  require.cache[clerkPath] = {
+    exports: {
+      auth: async () => ({ userId: "synthetic_owner" }),
+      currentUser: async () => null,
+    },
+  } as NodeModule;
+
+  try {
+    const { POST } = await import("./route");
+    const logged: unknown[][] = [];
+    console.error = (...args: unknown[]) => { logged.push(args); };
+    globalThis.fetch = async (_url, init) => init?.method === "POST"
+      ? Response.json({ message: "private synthetic detail" }, { status: 500 })
+      : Response.json({ documents: [{ $id: "synthetic_issue" }] });
+
+    const response = await POST(new Request("https://example.test/api/issues/test/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "Synthetic comment" }),
+    }), { params: Promise.resolve({ slug: "test" }) });
+
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), {
+      error: "We couldn't confirm your comment was saved. Check the discussion before trying again.",
+    });
+    assert.equal(JSON.stringify(logged).includes("private synthetic detail"), false);
+  } finally {
+    if (originalClerk) require.cache[clerkPath] = originalClerk;
+    else delete require.cache[clerkPath];
+    globalThis.fetch = originalFetch;
+    console.error = originalError;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});

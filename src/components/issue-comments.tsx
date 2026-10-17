@@ -60,7 +60,7 @@ export default function IssueComments({ issueSlug, issueId, initialComments, ini
       });
       const data = await response.json();
       if (!response.ok || !data?.comment) {
-        setSubmitError(response.status === 400 ? "Check your comment and try again." : "Your comment could not be saved. Please try again.");
+        setSubmitError(response.status === 400 ? "Check your comment and try again." : "We couldn't confirm your comment was saved. Check the discussion before trying again.");
         return;
       }
 
@@ -77,7 +77,7 @@ export default function IssueComments({ issueSlug, issueId, initialComments, ini
       setComments((current) => [...current, addedComment]);
       setNewCommentText("");
     } catch {
-      setSubmitError("Your comment could not be saved. Please try again.");
+      setSubmitError("We couldn't confirm your comment was saved. Check the discussion before trying again.");
     } finally {
       setIsSubmitting(false);
     }
