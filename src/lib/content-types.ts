@@ -52,7 +52,6 @@ export interface PetitionRecord {
   signature_count: number;
   signature_goal: number;
   evidence_count: number;
-  created_by: string;
   creatorName: string;
   creatorAvatar?: string;
   language: string;

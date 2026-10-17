@@ -73,7 +73,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
       signature_count: Number(petitionDoc.signature_count ?? petitionDoc.signatureCount ?? 0),
       signature_goal: Number(petitionDoc.signature_goal ?? petitionDoc.signatureGoal ?? 1000),
       evidence_count: Number(petitionDoc.evidence_count ?? petitionDoc.evidenceCount ?? petitionEvidence.length),
-      created_by: createdBy,
       creatorName: String(creator?.display_name ?? creator?.full_name ?? creator?.username ?? "Citizen"),
       creatorAvatar: String(creator?.avatar_url ?? creator?.imageUrl ?? ""),
       language: petitionDoc.language ?? "en",

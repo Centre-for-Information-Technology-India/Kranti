@@ -251,7 +251,6 @@ export async function GET(request: Request) {
         signature_count: Number(document.signature_count ?? document.signatureCount ?? 0),
         signature_goal: Number(document.signature_goal ?? document.signatureGoal ?? 1000),
         evidence_count: Number(document.evidence_count ?? document.evidenceCount ?? petitionEvidence.length),
-        created_by: createdBy,
         creatorName: String(creator?.display_name ?? creator?.full_name ?? creator?.username ?? "Citizen"),
         creatorAvatar: String(creator?.avatar_url ?? creator?.imageUrl ?? ""),
         language: document.language ?? "en",
