@@ -56,7 +56,7 @@ test("notification reads send structured, user-scoped Appwrite queries", async (
   try {
     const notifications = await getUserNotifications(userId);
     assert.equal(notifications.length, 1);
-    assert.equal(notifications[0].user_id, userId);
+    assert.equal(Object.hasOwn(notifications[0], "user_id"), false);
     assert.equal(notifications[0].title, "Test alert");
     assert.equal((await getUserNotifications(userId, 10)).length, 1);
     assert.equal((await getUserNotifications(userId, 1000000)).length, 1);
