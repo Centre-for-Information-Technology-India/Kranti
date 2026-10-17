@@ -24,9 +24,15 @@ export async function generateMetadata({
   const guide = getGuideBySlug(slug);
   if (!guide) return {};
 
+  const isRtiGuide = guide.id === "rti-guide";
+  const title = isRtiGuide ? "How to File an RTI Application in India" : guide.title;
+  const description = isRtiGuide
+    ? "Learn what an RTI application needs, how to choose a public authority, and how to follow up after filing in India."
+    : guide.summary;
+
   return {
-    title: `${guide.title} | Kranti`,
-    description: guide.summary,
+    title: `${title} | Kranti`,
+    description,
     keywords: [
       guide.category,
       guide.title.split(" ").slice(0, 5).join(" "),
@@ -36,8 +42,8 @@ export async function generateMetadata({
     ],
     alternates: { canonical: `/guides/${guide.slug}` },
     openGraph: {
-      title: guide.title,
-      description: guide.summary,
+      title,
+      description,
       url: `${SITE_URL}/guides/${guide.slug}`,
       type: "article",
       publishedTime: "2025-01-01T00:00:00Z",
