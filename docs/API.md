@@ -37,6 +37,7 @@ Moderator actions return safe HTTP 503 JSON when a status update or its audit wr
 Issue comments reject JSON request bodies over 1 MiB with HTTP 413 before issue lookup or comment writes.
 Successful issue comment creation returns the public comment fields used by the page. It does not return the stored user ID or other Appwrite document fields.
 Issue comment creation uses the authenticated Clerk account ID. A failed optional profile lookup falls back to a generic display name and does not block the save.
+Issue comment creation returns safe HTTP 503 JSON if its save cannot be confirmed. Check the discussion before retrying to avoid duplicate comments.
 Campaign creation rejects JSON request bodies over 1 MiB with HTTP 413 before campaign lookups or writes.
 
 Public lists require bounded pagination. Never expose an unbounded collection query.

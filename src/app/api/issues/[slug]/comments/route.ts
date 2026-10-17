@@ -49,7 +49,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   }
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function POST(request: Request, context: { params: Promise<{ slug: string }> }) {
+  try {
+    return await saveComment(request, context);
+  } catch (error) {
+    console.error("Issue comment save failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+    return NextResponse.json(
+      { error: "We couldn't confirm your comment was saved. Check the discussion before trying again." },
+      { status: 503 },
+    );
+  }
+}
+
+async function saveComment(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
