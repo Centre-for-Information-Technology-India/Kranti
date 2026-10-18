@@ -102,12 +102,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
     let hasSigned = false;
     if (userId) {
-      const signaturesResponse = await listDocuments(appwriteDatabaseId, appwriteSignaturesCollectionId, [
-        Query.equal("petition_id", [String(petition.$id)]),
-        Query.equal("user_id", [userId]),
-        Query.limit(1),
-      ]);
-      hasSigned = ((signaturesResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).length > 0;
+      try {
+        const signaturesResponse = await listDocuments(appwriteDatabaseId, appwriteSignaturesCollectionId, [
+          Query.equal("petition_id", [String(petition.$id)]),
+          Query.equal("user_id", [userId]),
+          Query.limit(1),
+        ]);
+        hasSigned = ((signaturesResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).length > 0;
+      } catch (error) {
+        console.warn("Petition signing state unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+      }
     }
 
     return NextResponse.json({ ok: true, petition, hasSigned });

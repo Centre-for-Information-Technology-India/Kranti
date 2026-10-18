@@ -59,6 +59,7 @@ Public campaign list and detail replies omit stored creator account IDs. Creator
 
 Petition detail reads return safe HTTP 503 JSON when Appwrite is unavailable. The page offers retry.
 Public petition details remain readable if Clerk cannot check signing state. In that case `hasSigned` is false; signing still requires authentication.
+Public petition details also remain readable if the optional signature lookup fails. In that case `hasSigned` is false; the signing route checks existing signatures before saving.
 Petition detail still loads with a generic creator name if optional creator-profile lookups fail.
 The public petition list reads evidence only for petitions in its bounded result set.
 Creator-profile lookups are optional for petition lists. Missing names use "Citizen"; petition and evidence read failures still stop the list.
