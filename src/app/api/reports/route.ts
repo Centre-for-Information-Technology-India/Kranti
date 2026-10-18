@@ -44,7 +44,12 @@ async function createReport(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const clerkUser = await currentUser();
+  let clerkUser: Awaited<ReturnType<typeof currentUser>>;
+  try {
+    clerkUser = await currentUser();
+  } catch {
+    return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
+  }
 
   if (!clerkUser) {
     return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
