@@ -17,6 +17,7 @@ Alert read updates return safe HTTP 503 JSON when Appwrite cannot confirm the re
 Bulk alert read updates give account retry guidance if Clerk fails before any Appwrite request.
 Single-alert read updates give account retry guidance if Clerk authentication fails before any Appwrite request.
 Alert list reads return safe HTTP 503 JSON when Appwrite cannot load alerts. The dashboard offers retry.
+Alert list reads give account retry guidance if Clerk authentication fails before any Appwrite request. Unsigned access remains HTTP 401.
 Alert list replies include display fields and read status, but not the stored owner ID or other Appwrite metadata. Ownership remains enforced by the server-side query.
 Account sync returns safe HTTP 503 JSON when Clerk cannot load the signed-in account. No Appwrite write starts in that case.
 Account sync also returns safe HTTP 503 JSON if Clerk authentication throws before a user ID is available. Unsigned requests remain HTTP 401.
