@@ -28,12 +28,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  let authenticated = false;
   try {
     const { userId } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    authenticated = true;
 
     await markAllNotificationsAsRead(userId);
 
@@ -41,7 +43,9 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error("Mark notifications as read error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json(
-      { error: "Some alerts may have been marked as read. Refresh alerts before trying again." },
+      { error: authenticated
+        ? "Some alerts may have been marked as read. Refresh alerts before trying again."
+        : "Unable to load your account. Please try again." },
       { status: 503 },
     );
   }
