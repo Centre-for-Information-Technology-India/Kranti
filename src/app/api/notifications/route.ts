@@ -4,12 +4,14 @@ import { getUserNotifications, markAllNotificationsAsRead } from "@/lib/notifica
 import { AppwriteRequestError } from "@/lib/appwrite";
 
 export async function GET(request: NextRequest) {
+  let authenticated = false;
   try {
     const { userId } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    authenticated = true;
 
     const { searchParams } = new URL(request.url);
     const requestedLimit = searchParams.get("limit");
@@ -23,7 +25,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ notifications });
   } catch (error) {
     console.error("Notifications fetch error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
-    return NextResponse.json({ error: "Alerts could not load. Please try again." }, { status: 503 });
+    return NextResponse.json(
+      { error: authenticated ? "Alerts could not load. Please try again." : "Unable to load your account. Please try again." },
+      { status: 503 },
+    );
   }
 }
 
