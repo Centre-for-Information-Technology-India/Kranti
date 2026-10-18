@@ -34,6 +34,7 @@ An account lookup exception uses the same pre-write retry message. It does not i
 Successful issue creation returns only `ok`, `issueId`, and `issueSlug`. It does not return the stored issue document or evidence metadata.
 Petition creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
 Petition creation returns safe HTTP 503 JSON when Clerk cannot load the signed-in account. No Appwrite write starts in that case.
+Petition creation also gives account retry guidance if Clerk authentication throws before any Appwrite request. Unsigned access remains HTTP 401.
 Successful petition creation returns only `ok`, `petitionId`, and `petitionSlug`. It does not return the stored petition document or evidence metadata.
 Incident report creation rejects JSON request bodies over 1 MiB with HTTP 413 before evidence processing or Appwrite writes.
 Incident report creation returns safe HTTP 503 JSON before any Appwrite write when Clerk cannot load the signed-in account.
