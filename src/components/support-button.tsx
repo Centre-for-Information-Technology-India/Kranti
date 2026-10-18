@@ -41,7 +41,7 @@ export function SupportButton({ slug, initialSupportCount }: SupportButtonProps)
       };
 
       if (!response.ok) {
-        throw new Error(body.error || "Failed to support the issue.");
+        throw new Error(body.error || "We couldn't confirm your support was saved. Check this issue before trying again.");
       }
 
       if (typeof body.supportCount === "number") setSupportCount(body.supportCount);
@@ -51,9 +51,10 @@ export function SupportButton({ slug, initialSupportCount }: SupportButtonProps)
         : "Your support was saved.");
       if (body.countUpdated !== false) router.refresh();
     } catch (error) {
-      console.error(error);
       setHasError(true);
-      setFeedback("We could not confirm your support. Please try again.");
+      setFeedback(error instanceof Error
+        ? error.message
+        : "We couldn't confirm your support was saved. Check this issue before trying again.");
     } finally {
       setIsSupporting(false);
     }
