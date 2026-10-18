@@ -15,8 +15,16 @@ import {
 export const runtime = "nodejs";
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
-  const { userId } = await auth();
   const { slug } = await params;
+
+  // Signing state is optional on a public petition. A Clerk outage must not
+  // prevent citizens from reading the petition itself.
+  let userId: string | null = null;
+  try {
+    ({ userId } = await auth());
+  } catch {
+    console.warn("Petition signing state unavailable");
+  }
 
   try {
     const petitionsResponse = await listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [
