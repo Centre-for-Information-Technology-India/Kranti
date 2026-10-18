@@ -80,7 +80,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Campaign creation error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
 
-    return NextResponse.json({ error: "Failed to create campaign" }, { status: 500 });
+    return NextResponse.json(
+      { error: "We couldn't confirm your campaign was saved. Check your dashboard before trying again." },
+      { status: 503 },
+    );
   }
 }
 
