@@ -38,7 +38,12 @@ export async function POST(request: Request) {
 }
 
 async function createReport(request: Request) {
-  const { userId } = await auth();
+  let userId: string | null;
+  try {
+    ({ userId } = await auth());
+  } catch {
+    return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
+  }
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
