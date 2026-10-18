@@ -10,6 +10,7 @@ Prefer idempotent mutations where retries are possible. External side effects mu
 
 Issue support and petition signing return `notificationSaved`: `true` when the creator alert was saved, `false` when its write failed, and `null` when no alert was attempted. A saved support or signature remains successful when its secondary alert fails.
 Petition signing uses the authenticated Clerk user ID. If the optional signer profile lookup fails, the signature still saves and the creator alert uses a generic signer name.
+Petition signing returns account retry guidance when Clerk authentication fails before any Appwrite write. An uncertain signature save still asks the citizen to check the petition before retrying.
 Issue support returns a safe HTTP 503 JSON response when its result cannot be confirmed. Retrying the same support cannot create a second support record.
 Issue support uses the authenticated Clerk user ID. If the optional supporter profile lookup fails, the support still saves and the creator alert uses a generic name.
 Alert read updates return safe HTTP 503 JSON when Appwrite cannot confirm the result. The dashboard reloads alerts before another try.

@@ -19,7 +19,12 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
-    const { userId } = await auth();
+    let userId: string | null;
+    try {
+      ({ userId } = await auth());
+    } catch {
+      return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
+    }
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
