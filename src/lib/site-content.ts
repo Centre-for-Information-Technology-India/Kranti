@@ -5,6 +5,39 @@
 
 export const siteGuides = [
   {
+    id: "local-service-complaint-guide",
+    slug: "how-to-report-local-service-complaint-india",
+    title: "How to Report a Street Light, Water or Pothole Complaint",
+    category: "Local services",
+    summary:
+      "Find the right local complaint route for a broken street light, water supply problem, pothole or municipal service issue. Includes checked Delhi examples and steps for other cities.",
+    timeToRead: "4 min read",
+    lastUpdated: "October 2026",
+    content: `### Start with the service and the place
+
+A street light, water supply problem, pothole and missed municipal service may have different owners. Check your city or state government's official site before choosing a complaint route. The Delhi examples below do not apply to every city or every road.
+
+Keep the exact location, a short description, the date you noticed the problem, and a safe photo if one helps. Avoid sharing a stranger's face, contact details or private documents in a public report.
+
+### Broken street light
+
+In Delhi, first check which agency maintains the light. [MCD lists its MCD 311 app](https://mcdonline.nic.in/portal/feedback) for municipal complaints. [BSES Rajdhani's street light page](https://www.bsesdelhi.com/web/brpl/street-light-complaint) directs complaints about MCD lights in its area to eSmart. Record the pole number if it is visible. Outside Delhi, find the street lighting contact on your local body's or electricity provider's official site.
+
+### Water supply or sewer problem
+
+For Delhi water and sewer complaints, [Delhi Jal Board explains its complaint channels](https://delhijalboard.delhi.gov.in/jalboard/grievance-redressal-mechanism), including its control room at 1916. Elsewhere, check your local water utility's official complaint page. Describe the affected address or area, but do not post your private account number on Kranti.
+
+### Pothole or other municipal problem
+
+For a road under MCD, its [MCD 311 complaint route](https://mcdonline.nic.in/portal/feedback) covers potholes and other municipal services. Road ownership can differ, even within one city. Check the road authority before filing. For waste, drains or similar services, use the local body's official complaint route and keep the reference number.
+
+### Keep a record and follow up
+
+Save the official complaint number, date and any reply. Use that authority's tracking or follow-up route if the problem remains. [CPGRAMS](https://www.pgportal.gov.in/) also connects central departments and states, but a checked local service channel is the clearer first step for these examples. Do not submit the same complaint repeatedly without checking its status.
+
+Kranti can help you document a civic issue or gather support for a shared request. A Kranti report does not file a complaint with the authority or prove that the service problem has been fixed.`,
+  },
+  {
     id: "rti-guide",
     slug: "how-to-file-rti-application-india",
     title: "How to File an RTI Application in India (2026 Complete Guide)",
