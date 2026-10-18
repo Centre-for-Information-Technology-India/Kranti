@@ -16,13 +16,13 @@ import { belongsToClerkAccount, preservedAccountFields, verifiedPrimaryEmail } f
 export const runtime = "nodejs";
 
 export async function POST() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const user = await currentUser();
     if (!user) {
       return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
