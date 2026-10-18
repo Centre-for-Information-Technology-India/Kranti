@@ -33,7 +33,7 @@ For a road under MCD, its [MCD 311 complaint route](https://mcdonline.nic.in/por
 
 ### Keep a record and follow up
 
-Save the official complaint number, date and any reply. Use that authority's tracking or follow-up route if the problem remains. [CPGRAMS](https://www.pgportal.gov.in/) also connects central departments and states, but a checked local service channel is the clearer first step for these examples. Do not submit the same complaint repeatedly without checking its status.
+Save the official complaint number, date and any reply. Use that authority's tracking or follow-up route if the problem remains. Kranti's [CPGRAMS guide](/guides/how-to-lodge-grievance-cpgrams) covers another grievance route. For these local examples, start with a checked service channel. Do not submit the same complaint repeatedly without checking its status.
 
 Kranti can help you document a civic issue or gather support for a shared request. A Kranti report does not file a complaint with the authority or prove that the service problem has been fixed.`,
   },
