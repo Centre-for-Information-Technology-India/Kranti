@@ -6,8 +6,12 @@ test("dashboard groups synthetic cases without returning creator IDs", async () 
   const originalKey = process.env.APPWRITE_API_KEY;
   const clerkPath = require.resolve("@clerk/nextjs/server");
   const originalClerk = require.cache[clerkPath];
+  let authFailure = false;
   process.env.APPWRITE_API_KEY = "synthetic-test-key";
-  require.cache[clerkPath] = { exports: { auth: async () => ({ userId: "synthetic_owner" }) } } as NodeModule;
+  require.cache[clerkPath] = { exports: { auth: async () => {
+    if (authFailure) throw new Error("Synthetic Clerk outage");
+    return { userId: "synthetic_owner" };
+  } } } as NodeModule;
 
   try {
     const { GET } = await import("./route");
@@ -56,6 +60,17 @@ test("dashboard groups synthetic cases without returning creator IDs", async () 
     assert.equal(outageBody.raisedIssues.length, 1);
     assert.equal(outageBody.signedPetitions.length, 1);
     assert.equal("created_by" in outageBody.supportedIssues[0], false);
+
+    authFailure = true;
+    let appwriteRequests = 0;
+    globalThis.fetch = async () => {
+      appwriteRequests += 1;
+      throw new Error("Appwrite should not be called");
+    };
+    const authResponse = await GET();
+    assert.equal(authResponse.status, 503);
+    assert.match((await authResponse.json()).error, /account.*try again/i);
+    assert.equal(appwriteRequests, 0);
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
     else delete require.cache[clerkPath];

@@ -17,7 +17,12 @@ import { dashboardCasesForUser } from "@/lib/dashboard-cases";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const { userId } = await auth();
+  let userId: string | null;
+  try {
+    ({ userId } = await auth());
+  } catch {
+    return NextResponse.json({ ok: false, error: "Unable to load your account. Please try again." }, { status: 503 });
+  }
   if (!userId) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
