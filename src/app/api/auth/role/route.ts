@@ -6,13 +6,13 @@ import { verifiedPrimaryEmail } from "@/lib/account-sync";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const role = await getUserRole(userId, null, undefined, async () => {
       const user = await currentUser();
       if (!user) throw new Error("Clerk user unavailable");
