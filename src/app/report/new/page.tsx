@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, AlertTriangle, ShieldAlert, Upload, Lock, FileText } from "lucide-react";
@@ -24,9 +23,9 @@ const safetyGuidelines = [
 ];
 
 export default function NewReportPage() {
-  const router = useRouter();
   const evidenceInputRef = useRef<HTMLInputElement | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [savedWithoutEvidence, setSavedWithoutEvidence] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasEvidence, setHasEvidence] = useState(false);
@@ -40,6 +39,7 @@ export default function NewReportPage() {
   const { clear: clearDraft } = useFormAutoSave(form, "kranti_report_draft");
 
   async function handleReportSubmit(values: ReportSubmissionValues) {
+    if (submitted) return;
     const files = Array.from(evidenceInputRef.current?.files ?? []);
     const links = values.evidenceLinks ?? [];
     
@@ -81,13 +81,17 @@ export default function NewReportPage() {
         }),
       });
 
-      const body = (await response.json()) as { error?: string; reportSlug?: string };
+      const body = (await response.json()) as { error?: string; reportId?: string; evidenceSaved?: boolean };
 
       if (!response.ok) {
         throw new Error(body.error || "Failed to submit the report.");
       }
 
       setSubmitted(true);
+      if (body.evidenceSaved === false) {
+        setSavedWithoutEvidence(body.reportId ?? "saved");
+        return;
+      }
       clearDraft();
       form.reset(reportDefaultValues);
       if (evidenceInputRef.current) {
@@ -137,15 +141,17 @@ export default function NewReportPage() {
           </div>
 
           {submitted ? (
-            <Card className="border-emerald-200 bg-emerald-50/90 shadow-sm shadow-emerald-950/5 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+            <Card className={savedWithoutEvidence ? "border-amber-300 bg-amber-50/90 shadow-sm dark:border-amber-800 dark:bg-amber-950/20" : "border-emerald-200 bg-emerald-50/90 shadow-sm shadow-emerald-950/5 dark:border-emerald-900/40 dark:bg-emerald-950/20"}>
               <CardHeader>
-                <Badge variant="outline" className="w-fit border-emerald-300 bg-white text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
-                  Submitted for Review
+                <Badge variant="outline" className={savedWithoutEvidence ? "w-fit border-amber-400 bg-white text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200" : "w-fit border-emerald-300 bg-white text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"}>
+                  {savedWithoutEvidence ? "Saved with missing evidence" : "Submitted for Review"}
                 </Badge>
-                <CardTitle className="text-2xl">Your report has been submitted.</CardTitle>
-                <CardDescription className="text-base leading-7 text-emerald-900/80 dark:text-emerald-100/80">
-                  Our moderation team will review your report carefully. You will be notified once the review is complete. Thank you for documenting this incident.
+                <CardTitle className="text-2xl">{savedWithoutEvidence ? "Your report was saved." : "Your report has been submitted."}</CardTitle>
+                <CardDescription className={savedWithoutEvidence ? "text-base leading-7 text-amber-950 dark:text-amber-100" : "text-base leading-7 text-emerald-900/80 dark:text-emerald-100/80"}>
+                  {savedWithoutEvidence ? "Some evidence details did not save. Keep your files and links. Contact Kranti with the report reference. Do not submit this report again." : "Our moderation team will review your report carefully. You will be notified once the review is complete. Thank you for documenting this incident."}
                 </CardDescription>
+                {savedWithoutEvidence ? <p className="text-sm text-amber-950 dark:text-amber-100">Report reference: {savedWithoutEvidence}</p> : null}
+                {savedWithoutEvidence ? <a className="w-fit text-sm font-semibold text-slate-900 underline underline-offset-4 dark:text-white" href="mailto:grievance@kranti.org.in">Contact Kranti</a> : null}
               </CardHeader>
             </Card>
           ) : null}
@@ -320,7 +326,7 @@ export default function NewReportPage() {
                   <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
                     Reports are reviewed by moderators before publication to ensure safety.
                   </p>
-                  <Button type="submit" size="lg" disabled={isSaving} className="h-12 rounded-full bg-slate-950 px-6 text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
+                  <Button type="submit" size="lg" disabled={isSaving || submitted} className="h-12 rounded-full bg-slate-950 px-6 text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
                     {isSaving ? "Submitting..." : "Submit Report"}
                     <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
