@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PetitionRecord } from "@/lib/content-types";
+import { canSignPetition } from "@/lib/petition-signing-status";
 import { ShareButtons } from "@/components/share-buttons";
 
 export default function PetitionDetailPage() {
@@ -73,7 +74,7 @@ export default function PetitionDetailPage() {
   }, [slug, loadAttempt]);
 
   async function handleSign() {
-    if (!user || !petition) return;
+    if (!user || !petition || !canSignPetition(petition.status)) return;
 
     setIsSigningLoading(true);
     setSignError(null);
@@ -218,7 +219,11 @@ export default function PetitionDetailPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-6">
-            {isLoaded && user ? (
+            {!canSignPetition(petition.status) ? (
+              <p role="status" className="rounded-2xl border border-slate-900/10 bg-slate-50 p-4 text-center text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+                This petition is not open for signatures.
+              </p>
+            ) : isLoaded && user ? (
               hasSigned ? (
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center dark:border-emerald-900/40 dark:bg-emerald-950/20">
                   <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-600 mb-2" />

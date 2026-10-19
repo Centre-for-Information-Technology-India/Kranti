@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PetitionRecord } from "@/lib/content-types";
+import { canSignPetition } from "@/lib/petition-signing-status";
 
 const statesList = ["All States", "Maharashtra", "Karnataka", "Delhi", "Tamil Nadu", "West Bengal"];
 const categoriesList = ["All Categories", "policy_change", "justice", "environment", "education", "health", "safety", "infrastructure", "corruption", "rights"];
@@ -332,7 +333,7 @@ export default function PetitionsPage() {
 
                     <Link href={`/petitions/${petition.slug}`} className="block">
                       <Button className="w-full rounded-2xl h-10 bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 flex items-center justify-center gap-1">
-                        Sign petition
+                        {canSignPetition(petition.status) ? "Sign petition" : "View petition"}
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                     </Link>

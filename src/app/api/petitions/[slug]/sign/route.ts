@@ -14,6 +14,7 @@ import {
 import { notifyNewSignature } from "@/lib/notifications";
 import { updateSignatureCountAfterSave } from "@/lib/petition-signature-count";
 import { isExistingSignature, signatureDocumentId } from "@/lib/petition-signature";
+import { canSignPetition } from "@/lib/petition-signing-status";
 
 export const runtime = "nodejs";
 
@@ -41,6 +42,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
     if (!petitionDoc) {
       return NextResponse.json({ error: "Petition not found" }, { status: 404 });
+    }
+
+    if (!canSignPetition(petitionDoc.status)) {
+      return NextResponse.json({ error: "This petition is not open for signatures." }, { status: 409 });
     }
 
     const petitionId = String(petitionDoc.$id);
