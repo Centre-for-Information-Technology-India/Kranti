@@ -85,7 +85,7 @@ The public issue list returns up to 25 issues per request, newest first by Appwr
 
 An issue detail page reads only evidence and comments linked to that issue and the creator's profile. These reads are bounded.
 Review-pending and rejected issue pages and their comments are hidden from public readers, including saved direct links. The creator, moderators, and admins may still read the issue page. New comments on review-pending or rejected issues are not accepted.
-Creator-profile lookups are optional for issue details. Missing names use "Citizen Reporter". Issue and evidence failures still stop the page. A comment read failure keeps the case visible and offers a comment retry.
+Creator-profile lookups are optional for issue details. Missing names use "Citizen Reporter". An issue read failure stops the page. A separate evidence read failure keeps the case visible and offers an evidence retry without claiming no evidence exists. A comment read failure keeps the case visible and offers a comment retry.
 
 The public issue-comment endpoint returns at most 100 approved comments per request. Use an `offset` from 0 to 10000 and the `hasMore` response flag to read later pages. Issue detail pages start with the first 100 approved comments and let readers load later pages.
 

@@ -141,6 +141,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
   let issue: IssueRecord | null = null;
   let commentsResponse: unknown = { documents: [] };
   let commentsUnavailable = false;
+  let evidenceUnavailable = false;
 
   try {
     const issueResponse = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [
@@ -152,7 +153,10 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
       const creatorId = String(doc.created_by ?? doc.createdBy ?? "");
       const issueId = String(doc.$id ?? "");
       const [evidenceResponse, commentsData, creatorResponses] = await Promise.all([
-        listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [Query.equal("issue_id", [issueId]), Query.limit(100)]),
+        listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [Query.equal("issue_id", [issueId]), Query.limit(100)]).catch((error) => {
+          console.warn("Issue evidence unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+          return null;
+        }),
         listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, [
           Query.equal("issue_id", [issueId]),
           Query.equal("status", ["approved"]),
@@ -165,6 +169,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
             ))
           : Promise.resolve([]),
       ]);
+      evidenceUnavailable = evidenceResponse === null;
       commentsUnavailable = commentsData === null;
       commentsResponse = commentsData ?? { documents: [] };
       const creatorRow = creatorResponses.flatMap((result) =>
@@ -175,7 +180,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
         return String(userDocument.clerk_id ?? userDocument.clerkUserId ?? userDocument.$id ?? "") === creatorId;
       });
 
-      const evidence = ((evidenceResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [])
+      const evidence = ((evidenceResponse as { documents?: Array<Record<string, unknown>> } | null)?.documents ?? [])
         .filter((evidenceDocument) => String(evidenceDocument.issue_id ?? "") === String(doc.$id ?? ""))
         .map((evidenceDocument) => ({
           fileId: String(evidenceDocument.$id ?? ""),
@@ -516,14 +521,18 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Video className="h-5 w-5 text-slate-500" />
-                  <CardTitle className="text-xl">Evidence Gallery ({evidence.length})</CardTitle>
+                  <CardTitle className="text-xl">Evidence Gallery{evidenceUnavailable ? "" : ` (${evidence.length})`}</CardTitle>
                 </div>
                 <CardDescription>
                   Verified files uploaded by the citizen. Sensitive metadata has been stripped for safety.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {evidence.length > 0 ? (
+                {evidenceUnavailable ? (
+                  <div className="rounded-2xl border border-slate-900/10 bg-slate-50 p-5 text-sm text-slate-700 dark:border-white/10 dark:bg-slate-950/40 dark:text-slate-200" role="status">
+                    Evidence could not load. The issue is still available. <a href={`/issues/${encodeURIComponent(slug)}`} className="font-semibold underline underline-offset-4">Try again</a>.
+                  </div>
+                ) : evidence.length > 0 ? (
                   evidence.map((item) => {
                     const isImg = item.mimeType.startsWith("image/");
                     const isVid = item.mimeType.startsWith("video/");
