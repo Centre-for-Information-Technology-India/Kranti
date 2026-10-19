@@ -34,7 +34,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
     const petitionDoc = ((petitionsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [])[0];
 
-    if (!petitionDoc) {
+    if (!petitionDoc || petitionDoc.status === "pending_review") {
       return NextResponse.json({ error: "Petition not found" }, { status: 404 });
     }
 

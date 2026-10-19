@@ -214,6 +214,8 @@ export async function GET(request: Request) {
   const offset = Number(rawOffset);
   try {
     const petitionsResponse = await listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [
+      // Review-pending petitions must stay out of every public page, including later offsets.
+      Query.equal("status", ["open", "in_progress", "successful", "resolved"]),
       Query.orderDesc("created_at"),
       Query.limit(26),
       Query.offset(offset),

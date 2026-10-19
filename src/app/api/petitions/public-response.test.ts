@@ -1,6 +1,54 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+test("review-pending petitions stay out of public lists and saved links", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  const clerkPath = require.resolve("@clerk/nextjs/server");
+  const originalClerk = require.cache[clerkPath];
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+  require.cache[clerkPath] = { exports: { auth: async () => ({ userId: null }) } } as NodeModule;
+  let listFiltered = false;
+  let relatedReads = 0;
+
+  try {
+    const { GET: listPetitions } = await import("./route");
+    const { GET: getPetition } = await import("./[slug]/route");
+    globalThis.fetch = async (input) => {
+      const url = new URL(String(input));
+      const collection = url.pathname.split("/collections/")[1]?.split("/")[0];
+      if (collection !== "petitions") {
+        relatedReads++;
+        return Response.json({ documents: [] });
+      }
+      const queries = url.searchParams.getAll("queries[]").map((query) => JSON.parse(query));
+      const status = queries.find((query) => query.attribute === "status");
+      if (status) {
+        listFiltered = status.method === "equal" && !status.values.includes("pending_review");
+        return Response.json({ documents: [] });
+      }
+      return Response.json({ documents: [{ $id: "synthetic-pending", slug: "synthetic-pending", status: "pending_review" }] });
+    };
+
+    const listResponse = await listPetitions(new Request("https://example.test/api/petitions"));
+    assert.equal(listResponse.status, 200);
+    assert.equal(listFiltered, true);
+    assert.deepEqual((await listResponse.json()).petitions, []);
+
+    const detailResponse = await getPetition(new Request("https://example.test/api/petitions/synthetic-pending"), {
+      params: Promise.resolve({ slug: "synthetic-pending" }),
+    });
+    assert.equal(detailResponse.status, 404);
+    assert.equal(relatedReads, 0);
+  } finally {
+    if (originalClerk) require.cache[clerkPath] = originalClerk;
+    else delete require.cache[clerkPath];
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});
+
 test("public petition list and detail omit stored creator IDs", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;
