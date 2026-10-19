@@ -100,7 +100,9 @@ export async function POST(request: Request) {
     await createDocument(appwriteDatabaseId, appwriteModerationLogsCollectionId, logId, {
       action: dbAction,
       admin_id: userId,
-      reason: reason || `Action: ${action} performed by moderator.`,
+      reason: action === "resolve"
+        ? `Action: resolve. ${reason || "Moderator marked the issue resolved."}`
+        : reason || `Action: ${action} performed by moderator.`,
       content_id: issueId,
     });
   } catch (error) {
