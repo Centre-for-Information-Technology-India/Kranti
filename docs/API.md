@@ -67,6 +67,7 @@ Public petition details remain readable if Clerk cannot check signing state. In 
 Public petition details also remain readable if the optional signature lookup fails. In that case `hasSigned` is false; the signing route checks existing signatures before saving.
 Petition signing accepts only `open` and `in_progress` petitions. Other statuses return HTTP 409 before any signature read or write.
 Public petition lists exclude `pending_review` before pagination. A saved link to a review-pending petition returns HTTP 404 before evidence or creator reads.
+Review-pending petition pages also omit petition details from metadata and structured page data.
 Petition detail still loads with a generic creator name if optional creator-profile lookups fail.
 The public petition list reads evidence only for petitions in its bounded result set.
 Creator-profile lookups are optional for petition lists. Missing names use "Citizen"; petition and evidence read failures still stop the list.

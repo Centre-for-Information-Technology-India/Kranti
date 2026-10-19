@@ -73,7 +73,8 @@ export default async function PetitionDetailLayout({ params, children }: Props) 
   const { slug } = await params;
   const doc = await fetchPetitionBySlug(slug);
 
-  if (!doc) return <>{children}</>;
+  // A review-pending petition is not public, including its structured page data.
+  if (!doc || doc.status === "pending_review") return <>{children}</>;
 
   const title = String(doc.title ?? "Petition");
   const description = String(doc.description ?? "").slice(0, 300);
