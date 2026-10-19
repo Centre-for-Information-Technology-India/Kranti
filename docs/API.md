@@ -52,6 +52,7 @@ Issue comment creation returns safe HTTP 503 JSON if its save cannot be confirme
 Issue comment creation gives account retry guidance if Clerk authentication fails before any Appwrite write.
 Campaign creation rejects JSON request bodies over 1 MiB with HTTP 413 before campaign lookups or writes.
 Campaign creation returns safe HTTP 503 JSON before any Appwrite write when Clerk cannot load the signed-in account.
+Campaign creation gives account retry guidance if Clerk authentication fails before any Appwrite request. Unsigned access remains HTTP 401.
 Campaign creation returns safe HTTP 503 JSON when its save result cannot be confirmed. Check the dashboard before trying again.
 
 Public lists require bounded pagination. Never expose an unbounded collection query.
