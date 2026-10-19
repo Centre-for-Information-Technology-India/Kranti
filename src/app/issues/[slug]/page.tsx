@@ -36,7 +36,7 @@ import { IssueRecord } from "@/lib/content-types";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/json-ld";
 import { canonical, SITE_URL, buildBreadcrumbSchema } from "@/lib/seo";
-import { canReadRejectedIssue } from "@/lib/rejected-issue-access";
+import { canReadUnpublishedIssue } from "@/lib/unpublished-issue-access";
 
 type IssueEvidence = {
   fileId: string;
@@ -148,7 +148,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
       Query.limit(1),
     ]);
     const doc = (issueResponse as { documents?: Array<Record<string, unknown>> }).documents?.[0];
-    if (doc && await canReadRejectedIssue(doc)) {
+    if (doc && await canReadUnpublishedIssue(doc)) {
       const creatorId = String(doc.created_by ?? doc.createdBy ?? "");
       const issueId = String(doc.$id ?? "");
       const [evidenceResponse, commentsData, creatorResponses] = await Promise.all([

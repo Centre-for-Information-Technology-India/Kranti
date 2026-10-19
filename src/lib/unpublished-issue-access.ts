@@ -2,14 +2,14 @@ import { auth } from "@clerk/nextjs/server";
 
 import { getUserRole } from "@/lib/role-lookup";
 
-export async function canReadRejectedIssue(
+export async function canReadUnpublishedIssue(
   issue: Record<string, unknown>,
   lookup: {
     auth: () => Promise<{ userId: string | null }>;
     getUserRole: (userId: string, email: null) => Promise<string>;
   } = { auth, getUserRole },
 ): Promise<boolean> {
-  if (issue.status !== "rejected") return true;
+  if (issue.status !== "rejected" && issue.status !== "pending_review") return true;
 
   try {
     const { userId } = await lookup.auth();
