@@ -53,6 +53,18 @@ test("moderation keeps linked roles and verified seeded roles available", async 
     assert.equal((await POST(request())).status, 400);
     assert.equal(profileCalls, 0);
 
+    for (const issueId of ["/other_issue", " issue", "a".repeat(37)]) {
+      reads = 0;
+      const response = await POST(new Request("https://example.test/api/admin/moderate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ issueId, action: "resolve" }),
+      }));
+      assert.equal(response.status, 400);
+      assert.deepEqual(await response.json(), { error: "Invalid issue ID" });
+      assert.equal(reads, 1, "invalid issue IDs must not reach a case or audit write");
+    }
+
     linked = false;
     profileFails = false;
     reads = 0;

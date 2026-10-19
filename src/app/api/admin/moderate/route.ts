@@ -71,6 +71,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "issueId and action are required" }, { status: 400 });
   }
 
+  // Appwrite document IDs are at most 36 characters and start with a letter or digit.
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,35}$/.test(issueId)) {
+    return NextResponse.json({ error: "Invalid issue ID" }, { status: 400 });
+  }
+
   if (reason !== undefined && typeof reason !== "string") {
     return NextResponse.json({ error: "Invalid reason" }, { status: 400 });
   }
