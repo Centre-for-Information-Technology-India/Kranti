@@ -46,7 +46,7 @@ async function saveSupport(_: Request, { params }: { params: Promise<{ slug: str
   const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]);
   const issue = (issueQuery as { documents?: Array<{ $id: string; status?: string; supporter_count?: number; title?: string; created_by?: string }> }).documents?.[0];
 
-  if (!issue || issue.status === "rejected") {
+  if (!issue || issue.status === "pending_review" || issue.status === "rejected") {
     return NextResponse.json({ error: "Issue not found" }, { status: 404 });
   }
 

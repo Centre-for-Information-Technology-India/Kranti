@@ -11,6 +11,7 @@ test("public issue replies hide creator IDs while moderators retain them", async
   let viewerId: string | null = null;
   let failCreatorLookup = false;
   let failEvidenceLookup = false;
+  let issueQuery = "";
   process.env.APPWRITE_API_KEY = "synthetic-test-key";
   require.cache[clerkPath] = { exports: { auth: async () => ({ userId: viewerId }) } } as NodeModule;
   require.cache[rolePath] = { exports: { getUserRole: async () => "moderator" } } as NodeModule;
@@ -19,6 +20,7 @@ test("public issue replies hide creator IDs while moderators retain them", async
     const { GET } = await import("./route");
     globalThis.fetch = async (input) => {
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
+      if (collection === "issues") issueQuery = decodeURIComponent(String(input));
       if (collection === "users" && failCreatorLookup) {
         return Response.json({ message: "Synthetic profile outage" }, { status: 503 });
       }
@@ -35,6 +37,8 @@ test("public issue replies hide creator IDs while moderators retain them", async
 
     const publicResponse = await GET(new Request("https://example.test/api/issues"));
     assert.equal(publicResponse.status, 200);
+    assert.match(issueQuery, /open/);
+    assert.doesNotMatch(issueQuery, /pending_review|rejected/);
     const publicIssue = (await publicResponse.json()).issues[0];
     assert.equal(publicIssue.creatorName, "Citizen");
     assert.equal("created_by" in publicIssue, false);

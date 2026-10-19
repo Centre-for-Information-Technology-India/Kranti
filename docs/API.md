@@ -12,7 +12,7 @@ Issue support and petition signing return `notificationSaved`: `true` when the c
 Petition signing uses the authenticated Clerk user ID. If the optional signer profile lookup fails, the signature still saves and the creator alert uses a generic signer name.
 Petition signing returns account retry guidance when Clerk authentication fails before any Appwrite write. An uncertain signature save still asks the citizen to check the petition before retrying.
 Issue support returns a safe HTTP 503 JSON response when its result cannot be confirmed. Retrying the same support cannot create a second support record.
-Rejected issues cannot receive new support through a saved direct link. The support route returns HTTP 404 before any support or alert write.
+Issues awaiting review and rejected issues cannot receive new support through a saved direct link. The support route returns HTTP 404 before any support or alert write.
 Issue support uses the authenticated Clerk user ID. If the optional supporter profile lookup fails, the support still saves and the creator alert uses a generic name.
 Alert read updates return safe HTTP 503 JSON when Appwrite cannot confirm the result. The dashboard reloads alerts before another try.
 Bulk alert read updates give account retry guidance if Clerk fails before any Appwrite request.
@@ -74,6 +74,7 @@ The public petition list returns up to 25 petitions per request. Use an `offset`
 At the offset cap, `hasMore` is false even when more records exist beyond the supported range.
 
 The public issue list reads evidence and creator profiles only for issues in its bounded result set.
+The public issue list excludes issues awaiting review and rejected issues before pagination. Their saved links cannot create support records.
 Creator-profile lookups are optional for issue lists. Missing names use "Citizen Reporter"; issue and evidence read failures still stop the list.
 Public issue list replies omit stored creator account IDs. Signed-in moderators and admins can see those IDs for review.
 The public issue list returns up to 25 issues per request, newest first by Appwrite creation time. Use an `offset` from 0 to 10000 and the `hasMore` flag to read older issues.
