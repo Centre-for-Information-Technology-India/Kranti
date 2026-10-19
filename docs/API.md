@@ -33,7 +33,7 @@ Issue creation returns safe HTTP 503 when a save result cannot be confirmed. The
 Issue creation returns safe HTTP 503 before any Appwrite write when Clerk cannot load the signed-in account.
 Issue creation gives account retry guidance if Clerk authentication throws before any Appwrite request. Unsigned access remains HTTP 401.
 An account lookup exception uses the same pre-write retry message. It does not imply an issue may already have saved.
-Successful issue creation returns only `ok`, `issueId`, and `issueSlug`. It does not return the stored issue document or evidence metadata.
+Successful issue creation returns `ok`, `issueId`, `issueSlug`, and `evidenceSaved`. If evidence metadata fails after the issue saves, `evidenceSaved` is false so the creator can check the saved issue without submitting a duplicate. It does not return the stored issue document or evidence metadata.
 Petition creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
 Petition creation returns safe HTTP 503 JSON when Clerk cannot load the signed-in account. No Appwrite write starts in that case.
 Petition creation also gives account retry guidance if Clerk authentication throws before any Appwrite request. Unsigned access remains HTTP 401.

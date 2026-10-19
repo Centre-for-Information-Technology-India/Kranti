@@ -93,8 +93,9 @@ test("a saved issue reply contains only its link fields", async () => {
     const response = await POST(request);
     assert.equal(response.status, 200);
     const body = await response.json();
-    assert.deepEqual(Object.keys(body).sort(), ["issueId", "issueSlug", "ok"]);
+    assert.deepEqual(Object.keys(body).sort(), ["evidenceSaved", "issueId", "issueSlug", "ok"]);
     assert.equal(body.ok, true);
+    assert.equal(body.evidenceSaved, true);
     assert.match(body.issueSlug, /^synthetic-broken-streetlight-issue/);
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
