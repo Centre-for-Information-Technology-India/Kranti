@@ -24,7 +24,7 @@ export function SupportButton({ slug, initialSupportCount }: SupportButtonProps)
   async function handleSupport() {
     if (!isLoaded) return;
     if (!isSignedIn) {
-      router.push("/sign-in");
+      router.push(`/sign-in?redirect_url=${encodeURIComponent(`/issues/${slug}`)}`);
       return;
     }
 
