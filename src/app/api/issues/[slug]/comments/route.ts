@@ -4,6 +4,7 @@ import { ID } from "node-appwrite";
 
 import { AppwriteRequestError, appwriteCommentsCollectionId, appwriteDatabaseId, appwriteIssuesCollectionId, createDocument, listDocuments, Query } from "@/lib/appwrite";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
+import { canReadRejectedIssue } from "@/lib/rejected-issue-access";
 
 export const runtime = "nodejs";
 
@@ -17,14 +18,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   try {
     const { slug } = await params;
     const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]);
-    const issue = (issueQuery as { documents?: Array<{ $id: string }> }).documents?.[0];
+    const issue = (issueQuery as { documents?: Array<Record<string, unknown>> }).documents?.[0];
 
-    if (!issue) {
+    if (!issue || !await canReadRejectedIssue(issue)) {
       return NextResponse.json({ ok: true, comments: [], hasMore: false });
     }
 
     const commentsResponse = await listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, [
-      Query.equal("issue_id", [issue.$id]),
+      Query.equal("issue_id", [String(issue.$id)]),
       Query.equal("status", ["approved"]),
       Query.orderAsc("$createdAt"),
       Query.limit(100),
@@ -98,9 +99,9 @@ async function saveComment(request: Request, { params }: { params: Promise<{ slu
   }
 
   const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]);
-  const issue = (issueQuery as { documents?: Array<{ $id: string }> }).documents?.[0];
+  const issue = (issueQuery as { documents?: Array<Record<string, unknown>> }).documents?.[0];
 
-  if (!issue) {
+  if (!issue || issue.status === "rejected") {
     return NextResponse.json({ error: "Issue not found" }, { status: 404 });
   }
 

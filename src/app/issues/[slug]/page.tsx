@@ -36,6 +36,7 @@ import { IssueRecord } from "@/lib/content-types";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/json-ld";
 import { canonical, SITE_URL, buildBreadcrumbSchema } from "@/lib/seo";
+import { canReadRejectedIssue } from "@/lib/rejected-issue-access";
 
 type IssueEvidence = {
   fileId: string;
@@ -88,7 +89,7 @@ export async function generateMetadata({
     };
   }
 
-  if (!doc || doc.status === "pending_review") {
+  if (!doc || doc.status === "pending_review" || doc.status === "rejected") {
     return {
       title: "Issue not found",
       robots: { index: false, follow: false },
@@ -147,7 +148,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
       Query.limit(1),
     ]);
     const doc = (issueResponse as { documents?: Array<Record<string, unknown>> }).documents?.[0];
-    if (doc) {
+    if (doc && await canReadRejectedIssue(doc)) {
       const creatorId = String(doc.created_by ?? doc.createdBy ?? "");
       const issueId = String(doc.$id ?? "");
       const [evidenceResponse, commentsData, creatorResponses] = await Promise.all([
