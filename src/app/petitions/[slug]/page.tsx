@@ -248,7 +248,7 @@ export default function PetitionDetailPage() {
             ) : (
               <div className="rounded-2xl border border-slate-900/10 bg-slate-50 p-4 text-center dark:border-white/10 dark:bg-white/5">
                 <p className="text-slate-600 dark:text-slate-300">
-                  <Link href="/sign-in" className="font-semibold text-slate-950 hover:underline dark:text-white">Sign in</Link> to sign this petition
+                  <Link href={{ pathname: "/sign-in", query: { redirect_url: `/petitions/${slug}` } }} className="font-semibold text-slate-950 hover:underline dark:text-white">Sign in</Link> to sign this petition
                 </p>
               </div>
             )}
