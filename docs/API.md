@@ -62,7 +62,8 @@ Public lists require bounded pagination. Never expose an unbounded collection qu
 Public campaign list and detail reads return safe HTTP 503 JSON when the data service fails. Missing campaign details still return HTTP 404. The campaign pages offer retry.
 Public campaign list and detail replies omit stored creator account IDs. Creator display names remain available.
 
-Petition detail reads return safe HTTP 503 JSON when Appwrite is unavailable. The page offers retry.
+Petition detail reads return safe HTTP 503 JSON when the petition itself is unavailable. The page offers retry.
+If its separate evidence lookup fails, the public petition remains readable with an empty `evidence` array and `evidenceUnavailable: true`. The page says evidence could not load; the stored `evidence_count` is unchanged.
 Public petition details remain readable if Clerk cannot check signing state. In that case `hasSigned` is false; signing still requires authentication.
 Public petition details also remain readable if the optional signature lookup fails. In that case `hasSigned` is false; the signing route checks existing signatures before saving.
 Petition signing accepts only `open` and `in_progress` petitions. Other statuses return HTTP 409 before any signature read or write.

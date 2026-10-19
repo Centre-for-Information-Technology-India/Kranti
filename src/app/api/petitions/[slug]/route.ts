@@ -43,7 +43,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
       listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [
         Query.equal("issue_id", [String(petitionDoc.$id)]),
         Query.limit(100),
-      ]),
+      ]).catch((error) => {
+        console.warn("Petition evidence unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+        return null;
+      }),
       createdBy ? Promise.allSettled(["clerk_id", "$id"].map((field) =>
         listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, [createdBy]), Query.limit(1)])
       )) : Promise.resolve([]),
@@ -60,7 +63,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
       return acc;
     }, {});
 
-    const evidenceByPetition = ((evidenceResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).reduce<Record<string, Array<Record<string, unknown>>>>((acc, doc) => {
+    const evidenceByPetition = ((evidenceResponse as { documents?: Array<Record<string, unknown>> } | null)?.documents ?? []).reduce<Record<string, Array<Record<string, unknown>>>>((acc, doc) => {
       const petitionId = String(doc.issue_id ?? doc.issueId ?? "");
       if (!petitionId) return acc;
       acc[petitionId] = acc[petitionId] ?? [];
@@ -114,7 +117,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
       }
     }
 
-    return NextResponse.json({ ok: true, petition, hasSigned });
+    return NextResponse.json({ ok: true, petition, hasSigned, evidenceUnavailable: evidenceResponse === null });
   } catch (error) {
     console.error("Failed to fetch petition:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json({ error: "Petition could not load. Please try again." }, { status: 503 });

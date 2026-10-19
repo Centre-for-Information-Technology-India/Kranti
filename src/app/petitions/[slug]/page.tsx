@@ -35,6 +35,7 @@ export default function PetitionDetailPage() {
   const [isSigningLoading, setIsSigningLoading] = useState(false);
   const [signError, setSignError] = useState<string | null>(null);
   const [countUpdateFailed, setCountUpdateFailed] = useState(false);
+  const [evidenceUnavailable, setEvidenceUnavailable] = useState(false);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "not-found" | "error">("loading");
   const [loadAttempt, setLoadAttempt] = useState(0);
 
@@ -60,6 +61,7 @@ export default function PetitionDetailPage() {
           if (!controller.signal.aborted) {
             setPetition(data.petition);
             setHasSigned(Boolean(data.hasSigned));
+            setEvidenceUnavailable(data.evidenceUnavailable === true);
             setLoadState("ready");
           }
         } else {
@@ -288,32 +290,39 @@ export default function PetitionDetailPage() {
               </CardContent>
             </Card>
 
-            {petition.evidence.length > 0 && (
+            {(evidenceUnavailable || petition.evidence.length > 0) && (
               <Card className="border-slate-900/10 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-900/70">
                 <CardHeader>
                   <CardTitle className="text-xl">Supporting Evidence</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {petition.evidence.map((file) => (
-                      <div
-                        key={file.fileId}
-                        className="group relative overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40"
-                      >
-                        {file.mimeType.startsWith("image/") ? (
-                          <img src={file.publicUrl} alt={file.name} className="h-48 w-full object-cover" />
-                        ) : (
-                          <div className="flex h-48 items-center justify-center bg-slate-100 dark:bg-slate-900">
-                            <FileText className="h-12 w-12 text-slate-400" />
+                  {evidenceUnavailable && (
+                    <p role="status" className="text-sm text-slate-700 dark:text-slate-200">
+                      Supporting evidence could not load. Refresh this page to try again.
+                    </p>
+                  )}
+                  {!evidenceUnavailable && (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {petition.evidence.map((file) => (
+                        <div
+                          key={file.fileId}
+                          className="group relative overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40"
+                        >
+                          {file.mimeType.startsWith("image/") ? (
+                            <img src={file.publicUrl} alt={file.name} className="h-48 w-full object-cover" />
+                          ) : (
+                            <div className="flex h-48 items-center justify-center bg-slate-100 dark:bg-slate-900">
+                              <FileText className="h-12 w-12 text-slate-400" />
+                            </div>
+                          )}
+                          <div className="p-3">
+                            <p className="text-xs font-medium truncate">{file.name}</p>
+                            <p className="text-xs text-slate-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                           </div>
-                        )}
-                        <div className="p-3">
-                          <p className="text-xs font-medium truncate">{file.name}</p>
-                          <p className="text-xs text-slate-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
