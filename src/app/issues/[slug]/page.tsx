@@ -139,6 +139,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
   const { slug } = await params;
   let issue: IssueRecord | null = null;
   let commentsResponse: unknown = { documents: [] };
+  let commentsUnavailable = false;
 
   try {
     const issueResponse = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [
@@ -156,14 +157,15 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
           Query.equal("status", ["approved"]),
           Query.orderAsc("$createdAt"),
           Query.limit(100),
-        ]),
+        ]).catch(() => null),
         creatorId
           ? Promise.allSettled(["clerk_id", "$id"].map((field) =>
               listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, [creatorId]), Query.limit(1)])
             ))
           : Promise.resolve([]),
       ]);
-      commentsResponse = commentsData;
+      commentsUnavailable = commentsData === null;
+      commentsResponse = commentsData ?? { documents: [] };
       const creatorRow = creatorResponses.flatMap((result) =>
         result.status === "fulfilled"
           ? (result.value as { documents?: Array<Record<string, unknown>> }).documents ?? []
@@ -498,6 +500,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
                   issueId={issue.$id}
                   initialComments={comments}
                   initialHasMore={comments.length < Number((commentsResponse as { total?: number }).total ?? comments.length)}
+                  initialLoadError={commentsUnavailable}
                 />
               </CardContent>
             </Card>

@@ -11,18 +11,19 @@ interface IssueCommentsProps {
   issueId: string;
   initialComments: IssueComment[];
   initialHasMore: boolean;
+  initialLoadError?: boolean;
 }
 
-export default function IssueComments({ issueSlug, issueId, initialComments, initialHasMore }: IssueCommentsProps) {
+export default function IssueComments({ issueSlug, issueId, initialComments, initialHasMore, initialLoadError = false }: IssueCommentsProps) {
   const { user, isLoaded } = useUser();
   const [comments, setComments] = useState<IssueComment[]>(initialComments);
   const [newCommentText, setNewCommentText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [loadedCount, setLoadedCount] = useState(initialComments.length);
-  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [hasMore, setHasMore] = useState(initialHasMore || initialLoadError);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [loadError, setLoadError] = useState("");
+  const [loadError, setLoadError] = useState(initialLoadError ? "Comments could not load. Please try again." : "");
 
   const loadMore = async () => {
     if (isLoadingMore || !hasMore) return;
@@ -40,7 +41,7 @@ export default function IssueComments({ issueSlug, issueId, initialComments, ini
       setLoadedCount((count) => count + nextComments.length);
       setHasMore(data.hasMore === true && nextComments.length > 0 && loadedCount + nextComments.length <= 10000);
     } catch {
-      setLoadError("Older comments could not load. Please try again.");
+      setLoadError(loadedCount === 0 ? "Comments could not load. Please try again." : "Older comments could not load. Please try again.");
     } finally {
       setIsLoadingMore(false);
     }
@@ -169,7 +170,7 @@ export default function IssueComments({ issueSlug, issueId, initialComments, ini
       {hasMore && (
         <div className="flex justify-center">
           <Button type="button" variant="outline" onClick={loadMore} disabled={isLoadingMore} className="rounded-full">
-            {isLoadingMore ? "Loading comments..." : "Load older comments"}
+            {isLoadingMore ? "Loading comments..." : loadedCount === 0 && loadError ? "Retry comments" : "Load older comments"}
           </Button>
         </div>
       )}
