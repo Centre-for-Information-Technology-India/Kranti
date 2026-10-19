@@ -37,6 +37,7 @@ export default function PetitionsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState(false);
+  const [evidenceUnavailable, setEvidenceUnavailable] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedState, setSelectedState] = useState("All States");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
@@ -57,6 +58,7 @@ export default function PetitionsPage() {
         if (!controller.signal.aborted) {
           setPetitions(data.petitions);
           setHasMore(data.hasMore === true);
+          setEvidenceUnavailable(data.evidenceUnavailable === true);
           setLoadMoreError(false);
           setLoadError(false);
         }
@@ -85,6 +87,7 @@ export default function PetitionsPage() {
         return [...current, ...data.petitions.filter((petition: PetitionRecord) => !seen.has(petition.$id))];
       });
       setHasMore(data.hasMore === true);
+      setEvidenceUnavailable((current) => current || data.evidenceUnavailable === true);
     } catch {
       setLoadMoreError(true);
     } finally {
@@ -233,6 +236,15 @@ export default function PetitionsPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {!isLoading && !loadError && evidenceUnavailable && (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-slate-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-slate-100">
+            <p>Supporting evidence could not load. Petitions are still available.</p>
+            <Button variant="outline" className="h-11 rounded-full" onClick={() => { setIsLoading(true); setLoadAttempt((attempt) => attempt + 1); }}>
+              Try again
+            </Button>
+          </div>
+        )}
 
         {isLoading ? (
           <div role="status" className="py-16 text-center text-slate-600 dark:text-slate-300">Loading petitions...</div>

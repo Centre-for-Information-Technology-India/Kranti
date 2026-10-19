@@ -151,10 +151,17 @@ test("petition list keeps cases when optional creator profiles fail", async () =
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
       if (collection === "evidence") return Response.json({ message: "evidence unavailable" }, { status: 503 });
       return Response.json({ documents: collection === "petitions"
-        ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", created_by: "private-clerk-id" }]
+        ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", created_by: "private-clerk-id", evidence_count: 2 }]
         : [] });
     };
-    assert.equal((await GET(new Request("https://example.test/api/petitions"))).status, 503);
+    const evidenceFailureResponse = await GET(new Request("https://example.test/api/petitions"));
+    assert.equal(evidenceFailureResponse.status, 200);
+    const evidenceFailureBody = await evidenceFailureResponse.json();
+    assert.equal(evidenceFailureBody.evidenceUnavailable, true);
+    assert.equal(evidenceFailureBody.petitions[0].title, "Synthetic petition");
+    assert.equal(evidenceFailureBody.petitions[0].evidence_count, 2);
+    assert.deepEqual(evidenceFailureBody.petitions[0].evidence, []);
+    assert.equal("created_by" in evidenceFailureBody.petitions[0], false);
   } finally {
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
