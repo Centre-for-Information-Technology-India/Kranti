@@ -227,7 +227,10 @@ export async function GET(request: Request) {
       ? await listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [
         Query.equal("issue_id", petitionIds),
         Query.limit(100),
-      ])
+      ]).catch((error) => {
+        console.warn("Petition list evidence unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+        return null;
+      })
       : { documents: [] };
     const creatorIds = [...new Set(petitionDocuments
       .map((document) => String(document.created_by ?? document.createdBy ?? ""))
@@ -249,7 +252,7 @@ export async function GET(request: Request) {
       return accumulator;
     }, {});
 
-    const evidenceByPetition = ((evidenceResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).reduce<Record<string, Array<Record<string, unknown>>>>((accumulator, document) => {
+    const evidenceByPetition = ((evidenceResponse as { documents?: Array<Record<string, unknown>> } | null)?.documents ?? []).reduce<Record<string, Array<Record<string, unknown>>>>((accumulator, document) => {
       const petitionId = String(document.issue_id ?? document.issueId ?? "");
       if (!petitionId) {
         return accumulator;
@@ -295,7 +298,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ ok: true, petitions, hasMore: pageDocuments.length > 25 && offset + 25 <= 10000 });
+    return NextResponse.json({ ok: true, petitions, hasMore: pageDocuments.length > 25 && offset + 25 <= 10000, evidenceUnavailable: evidenceResponse === null });
   } catch (error) {
     console.error("Failed to list petitions from Appwrite:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json({ error: "Petitions are temporarily unavailable. Please try again." }, { status: 503 });
