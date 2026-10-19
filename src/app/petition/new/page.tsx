@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, CheckCircle2, FileText, Megaphone, Sparkles, Upload, Users } from "lucide-react";
@@ -44,6 +45,7 @@ export default function NewPetitionPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [savedWithoutEvidence, setSavedWithoutEvidence] = useState<string | null>(null);
 
   const form = useForm<PetitionSubmissionValues>({
     resolver: zodResolver(petitionSubmissionSchema),
@@ -88,13 +90,17 @@ export default function NewPetitionPage() {
         }),
       });
 
-      const body = (await response.json()) as { error?: string; petitionSlug?: string };
+      const body = (await response.json()) as { error?: string; petitionSlug?: string; evidenceSaved?: boolean };
 
       if (!response.ok) {
         throw new Error(body.error || "Failed to save the petition.");
       }
 
       setSubmitted(true);
+      if (body.evidenceSaved === false) {
+        setSavedWithoutEvidence(body.petitionSlug ?? null);
+        return;
+      }
       clearDraft();
       form.reset(petitionDefaultValues);
       if (evidenceInputRef.current) {
@@ -135,15 +141,16 @@ export default function NewPetitionPage() {
           </div>
 
           {submitted ? (
-            <Card className="border-emerald-200 bg-emerald-50/90 shadow-sm shadow-emerald-950/5 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+            <Card className={savedWithoutEvidence ? "border-amber-300 bg-amber-50/90 shadow-sm dark:border-amber-800 dark:bg-amber-950/20" : "border-emerald-200 bg-emerald-50/90 shadow-sm shadow-emerald-950/5 dark:border-emerald-900/40 dark:bg-emerald-950/20"}>
               <CardHeader>
-                <Badge variant="outline" className="w-fit border-emerald-300 bg-white text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
-                  Submitted
+                <Badge variant="outline" className={savedWithoutEvidence ? "w-fit border-amber-400 bg-white text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200" : "w-fit border-emerald-300 bg-white text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"}>
+                  {savedWithoutEvidence ? "Saved with missing evidence" : "Submitted"}
                 </Badge>
-                <CardTitle className="text-2xl">Your petition is under review.</CardTitle>
-                <CardDescription className="text-base leading-7 text-emerald-900/80 dark:text-emerald-100/80">
-                  Once approved, your petition will be live and ready to collect signatures from supporters across India.
+                <CardTitle className="text-2xl">{savedWithoutEvidence ? "Your petition was saved." : "Your petition is under review."}</CardTitle>
+                <CardDescription className={savedWithoutEvidence ? "text-base leading-7 text-amber-950 dark:text-amber-100" : "text-base leading-7 text-emerald-900/80 dark:text-emerald-100/80"}>
+                  {savedWithoutEvidence ? "Some evidence did not save. Keep your links and files. Check the saved petition. Do not submit another petition." : "Once approved, your petition will be live and ready to collect signatures from supporters across India."}
                 </CardDescription>
+                {savedWithoutEvidence ? <Link className="w-fit text-sm font-semibold text-slate-900 underline underline-offset-4 dark:text-white" href={`/petitions/${savedWithoutEvidence}`}>View saved petition</Link> : null}
               </CardHeader>
             </Card>
           ) : null}
@@ -327,7 +334,7 @@ export default function NewPetitionPage() {
                   <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
                     Petitions are reviewed before publication to ensure they meet platform guidelines.
                   </p>
-                  <Button type="submit" size="lg" disabled={isSaving} className="h-12 rounded-full bg-slate-950 px-6 text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
+                  <Button type="submit" size="lg" disabled={isSaving || Boolean(savedWithoutEvidence)} className="h-12 rounded-full bg-slate-950 px-6 text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
                     {isSaving ? "Saving..." : "Submit petition"}
                     <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>

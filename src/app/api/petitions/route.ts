@@ -158,39 +158,51 @@ async function createPetition(request: Request) {
     created_at: new Date().toISOString(),
   });
 
+  let evidenceSaveFailed = false;
   for (const evidenceItem of uploadedEvidence) {
     const evidenceId = `evidence${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
-    void createDocument(appwriteDatabaseId, appwriteEvidenceCollectionId, evidenceId, {
-      issue_id: petitionId,
-      type: detectEvidenceType(evidenceItem.mimeType),
-      file_url: evidenceItem.publicUrl,
-      file_name: evidenceItem.name,
-      size_bytes: evidenceItem.size,
-      verified: false,
-      created_at: new Date().toISOString(),
-    }).catch(() => {});
+    try {
+      await createDocument(appwriteDatabaseId, appwriteEvidenceCollectionId, evidenceId, {
+        issue_id: petitionId,
+        type: detectEvidenceType(evidenceItem.mimeType),
+        file_url: evidenceItem.publicUrl,
+        file_name: evidenceItem.name,
+        size_bytes: evidenceItem.size,
+        verified: false,
+        created_at: new Date().toISOString(),
+      });
+    } catch {
+      evidenceSaveFailed = true;
+      console.warn("Petition evidence record could not be saved");
+    }
   }
 
   // Store evidence links
   const evidenceLinks = Array.isArray(submission.evidenceLinks) ? submission.evidenceLinks.filter(Boolean) : [];
   for (const link of evidenceLinks) {
     const linkEvidenceId = `evidence${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
-    void createDocument(appwriteDatabaseId, appwriteEvidenceCollectionId, linkEvidenceId, {
-      issue_id: petitionId,
-      type: "other",
-      file_url: link,
-      source_url: link,
-      file_name: new URL(link).hostname,
-      size_bytes: 0,
-      verified: false,
-      created_at: new Date().toISOString(),
-    }).catch(() => {});
+    try {
+      await createDocument(appwriteDatabaseId, appwriteEvidenceCollectionId, linkEvidenceId, {
+        issue_id: petitionId,
+        type: "other",
+        file_url: link,
+        source_url: link,
+        file_name: new URL(link).hostname,
+        size_bytes: 0,
+        verified: false,
+        created_at: new Date().toISOString(),
+      });
+    } catch {
+      evidenceSaveFailed = true;
+      console.warn("Petition evidence link could not be saved");
+    }
   }
 
   return NextResponse.json({
     ok: true,
     petitionId,
     petitionSlug,
+    evidenceSaved: !evidenceSaveFailed,
   });
 }
 
