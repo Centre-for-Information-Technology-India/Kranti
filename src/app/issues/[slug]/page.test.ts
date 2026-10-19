@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-test("issue details survive creator profile outages, but not evidence outages", async () => {
+test("issue details survive optional profile and evidence outages", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;
   process.env.APPWRITE_API_KEY = "synthetic-test-key";
@@ -34,6 +34,24 @@ test("issue details survive creator profile outages, but not evidence outages", 
       return Response.json({ documents: collection === "issues"
         ? [{ $id: "synthetic-issue", slug: "synthetic", title: "Synthetic issue", status: "open", created_by: "synthetic-clerk-id" }]
         : [] });
+    };
+    const evidencePage = await IssueDetailPage({ params: Promise.resolve({ slug: "synthetic" }) });
+    const evidenceTree = JSON.stringify(evidencePage, (_key, value) => {
+      if (value && typeof value === "object") {
+        if (seen.has(value)) return undefined;
+        seen.add(value);
+      }
+      return value;
+    });
+    assert.match(evidenceTree, /Synthetic issue/);
+    assert.match(evidenceTree, /Evidence could not load/);
+    assert.match(evidenceTree, /Try again/);
+    assert.doesNotMatch(evidenceTree, /No evidence has been attached/);
+
+    globalThis.fetch = async (input) => {
+      const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
+      if (collection === "issues") return Response.json({ message: "issue unavailable" }, { status: 503 });
+      throw new Error("Related data must not be read");
     };
     await assert.rejects(IssueDetailPage({ params: Promise.resolve({ slug: "synthetic" }) }), /Issue details are temporarily unavailable/);
   } finally {
