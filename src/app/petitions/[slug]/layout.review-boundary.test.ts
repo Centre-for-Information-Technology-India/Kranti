@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-test("review-pending petition details stay out of page metadata and structured data", async () => {
+test("non-public petition details stay out of page metadata and structured data", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;
   process.env.APPWRITE_API_KEY = "synthetic-test-key";
@@ -28,6 +28,16 @@ test("review-pending petition details stay out of page metadata and structured d
     assert.deepEqual(pendingMetadata.robots, { index: false, follow: false });
     assert.equal(pendingMarkup, "<span>Page child</span>");
     assert.doesNotMatch(pendingMarkup, /Synthetic private/);
+
+    for (const hiddenStatus of ["rejected", "withdrawn", "unexpected"]) {
+      status = hiddenStatus;
+      const hiddenMetadata = await generateMetadata({ params });
+      const hiddenLayout = await PetitionDetailLayout({ params, children: createElement("span", null, "Page child") });
+      const hiddenMarkup = renderToStaticMarkup(hiddenLayout);
+      assert.equal(hiddenMetadata.title, "Petition not found");
+      assert.equal(hiddenMarkup, "<span>Page child</span>");
+      assert.doesNotMatch(hiddenMarkup, /Synthetic private/);
+    }
 
     status = "open";
     const openLayout = await PetitionDetailLayout({ params, children: createElement("span", null, "Page child") });

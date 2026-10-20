@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-test("review-pending petitions stay out of public lists and saved links", async () => {
+test("non-public petitions stay out of public lists and saved links", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;
   const clerkPath = require.resolve("@clerk/nextjs/server");
@@ -10,6 +10,7 @@ test("review-pending petitions stay out of public lists and saved links", async 
   require.cache[clerkPath] = { exports: { auth: async () => ({ userId: null }) } } as NodeModule;
   let listFiltered = false;
   let relatedReads = 0;
+  let hiddenStatus = "pending_review";
 
   try {
     const { GET: listPetitions } = await import("./route");
@@ -24,10 +25,10 @@ test("review-pending petitions stay out of public lists and saved links", async 
       const queries = url.searchParams.getAll("queries[]").map((query) => JSON.parse(query));
       const status = queries.find((query) => query.attribute === "status");
       if (status) {
-        listFiltered = status.method === "equal" && !status.values.includes("pending_review");
+        listFiltered = status.method === "equal" && !["pending_review", "rejected", "withdrawn"].some((value) => status.values.includes(value));
         return Response.json({ documents: [] });
       }
-      return Response.json({ documents: [{ $id: "synthetic-pending", slug: "synthetic-pending", status: "pending_review" }] });
+      return Response.json({ documents: [{ $id: "synthetic-pending", slug: "synthetic-pending", status: hiddenStatus }] });
     };
 
     const listResponse = await listPetitions(new Request("https://example.test/api/petitions"));
@@ -35,10 +36,13 @@ test("review-pending petitions stay out of public lists and saved links", async 
     assert.equal(listFiltered, true);
     assert.deepEqual((await listResponse.json()).petitions, []);
 
-    const detailResponse = await getPetition(new Request("https://example.test/api/petitions/synthetic-pending"), {
-      params: Promise.resolve({ slug: "synthetic-pending" }),
-    });
-    assert.equal(detailResponse.status, 404);
+    for (const status of ["pending_review", "rejected", "withdrawn", "unexpected"]) {
+      hiddenStatus = status;
+      const detailResponse = await getPetition(new Request("https://example.test/api/petitions/synthetic-pending"), {
+        params: Promise.resolve({ slug: "synthetic-pending" }),
+      });
+      assert.equal(detailResponse.status, 404, status);
+    }
     assert.equal(relatedReads, 0);
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
@@ -63,7 +67,7 @@ test("public petition list and detail omit stored creator IDs", async () => {
     globalThis.fetch = async (input) => {
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
       const documents = collection === "petitions"
-        ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", created_by: "private-clerk-id", private_note: "private", signature_count: 2 }]
+        ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", status: "open", created_by: "private-clerk-id", private_note: "private", signature_count: 2 }]
         : collection === "users"
           ? [{ $id: "private-clerk-id", display_name: "Citizen" }]
           : [];
@@ -106,7 +110,7 @@ test("petition detail stays available when optional creator profiles fail", asyn
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
       if (collection === "users") return Response.json({ message: "profile unavailable" }, { status: 503 });
       return Response.json({ documents: collection === "petitions"
-        ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", created_by: "private-clerk-id" }]
+        ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", status: "open", created_by: "private-clerk-id" }]
         : [] });
     };
 
@@ -136,7 +140,7 @@ test("petition list keeps cases when optional creator profiles fail", async () =
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
       if (collection === "users") return Response.json({ message: "profile unavailable" }, { status: 503 });
       return Response.json({ documents: collection === "petitions"
-        ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", created_by: "private-clerk-id" }]
+        ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", status: "open", created_by: "private-clerk-id" }]
         : [] });
     };
 
@@ -151,7 +155,7 @@ test("petition list keeps cases when optional creator profiles fail", async () =
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
       if (collection === "evidence") return Response.json({ message: "evidence unavailable" }, { status: 503 });
       return Response.json({ documents: collection === "petitions"
-        ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", created_by: "private-clerk-id", evidence_count: 2 }]
+        ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", status: "open", created_by: "private-clerk-id", evidence_count: 2 }]
         : [] });
     };
     const evidenceFailureResponse = await GET(new Request("https://example.test/api/petitions"));
