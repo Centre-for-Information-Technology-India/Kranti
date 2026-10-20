@@ -78,8 +78,9 @@ The public petition list returns up to 25 petitions per request. Use an `offset`
 At the offset cap, `hasMore` is false even when more records exist beyond the supported range.
 
 The public issue list reads evidence and creator profiles only for issues in its bounded result set.
+If that separate evidence read fails, the list stays readable and returns `evidenceUnavailable: true` with empty evidence arrays. Stored evidence counts stay unchanged; the page shows a retry notice.
 The public issue list excludes issues awaiting review and rejected issues before pagination. Their saved links cannot create support records.
-Creator-profile lookups are optional for issue lists. Missing names use "Citizen Reporter"; issue and evidence read failures still stop the list.
+Creator-profile lookups are optional for issue lists. Missing names use "Citizen Reporter"; only an issue read failure stops the list.
 Public issue list replies omit stored creator account IDs. Signed-in moderators and admins can see those IDs for review.
 The public issue list returns up to 25 issues per request, newest first by Appwrite creation time. Use an `offset` from 0 to 10000 and the `hasMore` flag to read older issues.
 
