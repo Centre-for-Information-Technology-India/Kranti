@@ -70,6 +70,8 @@ Petition signing accepts only `open` and `in_progress` petitions. Other statuses
 Public petition lists include only `open`, `in_progress`, `successful`, and `resolved` before pagination. Saved links with any other status return HTTP 404 before evidence or creator reads.
 Non-public petition pages also omit petition details from metadata and structured page data.
 Petition detail still loads with a generic creator name if optional creator-profile lookups fail.
+Signed-in alert reads return up to 50 records by default, with `hasMore` and an `offset` from 0 to 10000 for older alerts. The existing `limit` option stays capped at 100.
+
 The public petition list reads evidence only for petitions in its bounded result set.
 If that separate evidence read fails, the list stays readable and returns `evidenceUnavailable: true` with empty evidence arrays. Stored evidence counts stay unchanged; the page shows a retry notice.
 Creator-profile lookups are optional for petition lists. Missing names use "Citizen"; petition read failures still stop the list.

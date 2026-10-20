@@ -48,12 +48,13 @@ export async function createNotification(data: NotificationData): Promise<boolea
   }
 }
 
-export async function getUserNotifications(userId: string, limit = 50): Promise<NotificationRecord[]> {
+export async function getUserNotifications(userId: string, limit = 50, offset = 0): Promise<NotificationRecord[]> {
   const boundedLimit = Number.isSafeInteger(limit) ? Math.min(100, Math.max(1, limit)) : 50;
   const response = await listDocuments(appwriteDatabaseId, appwriteNotificationsCollectionId, [
     Query.equal("user_id", [userId]),
     Query.orderDesc("created_at"),
     Query.limit(boundedLimit),
+    ...(offset > 0 ? [Query.offset(offset)] : []),
   ]);
 
   return response.documents.map((doc: Record<string, unknown>) => ({

@@ -26,12 +26,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { IssueRecord, PetitionRecord } from "@/lib/content-types";
 import type { NotificationRecord } from "@/lib/notifications";
 
-async function fetchNotifications(signal?: AbortSignal): Promise<NotificationRecord[]> {
-  const response = await fetch("/api/notifications", { signal });
+async function fetchNotifications(offset = 0, signal?: AbortSignal): Promise<{ notifications: NotificationRecord[]; hasMore: boolean }> {
+  const response = await fetch(`/api/notifications?offset=${offset}`, { signal });
   if (!response.ok) throw new Error("Could not load alerts");
   const data = await response.json();
-  if (!Array.isArray(data?.notifications)) throw new Error("Invalid alerts response");
-  return data.notifications;
+  if (!Array.isArray(data?.notifications) || typeof data?.hasMore !== "boolean") throw new Error("Invalid alerts response");
+  return { notifications: data.notifications, hasMore: data.hasMore };
 }
 
 type DashboardCases = {
@@ -67,14 +67,40 @@ export default function DashboardPage() {
   const [notificationsError, setNotificationsError] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [markReadError, setMarkReadError] = useState(false);
+  const [notificationsHasMore, setNotificationsHasMore] = useState(false);
+  const [notificationsOffset, setNotificationsOffset] = useState(0);
+  const [notificationsMoreLoading, setNotificationsMoreLoading] = useState(false);
+  const [notificationsMoreError, setNotificationsMoreError] = useState(false);
 
   function retryNotifications() {
     setNotificationsLoading(true);
     setNotificationsError(false);
     void fetchNotifications()
-      .then(setNotifications)
+      .then(({ notifications, hasMore }) => {
+        setNotifications(notifications);
+        setNotificationsOffset(notifications.length);
+        setNotificationsHasMore(hasMore);
+        setNotificationsMoreError(false);
+      })
       .catch(() => setNotificationsError(true))
       .finally(() => setNotificationsLoading(false));
+  }
+
+  function loadMoreNotifications() {
+    if (notificationsMoreLoading || !notificationsHasMore) return;
+    setNotificationsMoreLoading(true);
+    setNotificationsMoreError(false);
+    void fetchNotifications(notificationsOffset)
+      .then(({ notifications: nextPage, hasMore }) => {
+        setNotifications((previous) => {
+          const seen = new Set(previous.map((notification) => notification.$id));
+          return [...previous, ...nextPage.filter((notification) => !seen.has(notification.$id))];
+        });
+        setNotificationsHasMore(hasMore);
+        setNotificationsOffset((previous) => previous + nextPage.length);
+      })
+      .catch(() => setNotificationsMoreError(true))
+      .finally(() => setNotificationsMoreLoading(false));
   }
 
   function retryCases() {
@@ -108,8 +134,12 @@ export default function DashboardPage() {
         if (!controller.signal.aborted) setCasesLoading(false);
       });
 
-    void fetchNotifications(controller.signal)
-      .then(setNotifications)
+    void fetchNotifications(0, controller.signal)
+      .then(({ notifications, hasMore }) => {
+        setNotifications(notifications);
+        setNotificationsOffset(notifications.length);
+        setNotificationsHasMore(hasMore);
+      })
       .catch(() => {
         if (!controller.signal.aborted) setNotificationsError(true);
       })
@@ -129,7 +159,7 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Failed to mark notifications as read:", error);
       setMarkReadError(true);
-      void fetchNotifications().then(setNotifications).catch(() => setNotificationsError(true));
+      retryNotifications();
     }
   };
 
@@ -144,7 +174,7 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
       setMarkReadError(true);
-      void fetchNotifications().then(setNotifications).catch(() => setNotificationsError(true));
+      retryNotifications();
     }
   };
 
@@ -471,6 +501,23 @@ export default function DashboardPage() {
                             </div>
                           );
                         })}
+                        {notificationsHasMore && (
+                          <div className="flex justify-center pt-3">
+                            <Button
+                              variant="outline"
+                              className="min-h-11 rounded-full"
+                              onClick={loadMoreNotifications}
+                              disabled={notificationsMoreLoading}
+                            >
+                              {notificationsMoreLoading ? "Loading alerts..." : "Load older alerts"}
+                            </Button>
+                          </div>
+                        )}
+                        {notificationsMoreError && (
+                          <p className="text-center text-sm text-red-700 dark:text-red-300" role="alert">
+                            Older alerts could not load. Try again.
+                          </p>
+                        )}
                       </>
                     ) : (
                       <div className="text-center py-10 text-slate-500">

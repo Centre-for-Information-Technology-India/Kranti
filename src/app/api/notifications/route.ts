@@ -15,14 +15,26 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const requestedLimit = searchParams.get("limit");
+    const rawOffset = searchParams.get("offset") ?? "0";
     const limit = requestedLimit === null ? 50 : Number(requestedLimit);
     if (requestedLimit !== null && (!/^\d+$/.test(requestedLimit) || !Number.isSafeInteger(limit) || limit < 1)) {
       return NextResponse.json({ error: "Invalid notification limit" }, { status: 400 });
     }
+    if (!/^(0|[1-9]\d*)$/.test(rawOffset) || Number(rawOffset) > 10000) {
+      return NextResponse.json({ error: "Invalid notification offset" }, { status: 400 });
+    }
+    const offset = Number(rawOffset);
 
-    const notifications = await getUserNotifications(userId, limit);
+    const pageSize = Math.min(limit, 100);
+    const page = await getUserNotifications(userId, Math.min(pageSize + 1, 100), offset);
+    const notifications = page.slice(0, pageSize);
+    const hasMore = offset + pageSize <= 10000 && (
+      page.length > pageSize
+      || (pageSize === 100 && page.length === 100
+        && (await getUserNotifications(userId, 1, offset + 100)).length > 0)
+    );
 
-    return NextResponse.json({ notifications });
+    return NextResponse.json({ notifications, hasMore });
   } catch (error) {
     console.error("Notifications fetch error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json(
