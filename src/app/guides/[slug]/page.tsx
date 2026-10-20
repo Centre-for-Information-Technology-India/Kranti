@@ -38,7 +38,7 @@ export async function generateMetadata({
       guide.title.split(" ").slice(0, 5).join(" "),
       "India",
       "citizen guide",
-      guide.id === "local-service-complaint-guide" ? "2026" : "2025",
+      ...(guide.id === "local-service-complaint-guide" ? ["2026"] : []),
     ],
     alternates: { canonical: `/guides/${guide.slug}` },
     openGraph: {
