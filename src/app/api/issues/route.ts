@@ -297,7 +297,7 @@ export async function GET(request: Request) {
         createdAt: document.created_at ?? document.createdAt ?? document.$createdAt ?? new Date().toISOString(),
         evidence: issueEvidence.map((item) => ({
           fileId: String(item.$id ?? ""),
-          name: String(item.file_name ?? item.fileName ?? "Evidence"),
+          name: "Evidence",
           size: Number(item.size_bytes ?? item.fileSize ?? 0),
           mimeType: String(item.type ?? "application/octet-stream"),
           publicUrl: String(item.file_url ?? item.publicUrl ?? ""),

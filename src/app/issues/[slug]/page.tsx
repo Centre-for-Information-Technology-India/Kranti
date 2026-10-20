@@ -185,7 +185,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
         .filter((evidenceDocument) => String(evidenceDocument.issue_id ?? "") === String(doc.$id ?? ""))
         .map((evidenceDocument) => ({
           fileId: String(evidenceDocument.$id ?? ""),
-          name: String(evidenceDocument.file_name ?? evidenceDocument.fileName ?? "Evidence"),
+          name: "Evidence",
           size: Number(evidenceDocument.size_bytes ?? evidenceDocument.fileSize ?? 0),
           mimeType: String(evidenceDocument.type ?? "application/octet-stream"),
           publicUrl: String(evidenceDocument.file_url ?? evidenceDocument.publicUrl ?? ""),
