@@ -11,7 +11,7 @@ interface LeafletMap {
 }
 
 interface LeafletMarker {
-  bindPopup: (content: string) => LeafletMarker;
+  bindPopup: (content: HTMLElement) => LeafletMarker;
   addTo: (map: LeafletMap) => LeafletMarker;
 }
 
@@ -67,14 +67,29 @@ export function IssuesMap({ issues }: IssuesMapProps) {
             if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
               const marker = L!.marker([lat, lng]);
               
-              const popupContent = `
-                <div style="min-width: 200px;">
-                  <h3 style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">${issue.title}</h3>
-                  <p style="font-size: 12px; color: #64748b; margin-bottom: 8px;">${issue.district}, ${issue.state}</p>
-                  <p style="font-size: 12px; margin-bottom: 8px;">${issue.description.substring(0, 100)}...</p>
-                  <a href="/issues/${issue.slug}" style="color: #0ea5e9; font-size: 12px; font-weight: 500;">View Issue →</a>
-                </div>
-              `;
+              const popupContent = document.createElement("div");
+              popupContent.style.minWidth = "200px";
+
+              const title = document.createElement("h3");
+              title.style.cssText = "font-weight: 600; margin-bottom: 8px; font-size: 14px;";
+              title.textContent = issue.title;
+              popupContent.appendChild(title);
+
+              const place = document.createElement("p");
+              place.style.cssText = "font-size: 12px; color: #64748b; margin-bottom: 8px;";
+              place.textContent = [issue.district, issue.state].filter(Boolean).join(", ");
+              popupContent.appendChild(place);
+
+              const description = document.createElement("p");
+              description.style.cssText = "font-size: 12px; margin-bottom: 8px;";
+              description.textContent = `${issue.description.substring(0, 100)}...`;
+              popupContent.appendChild(description);
+
+              const link = document.createElement("a");
+              link.href = `/issues/${encodeURIComponent(issue.slug)}`;
+              link.style.cssText = "color: #0ea5e9; font-size: 12px; font-weight: 500;";
+              link.textContent = "View Issue →";
+              popupContent.appendChild(link);
               
               marker.bindPopup(popupContent).addTo(map);
             }
