@@ -26,13 +26,25 @@ test("dashboard groups synthetic cases without returning creator IDs", async () 
         return Response.json({ documents: [{ $id: "synthetic_profile", clerk_id: "synthetic_other", display_name: "Case creator" }] });
       }
       const documents = collection === "issues"
-        ? field("created_by") ? [{ $id: "owned_issue", title: "Owned issue", created_by: "synthetic_owner", private_note: "private" }]
-          : field("$id") ? [{ $id: "backed_issue", title: "Backed issue", created_by: "synthetic_other", private_note: "private" }] : []
+        ? field("created_by") ? [{ $id: "owned_issue", title: "Owned issue", status: "pending_review", created_by: "synthetic_owner", private_note: "private" }]
+          : field("$id") ? [
+            { $id: "backed_issue", title: "Backed issue", status: "open", created_by: "synthetic_other", private_note: "private" },
+            { $id: "hidden_issue", title: "Hidden issue", status: "rejected", created_by: "synthetic_other", private_note: "private" },
+          ] : []
         : collection === "petitions"
-          ? field("created_by") ? [{ $id: "owned_petition", title: "Owned petition", created_by: "synthetic_owner", private_note: "private" }]
-            : field("$id") ? [{ $id: "signed_petition", title: "Signed petition", created_by: "synthetic_other", private_note: "private" }] : []
-          : collection === "supports" ? [{ issue_id: "backed_issue", user_id: "synthetic_owner" }]
-          : collection === "signatures" ? [{ petition_id: "signed_petition", user_id: "synthetic_owner" }]
+          ? field("created_by") ? [{ $id: "owned_petition", title: "Owned petition", status: "pending_review", created_by: "synthetic_owner", private_note: "private" }]
+            : field("$id") ? [
+              { $id: "signed_petition", title: "Signed petition", status: "open", created_by: "synthetic_other", private_note: "private" },
+              { $id: "hidden_petition", title: "Hidden petition", status: "withdrawn", created_by: "synthetic_other", private_note: "private" },
+            ] : []
+          : collection === "supports" ? [
+            { issue_id: "backed_issue", user_id: "synthetic_owner" },
+            { issue_id: "hidden_issue", user_id: "synthetic_owner" },
+          ]
+          : collection === "signatures" ? [
+            { petition_id: "signed_petition", user_id: "synthetic_owner" },
+            { petition_id: "hidden_petition", user_id: "synthetic_owner" },
+          ]
           : [];
       return Response.json({ documents });
     };
@@ -44,6 +56,8 @@ test("dashboard groups synthetic cases without returning creator IDs", async () 
     assert.deepEqual(body.supportedIssues.map((item: { $id: string }) => item.$id), ["backed_issue"]);
     assert.deepEqual(body.raisedPetitions.map((item: { $id: string }) => item.$id), ["owned_petition"]);
     assert.deepEqual(body.signedPetitions.map((item: { $id: string }) => item.$id), ["signed_petition"]);
+    assert.equal(JSON.stringify(body).includes("Hidden issue"), false);
+    assert.equal(JSON.stringify(body).includes("Hidden petition"), false);
     for (const group of [body.raisedIssues, body.supportedIssues, body.raisedPetitions, body.signedPetitions]) {
       assert.equal(group.length, 1);
       assert.equal("created_by" in group[0], false);

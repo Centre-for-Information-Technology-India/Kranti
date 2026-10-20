@@ -93,6 +93,7 @@ The public issue-comment endpoint returns at most 100 approved comments per requ
 The default public campaign list returns up to 25 campaigns per request. Use an `offset` from 0 to 10000 and the `hasMore` flag to read older campaigns. Existing visibility filters still apply. Explicit status queries keep their prior 100-result limit and do not accept a later offset while campaign review remains pending.
 
 The signed-in dashboard reads only the citizen's own cases and cases they supported or signed. It pages through that citizen's participation records so older cases remain visible.
+The dashboard keeps a creator's own non-public issues and petitions visible to that creator. A past supporter or signer sees a case there only while its status is allowed on the public list.
 The dashboard returns safe HTTP 503 retry guidance if Clerk authentication fails before any case read. Unsigned access remains HTTP 401.
 The dashboard response contains case lists only. The client reads its signed-in profile from Clerk; the case API does not return that profile.
 Dashboard case lists omit stored creator IDs. The server uses those IDs only to group owned and backed cases.

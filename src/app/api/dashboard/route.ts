@@ -13,6 +13,8 @@ import {
   Query,
 } from "@/lib/appwrite";
 import { dashboardCasesForUser } from "@/lib/dashboard-cases";
+import { isPublicIssueStatus } from "@/lib/public-issue-status";
+import { isPublicPetitionStatus } from "@/lib/public-petition-status";
 
 export const runtime = "nodejs";
 
@@ -36,10 +38,14 @@ export async function GET() {
 }
 
 async function loadDashboard(userId: string) {
-  const [issueDocuments, petitionDocuments] = await Promise.all([
+  const [allIssueDocuments, allPetitionDocuments] = await Promise.all([
     dashboardCasesForUser(appwriteIssuesCollectionId, appwriteSupportsCollectionId, "issue_id", userId),
     dashboardCasesForUser(appwritePetitionsCollectionId, appwriteSignaturesCollectionId, "petition_id", userId),
   ]);
+
+  const isOwned = (document: Record<string, unknown>) => String(document.created_by ?? document.createdBy ?? "") === userId;
+  const issueDocuments = allIssueDocuments.filter((document) => isOwned(document) || isPublicIssueStatus(document.status));
+  const petitionDocuments = allPetitionDocuments.filter((document) => isOwned(document) || isPublicPetitionStatus(document.status));
 
   // Fetch only the profiles needed for the cases on this dashboard page.
   const creatorIds = [...new Set([...issueDocuments, ...petitionDocuments]
@@ -114,7 +120,6 @@ async function loadDashboard(userId: string) {
     };
   };
 
-  const isOwned = (document: Record<string, unknown>) => String(document.created_by ?? document.createdBy ?? "") === userId;
   const raisedIssues = issueDocuments.filter(isOwned).map(toIssue);
   const supportedIssues = issueDocuments.filter((document) => !isOwned(document)).map(toIssue);
   const raisedPetitions = petitionDocuments.filter(isOwned).map(toPetition);
