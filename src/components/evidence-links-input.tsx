@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 interface EvidenceLinksInputProps {
   value: string[];
   onChange: (links: string[]) => void;
+  labels?: { title: string; help: string; invalid: string; duplicate: string };
 }
 
-export function EvidenceLinksInput({ value, onChange }: EvidenceLinksInputProps) {
+export function EvidenceLinksInput({ value, onChange, labels }: EvidenceLinksInputProps) {
   const [inputValue, setInputValue] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -21,11 +22,11 @@ export function EvidenceLinksInput({ value, onChange }: EvidenceLinksInputProps)
     try {
       new URL(url);
     } catch {
-      setError("Enter a valid URL (e.g. https://...)");
+      setError(labels?.invalid ?? "Enter a valid URL (e.g. https://...)");
       return;
     }
     if (value.includes(url)) {
-      setError("Link already added");
+      setError(labels?.duplicate ?? "Link already added");
       return;
     }
     onChange([...value, url]);
@@ -44,8 +45,8 @@ export function EvidenceLinksInput({ value, onChange }: EvidenceLinksInputProps)
           <Link2 className="h-4 w-4" />
         </span>
         <div>
-          <div className="text-sm font-medium text-slate-700 dark:text-slate-200">Evidence links</div>
-          <div className="text-sm text-slate-500 dark:text-slate-400">Add news articles, social media posts, or any public URL as evidence.</div>
+          <div className="text-sm font-medium text-slate-700 dark:text-slate-200">{labels?.title ?? "Evidence links"}</div>
+          <div className="text-sm text-slate-500 dark:text-slate-400">{labels?.help ?? "Add news articles, social media posts, or any public URL as evidence."}</div>
         </div>
       </div>
 
