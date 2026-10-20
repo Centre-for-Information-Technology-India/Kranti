@@ -33,6 +33,40 @@ test("escalated issues stay at the active timeline step", async () => {
   }
 });
 
+test("public issue pages do not render uploaded filenames", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+
+  try {
+    const { default: IssueDetailPage } = await import("./page");
+    globalThis.fetch = async (input) => {
+      const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
+      return Response.json({ documents: collection === "issues"
+        ? [{ $id: "synthetic-issue", slug: "synthetic", title: "Synthetic issue", status: "open" }]
+        : collection === "evidence"
+          ? [{ $id: "synthetic-evidence", issue_id: "synthetic-issue", file_name: "private-person-name.jpg", file_url: "https://example.test/evidence" }]
+          : [] });
+    };
+
+    const page = await IssueDetailPage({ params: Promise.resolve({ slug: "synthetic" }) });
+    const seen = new WeakSet<object>();
+    const pageTree = JSON.stringify(page, (_key, value) => {
+      if (value && typeof value === "object") {
+        if (seen.has(value)) return undefined;
+        seen.add(value);
+      }
+      return value;
+    });
+    assert.match(pageTree, /Evidence/);
+    assert.doesNotMatch(pageTree, /private-person-name/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});
+
 test("issue details survive optional profile and evidence outages", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;

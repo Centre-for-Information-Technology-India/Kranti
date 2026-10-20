@@ -76,6 +76,7 @@ The public petition list reads evidence only for petitions in its bounded result
 If that separate evidence read fails, the list stays readable and returns `evidenceUnavailable: true` with empty evidence arrays. Stored evidence counts stay unchanged; the page shows a retry notice.
 Creator-profile lookups are optional for petition lists. Missing names use "Citizen"; petition read failures still stop the list.
 Public petition list and detail replies omit the stored creator account ID. Creator display names remain available.
+Public issue and petition evidence uses a generic display name. Uploaded filenames remain out of public replies and issue pages.
 The public petition list returns up to 25 petitions per request. Use an `offset` from 0 to 10000 and the `hasMore` flag to read older petitions.
 At the offset cap, `hasMore` is false even when more records exist beyond the supported range.
 

@@ -35,6 +35,8 @@ test("public issue replies hide creator IDs while moderators retain them", async
         ? [{ $id: "synthetic-issue", slug: "synthetic", title: "Synthetic issue", created_by: "private-clerk-id", private_note: "private", evidence_count: 2 }]
         : collection === "users"
           ? [{ $id: "private-clerk-id", display_name: "Citizen" }]
+          : collection === "evidence"
+            ? [{ $id: "synthetic-evidence", issue_id: "synthetic-issue", file_name: "private-person-name.jpg", file_url: "https://example.test/evidence" }]
           : [];
       return Response.json({ documents });
     };
@@ -47,6 +49,8 @@ test("public issue replies hide creator IDs while moderators retain them", async
     assert.equal(publicIssue.creatorName, "Citizen");
     assert.equal("created_by" in publicIssue, false);
     assert.equal("private_note" in publicIssue, false);
+    assert.equal(publicIssue.evidence[0].name, "Evidence");
+    assert.doesNotMatch(JSON.stringify(publicIssue), /private-person-name/);
 
     viewerId = "synthetic-moderator";
     const moderatorResponse = await GET(new Request("https://example.test/api/issues"));

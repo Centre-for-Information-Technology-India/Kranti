@@ -70,6 +70,8 @@ test("public petition list and detail omit stored creator IDs", async () => {
         ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", status: "open", created_by: "private-clerk-id", private_note: "private", signature_count: 2 }]
         : collection === "users"
           ? [{ $id: "private-clerk-id", display_name: "Citizen" }]
+          : collection === "evidence"
+            ? [{ $id: "synthetic-evidence", issue_id: "synthetic-petition", file_name: "private-person-name.jpg", file_url: "https://example.test/evidence" }]
           : [];
       return Response.json({ documents });
     };
@@ -86,6 +88,8 @@ test("public petition list and detail omit stored creator IDs", async () => {
       assert.equal(petition.creatorName, "Citizen");
       assert.equal("created_by" in petition, false);
       assert.equal("private_note" in petition, false);
+      assert.equal(petition.evidence[0].name, "Evidence");
+      assert.doesNotMatch(JSON.stringify(petition), /private-person-name/);
     }
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
