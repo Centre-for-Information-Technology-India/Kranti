@@ -305,7 +305,7 @@ export default function IssuesPage() {
                     >
                       {/* Image Thumbnail */}
                       <div className="relative h-48 w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-                        {issue.evidence.length > 0 ? (
+                        {issue.evidence.length > 0 && issue.evidence[0].publicUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={issue.evidence[0].publicUrl}

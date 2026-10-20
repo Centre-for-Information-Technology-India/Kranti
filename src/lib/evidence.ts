@@ -9,6 +9,11 @@ export function isEvidenceWebUrl(value: string): boolean {
   }
 }
 
+export function publicEvidenceWebUrl(value: unknown): string {
+  const url = String(value ?? "");
+  return isEvidenceWebUrl(url) ? url : "";
+}
+
 export const evidenceWebUrlSchema = z.string().url("Must be a valid URL").refine(
   isEvidenceWebUrl,
   "Evidence links must use HTTP or HTTPS",

@@ -71,7 +71,7 @@ test("public petition list and detail omit stored creator IDs", async () => {
         : collection === "users"
           ? [{ $id: "private-clerk-id", display_name: "Citizen" }]
           : collection === "evidence"
-            ? [{ $id: "synthetic-evidence", issue_id: "synthetic-petition", file_name: "private-person-name.jpg", file_url: "https://example.test/evidence" }]
+            ? [{ $id: "synthetic-evidence", issue_id: "synthetic-petition", file_name: "private-person-name.jpg", file_url: "javascript:alert(1)" }]
           : [];
       return Response.json({ documents });
     };
@@ -89,6 +89,7 @@ test("public petition list and detail omit stored creator IDs", async () => {
       assert.equal("created_by" in petition, false);
       assert.equal("private_note" in petition, false);
       assert.equal(petition.evidence[0].name, "Evidence");
+      assert.equal(petition.evidence[0].publicUrl, "");
       assert.doesNotMatch(JSON.stringify(petition), /private-person-name/);
     }
   } finally {

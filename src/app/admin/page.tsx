@@ -481,7 +481,7 @@ export default function AdminPage() {
                               key={file.fileId}
                               className="group relative overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40 p-2.5 flex items-center gap-2.5 hover:bg-slate-100 dark:hover:bg-slate-900/80 transition-all"
                             >
-                              {file.mimeType.startsWith("image/") ? (
+                              {file.publicUrl && file.mimeType.startsWith("image/") ? (
                                 <div className="h-12 w-12 rounded-xl overflow-hidden bg-slate-200 shrink-0">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img src={file.publicUrl} alt={file.name} className="h-full w-full object-cover" />
@@ -495,14 +495,16 @@ export default function AdminPage() {
                                 <p className="text-xs font-semibold truncate text-slate-900 dark:text-white">{file.name}</p>
                                 <p className="text-[10px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB • {file.mimeType.split("/")[1].toUpperCase()}</p>
                               </div>
-                              <a
-                                href={file.publicUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="opacity-0 group-hover:opacity-100 absolute right-2 bg-slate-950 text-white rounded-full p-1.5 transition-all dark:bg-white dark:text-slate-950 shadow-sm"
-                              >
-                                <Eye className="h-3.5 w-3.5" />
-                              </a>
+                              {file.publicUrl && (
+                                <a
+                                  href={file.publicUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="opacity-0 group-hover:opacity-100 absolute right-2 bg-slate-950 text-white rounded-full p-1.5 transition-all dark:bg-white dark:text-slate-950 shadow-sm"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </a>
+                              )}
                             </div>
                           ))}
                         </div>

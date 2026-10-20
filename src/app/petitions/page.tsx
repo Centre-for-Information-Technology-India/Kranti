@@ -277,7 +277,7 @@ export default function PetitionsPage() {
                   className="group flex flex-col overflow-hidden rounded-3xl border border-slate-900/10 bg-white/90 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-950/5 dark:border-white/10 dark:bg-slate-900/70"
                 >
                   <div className="relative h-48 w-full overflow-hidden bg-gradient-to-br from-rose-100 to-amber-100 dark:from-rose-950/40 dark:to-amber-950/40">
-                    {petition.evidence.length > 0 ? (
+                    {petition.evidence.length > 0 && petition.evidence[0].publicUrl ? (
                       <img
                         src={petition.evidence[0].publicUrl}
                         alt={petition.title}
