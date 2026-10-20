@@ -19,7 +19,7 @@ import {
   uploadFileBuffer,
 } from "@/lib/appwrite";
 import { buildIssueSlug, issueEvidenceSchema, issueSubmissionSchema } from "@/lib/issue-form";
-import { detectEvidenceType } from "@/lib/evidence";
+import { detectEvidenceType, publicEvidenceWebUrl } from "@/lib/evidence";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
 import { getUserRole } from "@/lib/role-lookup";
 import { publicIssueStatuses } from "@/lib/public-issue-status";
@@ -300,7 +300,7 @@ export async function GET(request: Request) {
           name: "Evidence",
           size: Number(item.size_bytes ?? item.fileSize ?? 0),
           mimeType: String(item.type ?? "application/octet-stream"),
-          publicUrl: String(item.file_url ?? item.publicUrl ?? ""),
+          publicUrl: publicEvidenceWebUrl(item.file_url ?? item.publicUrl),
           sanitized: Boolean(item.verified ?? false),
         })),
       };

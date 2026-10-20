@@ -38,6 +38,7 @@ import { JsonLd } from "@/components/json-ld";
 import { canonical, SITE_URL, buildBreadcrumbSchema } from "@/lib/seo";
 import { canReadUnpublishedIssue } from "@/lib/unpublished-issue-access";
 import { isPublicIssueStatus } from "@/lib/public-issue-status";
+import { publicEvidenceWebUrl } from "@/lib/evidence";
 
 type IssueEvidence = {
   fileId: string;
@@ -188,7 +189,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
           name: "Evidence",
           size: Number(evidenceDocument.size_bytes ?? evidenceDocument.fileSize ?? 0),
           mimeType: String(evidenceDocument.type ?? "application/octet-stream"),
-          publicUrl: String(evidenceDocument.file_url ?? evidenceDocument.publicUrl ?? ""),
+          publicUrl: publicEvidenceWebUrl(evidenceDocument.file_url ?? evidenceDocument.publicUrl),
           sanitized: Boolean(evidenceDocument.verified ?? false),
         }));
 
@@ -538,8 +539,8 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
                   </div>
                 ) : evidence.length > 0 ? (
                   evidence.map((item) => {
-                    const isImg = item.mimeType.startsWith("image/");
-                    const isVid = item.mimeType.startsWith("video/");
+                    const isImg = Boolean(item.publicUrl) && item.mimeType.startsWith("image/");
+                    const isVid = Boolean(item.publicUrl) && item.mimeType.startsWith("video/");
                     return (
                       <div 
                         key={item.fileId} 
@@ -573,14 +574,18 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
                               Metadata Cleansed
                             </span>
                           </div>
-                          <a 
-                            href={item.publicUrl} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            className="mt-2 block w-full py-2 rounded-xl text-center border border-slate-900/10 text-xs font-semibold hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/5"
-                          >
-                            View Original File &rarr;
-                          </a>
+                          {item.publicUrl ? (
+                            <a
+                              href={item.publicUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-2 block w-full py-2 rounded-xl text-center border border-slate-900/10 text-xs font-semibold hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/5"
+                            >
+                              View Original File &rarr;
+                            </a>
+                          ) : (
+                            <p className="mt-2 py-2 text-center text-xs text-slate-500">Evidence link unavailable.</p>
+                          )}
                         </div>
                       </div>
                     );

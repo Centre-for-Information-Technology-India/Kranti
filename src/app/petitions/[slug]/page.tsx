@@ -308,7 +308,7 @@ export default function PetitionDetailPage() {
                           key={file.fileId}
                           className="group relative overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40"
                         >
-                          {file.mimeType.startsWith("image/") ? (
+                          {file.publicUrl && file.mimeType.startsWith("image/") ? (
                             <img src={file.publicUrl} alt={file.name} className="h-48 w-full object-cover" />
                           ) : (
                             <div className="flex h-48 items-center justify-center bg-slate-100 dark:bg-slate-900">

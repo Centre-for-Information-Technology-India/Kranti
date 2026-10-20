@@ -67,6 +67,40 @@ test("public issue pages do not render uploaded filenames", async () => {
   }
 });
 
+test("public issue pages do not offer unsafe saved evidence links", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+
+  try {
+    const { default: IssueDetailPage } = await import("./page");
+    globalThis.fetch = async (input) => {
+      const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
+      return Response.json({ documents: collection === "issues"
+        ? [{ $id: "synthetic-issue", slug: "synthetic", title: "Synthetic issue", status: "open" }]
+        : collection === "evidence"
+          ? [{ $id: "synthetic-evidence", issue_id: "synthetic-issue", type: "other", file_url: "javascript:alert(1)" }]
+          : [] });
+    };
+
+    const page = await IssueDetailPage({ params: Promise.resolve({ slug: "synthetic" }) });
+    const seen = new WeakSet<object>();
+    const pageTree = JSON.stringify(page, (_key, value) => {
+      if (value && typeof value === "object") {
+        if (seen.has(value)) return undefined;
+        seen.add(value);
+      }
+      return value;
+    });
+    assert.doesNotMatch(pageTree, /javascript:alert/);
+    assert.match(pageTree, /Evidence link unavailable/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});
+
 test("issue details survive optional profile and evidence outages", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;

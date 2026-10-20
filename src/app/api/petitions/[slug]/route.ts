@@ -12,6 +12,7 @@ import {
   Query,
 } from "@/lib/appwrite";
 import { isPublicPetitionStatus } from "@/lib/public-petition-status";
+import { publicEvidenceWebUrl } from "@/lib/evidence";
 
 export const runtime = "nodejs";
 
@@ -99,7 +100,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
         name: "Evidence",
         size: Number(item.size_bytes ?? item.fileSize ?? 0),
         mimeType: String(item.type ?? "application/octet-stream"),
-        publicUrl: String(item.file_url ?? item.publicUrl ?? ""),
+        publicUrl: publicEvidenceWebUrl(item.file_url ?? item.publicUrl),
         sanitized: Boolean(item.verified ?? false),
       })),
     };
