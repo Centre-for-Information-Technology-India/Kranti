@@ -237,6 +237,10 @@ export async function GET(request: Request) {
     const [evidenceResponse, userResults] = await Promise.all([
       issueIds.length > 0
         ? listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [Query.equal("issue_id", issueIds), Query.limit(100)])
+            .catch((error) => {
+              console.warn("Issue list evidence unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+              return null;
+            })
         : Promise.resolve({ documents: [] }),
       creatorIds.length > 0
         ? Promise.all(["clerk_id", "$id"].map(async (field) => {
@@ -257,7 +261,7 @@ export async function GET(request: Request) {
       return accumulator;
     }, {});
 
-    const evidenceByIssue = ((evidenceResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).reduce<Record<string, Array<Record<string, unknown>>>>((accumulator, document) => {
+    const evidenceByIssue = ((evidenceResponse as { documents?: Array<Record<string, unknown>> } | null)?.documents ?? []).reduce<Record<string, Array<Record<string, unknown>>>>((accumulator, document) => {
       const issueId = String(document.issue_id ?? document.issueId ?? "");
       if (!issueId) {
         return accumulator;
@@ -301,7 +305,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ ok: true, issues, hasMore: pageDocuments.length > 25 && offset + 25 <= 10000 });
+    return NextResponse.json({ ok: true, issues, hasMore: pageDocuments.length > 25 && offset + 25 <= 10000, evidenceUnavailable: evidenceResponse === null });
   } catch (error) {
     console.error("Failed to list issues from Appwrite:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json({ ok: false, error: "Issues are temporarily unavailable. Please try again." }, { status: 503 });

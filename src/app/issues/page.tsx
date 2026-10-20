@@ -38,6 +38,7 @@ export default function IssuesPage() {
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState(false);
+  const [evidenceUnavailable, setEvidenceUnavailable] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedState, setSelectedState] = useState("All States");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
@@ -59,6 +60,7 @@ export default function IssuesPage() {
         setIssues(data.issues);
         setHasMore(data.hasMore === true);
         setLoadMoreError(false);
+        setEvidenceUnavailable(data.evidenceUnavailable === true);
       })
       .catch(() => {
         if (!controller.signal.aborted) setLoadError(true);
@@ -81,6 +83,7 @@ export default function IssuesPage() {
         return [...current, ...data.issues.filter((issue: IssueRecord) => !seen.has(issue.$id))];
       });
       setHasMore(data.hasMore === true);
+      setEvidenceUnavailable((current) => current || data.evidenceUnavailable === true);
     } catch {
       setLoadMoreError(true);
     } finally {
@@ -250,6 +253,15 @@ export default function IssuesPage() {
           )}
         </AnimatePresence>
 
+        {evidenceUnavailable && !loadError && (
+          <div role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-slate-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-slate-100">
+            <p>Supporting evidence could not load. Issues are still available.</p>
+            <Button variant="outline" className="h-11 rounded-full" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
+              Try again
+            </Button>
+          </div>
+        )}
+
         {/* Dynamic Map or Grid Render */}
         {loadError ? (
           <div role="alert" className="rounded-3xl border border-slate-900/10 bg-white/90 px-6 py-10 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/70">
@@ -302,7 +314,7 @@ export default function IssuesPage() {
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-slate-400">
-                            No evidence thumbnail
+                            {evidenceUnavailable ? "Evidence unavailable" : "No evidence thumbnail"}
                           </div>
                         )}
                         <Badge className={`absolute left-4 top-4 border flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full shadow-sm uppercase ${statusInfo.color}`}>

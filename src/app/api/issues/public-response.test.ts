@@ -11,6 +11,7 @@ test("public issue replies hide creator IDs while moderators retain them", async
   let viewerId: string | null = null;
   let failCreatorLookup = false;
   let failEvidenceLookup = false;
+  let failIssueLookup = false;
   let issueQuery = "";
   process.env.APPWRITE_API_KEY = "synthetic-test-key";
   require.cache[clerkPath] = { exports: { auth: async () => ({ userId: viewerId }) } } as NodeModule;
@@ -21,6 +22,9 @@ test("public issue replies hide creator IDs while moderators retain them", async
     globalThis.fetch = async (input) => {
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
       if (collection === "issues") issueQuery = decodeURIComponent(String(input));
+      if (collection === "issues" && failIssueLookup) {
+        return Response.json({ message: "Synthetic issue outage" }, { status: 503 });
+      }
       if (collection === "users" && failCreatorLookup) {
         return Response.json({ message: "Synthetic profile outage" }, { status: 503 });
       }
@@ -28,7 +32,7 @@ test("public issue replies hide creator IDs while moderators retain them", async
         return Response.json({ message: "Synthetic evidence outage" }, { status: 503 });
       }
       const documents = collection === "issues"
-        ? [{ $id: "synthetic-issue", slug: "synthetic", title: "Synthetic issue", created_by: "private-clerk-id", private_note: "private" }]
+        ? [{ $id: "synthetic-issue", slug: "synthetic", title: "Synthetic issue", created_by: "private-clerk-id", private_note: "private", evidence_count: 2 }]
         : collection === "users"
           ? [{ $id: "private-clerk-id", display_name: "Citizen" }]
           : [];
@@ -61,7 +65,17 @@ test("public issue replies hide creator IDs while moderators retain them", async
 
     failEvidenceLookup = true;
     const evidenceFailure = await GET(new Request("https://example.test/api/issues"));
-    assert.equal(evidenceFailure.status, 503);
+    assert.equal(evidenceFailure.status, 200);
+    const evidenceFailureBody = await evidenceFailure.json();
+    assert.equal(evidenceFailureBody.evidenceUnavailable, true);
+    assert.equal(evidenceFailureBody.issues[0].title, "Synthetic issue");
+    assert.equal(evidenceFailureBody.issues[0].evidence_count, 2);
+    assert.deepEqual(evidenceFailureBody.issues[0].evidence, []);
+    assert.equal("created_by" in evidenceFailureBody.issues[0], false);
+
+    failIssueLookup = true;
+    const issueFailure = await GET(new Request("https://example.test/api/issues"));
+    assert.equal(issueFailure.status, 503);
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
     else delete require.cache[clerkPath];
