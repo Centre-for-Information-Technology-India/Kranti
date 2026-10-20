@@ -16,6 +16,7 @@ import "./globals.css";
 import { PWARegister } from "@/components/pwa-register";
 import AppwriteSync from "@/components/appwrite-sync";
 import { VisitAudio } from "@/components/visit-audio";
+import { VisitorEvents } from "@/components/visitor-events";
 import { JsonLd } from "@/components/json-ld";
 import {
   SITE_URL,
@@ -170,6 +171,7 @@ export default async function RootLayout({
         <ClerkProvider>
           <NextIntlClientProvider messages={messages}>
             <PWARegister />
+            <VisitorEvents />
             <AppwriteSync />
             <VisitAudio />
             <SiteHeader />
