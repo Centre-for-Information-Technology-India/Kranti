@@ -46,8 +46,10 @@ export async function generateMetadata({
       description,
       url: `${SITE_URL}/guides/${guide.slug}`,
       type: "article",
-      publishedTime: guide.id === "local-service-complaint-guide" ? "2026-10-18T00:00:00Z" : "2025-01-01T00:00:00Z",
-      modifiedTime: guide.id === "local-service-complaint-guide" ? "2026-10-18T00:00:00Z" : new Date().toISOString(),
+      ...(guide.id === "local-service-complaint-guide" && {
+        publishedTime: "2026-10-18T00:00:00Z",
+        modifiedTime: "2026-10-18T00:00:00Z",
+      }),
     },
   };
 }
