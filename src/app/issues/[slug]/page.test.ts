@@ -1,6 +1,38 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+test("escalated issues stay at the active timeline step", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+
+  try {
+    const { default: IssueDetailPage } = await import("./page");
+    globalThis.fetch = async (input) => {
+      const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
+      return Response.json({ documents: collection === "issues"
+        ? [{ $id: "synthetic-issue", slug: "synthetic", title: "Synthetic issue", status: "escalated" }]
+        : [] });
+    };
+
+    const page = await IssueDetailPage({ params: Promise.resolve({ slug: "synthetic" }) });
+    const seen = new WeakSet<object>();
+    const pageTree = JSON.stringify(page, (_key, value) => {
+      if (value && typeof value === "object") {
+        if (seen.has(value)) return undefined;
+        seen.add(value);
+      }
+      return value;
+    });
+    assert.match(pageTree, /"Status: ","escalated"/);
+    assert.match(pageTree, /"width":"66\.66666666666666%"/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});
+
 test("issue details survive optional profile and evidence outages", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;

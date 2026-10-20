@@ -238,7 +238,10 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
     }));
 
   // Determine current timeline step index
-  const currentStepIndex = statusSteps.findIndex(s => s.key === issue?.status);
+  // Escalated is a public, active case. It belongs at the in-progress step,
+  // not back at the submitted step when the timeline has no separate marker.
+  const timelineStatus = issue?.status === "escalated" ? "in_progress" : issue?.status;
+  const currentStepIndex = statusSteps.findIndex(s => s.key === timelineStatus);
   const activeStep = currentStepIndex !== -1 ? currentStepIndex : 0;
 
   // ── JSON-LD: Article + Breadcrumb for SEO ─────────────────────────────────
