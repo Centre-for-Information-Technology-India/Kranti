@@ -2,6 +2,8 @@
 
 API routes are a security boundary.
 
+Issue and petition evidence links, including supplied file-view URLs, accept HTTP or HTTPS only. Unsafe schemes fail validation before any case or evidence write.
+
 Every mutation must authenticate when required, authorize the resource/action, validate input, enforce size/rate limits, return safe errors, and avoid leaking implementation details.
 
 Public responses contain only intentionally public fields. Do not return raw Appwrite exceptions, stack traces, secrets or private fields.

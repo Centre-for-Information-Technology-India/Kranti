@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { evidenceWebUrlSchema } from "@/lib/evidence";
 
 export const issueCategories = [
   "governance",
@@ -27,7 +28,7 @@ export const issueSubmissionSchema = z.object({
   district: z.string().min(2, "District is required.").max(100, "Keep the district within 100 characters."),
   landmark: z.string().min(3, "Add a nearby landmark or locality."),
   evidenceLevel: z.enum(evidenceLevels),
-  evidenceLinks: z.string().url("Must be a valid URL").array().optional(),
+  evidenceLinks: evidenceWebUrlSchema.array().optional(),
   language: z.enum(issueLanguages),
   consent: z.boolean().refine((value) => value, {
     message: "Please confirm the information is accurate to the best of your knowledge.",
@@ -39,7 +40,7 @@ export const issueEvidenceSchema = z.array(z.object({
   name: z.string().min(1),
   size: z.number().positive().finite(),
   mimeType: z.string().min(1),
-  publicUrl: z.string().optional(),
+  publicUrl: evidenceWebUrlSchema.optional(),
 })).default([]);
 
 export type IssueSubmissionValues = z.infer<typeof issueSubmissionSchema>;

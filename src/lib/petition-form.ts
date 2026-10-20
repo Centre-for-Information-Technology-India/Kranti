@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { evidenceWebUrlSchema } from "@/lib/evidence";
 
 export const petitionCategories = [
   "policy_change",
@@ -24,7 +25,7 @@ export const petitionSubmissionSchema = z.object({
   signatureGoal: z.number().min(10, "Signature goal must be at least 10").max(10000000, "Goal too high"),
   language: z.enum(["en", "hi"]),
   evidenceLevel: z.enum(["high", "medium", "low"]),
-  evidenceLinks: z.string().url("Must be a valid URL").array().optional(),
+  evidenceLinks: evidenceWebUrlSchema.array().optional(),
   consent: z.boolean().refine((val) => val === true, "You must agree to the terms"),
 });
 
@@ -33,7 +34,7 @@ export const petitionEvidenceSchema = z.array(z.object({
   name: z.string().min(1),
   size: z.number().positive().finite(),
   mimeType: z.string().min(1),
-  publicUrl: z.string().optional(),
+  publicUrl: evidenceWebUrlSchema.optional(),
 })).default([]);
 
 export type PetitionSubmissionValues = z.infer<typeof petitionSubmissionSchema>;
