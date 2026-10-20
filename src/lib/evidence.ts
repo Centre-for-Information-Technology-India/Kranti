@@ -1,5 +1,19 @@
 import { z } from "zod";
 
+export function isEvidenceWebUrl(value: string): boolean {
+  try {
+    const protocol = new URL(value).protocol;
+    return protocol === "https:" || protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+export const evidenceWebUrlSchema = z.string().url("Must be a valid URL").refine(
+  isEvidenceWebUrl,
+  "Evidence links must use HTTP or HTTPS",
+);
+
 const allowedEvidenceTypes = ["image/jpeg", "image/png", "image/webp", "image/avif", "video/mp4", "video/webm", "application/pdf"] as const;
 
 export const evidenceFileSchema = z.instanceof(File).superRefine((file, ctx) => {
