@@ -21,6 +21,7 @@ import {
 import { buildPetitionSlug, petitionEvidenceSchema, petitionSubmissionSchema } from "@/lib/petition-form";
 import { detectEvidenceType } from "@/lib/evidence";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
+import { publicPetitionStatuses } from "@/lib/public-petition-status";
 
 export const runtime = "nodejs";
 
@@ -214,8 +215,8 @@ export async function GET(request: Request) {
   const offset = Number(rawOffset);
   try {
     const petitionsResponse = await listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [
-      // Review-pending petitions must stay out of every public page, including later offsets.
-      Query.equal("status", ["open", "in_progress", "successful", "resolved"]),
+      // Non-public petitions must stay out of every public page, including later offsets.
+      Query.equal("status", [...publicPetitionStatuses]),
       Query.orderDesc("created_at"),
       Query.limit(26),
       Query.offset(offset),

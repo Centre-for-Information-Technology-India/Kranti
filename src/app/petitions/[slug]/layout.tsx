@@ -7,6 +7,7 @@ import {
   Query,
 } from "@/lib/appwrite";
 import { canonical, SITE_URL, buildBreadcrumbSchema } from "@/lib/seo";
+import { isPublicPetitionStatus } from "@/lib/public-petition-status";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -29,7 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const doc = await fetchPetitionBySlug(slug);
 
-  if (!doc || doc.status === "pending_review") {
+  if (!doc || !isPublicPetitionStatus(doc.status)) {
     return { title: "Petition not found", robots: { index: false, follow: false } };
   }
 
@@ -73,8 +74,8 @@ export default async function PetitionDetailLayout({ params, children }: Props) 
   const { slug } = await params;
   const doc = await fetchPetitionBySlug(slug);
 
-  // A review-pending petition is not public, including its structured page data.
-  if (!doc || doc.status === "pending_review") return <>{children}</>;
+  // Only public petition statuses may enter structured page data.
+  if (!doc || !isPublicPetitionStatus(doc.status)) return <>{children}</>;
 
   const title = String(doc.title ?? "Petition");
   const description = String(doc.description ?? "").slice(0, 300);

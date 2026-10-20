@@ -23,6 +23,7 @@ test("public petition remains readable when Clerk signing state fails", async ()
           $id: "synthetic_petition",
           slug: "synthetic-petition",
           title: "Synthetic petition",
+          status: "open",
           created_by: "synthetic_creator",
         }] });
       }

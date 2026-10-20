@@ -11,6 +11,7 @@ import {
   listDocuments,
   Query,
 } from "@/lib/appwrite";
+import { isPublicPetitionStatus } from "@/lib/public-petition-status";
 
 export const runtime = "nodejs";
 
@@ -34,7 +35,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
     const petitionDoc = ((petitionsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [])[0];
 
-    if (!petitionDoc || petitionDoc.status === "pending_review") {
+    if (!petitionDoc || !isPublicPetitionStatus(petitionDoc.status)) {
       return NextResponse.json({ error: "Petition not found" }, { status: 404 });
     }
 
