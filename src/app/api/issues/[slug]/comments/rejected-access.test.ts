@@ -14,7 +14,7 @@ test("public readers cannot fetch comments or write to unpublished issues", asyn
 
   try {
     const { GET, POST } = await import("./route");
-    for (const status of ["rejected", "pending_review"]) {
+    for (const status of ["rejected", "pending_review", "withdrawn", "unexpected"]) {
       let issueReads = 0;
       globalThis.fetch = async (url, init) => {
         if (init?.method === "POST") throw new Error("Comment was written");

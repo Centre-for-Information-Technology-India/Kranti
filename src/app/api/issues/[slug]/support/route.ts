@@ -14,6 +14,7 @@ import {
 } from "@/lib/appwrite";
 import { notifyNewSupport } from "@/lib/notifications";
 import { belongsToSupporter, legacySupportDocumentId, supportDocumentId } from "@/lib/support-id";
+import { isPublicIssueStatus } from "@/lib/public-issue-status";
 
 export const runtime = "nodejs";
 
@@ -46,7 +47,7 @@ async function saveSupport(_: Request, { params }: { params: Promise<{ slug: str
   const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]);
   const issue = (issueQuery as { documents?: Array<{ $id: string; status?: string; supporter_count?: number; title?: string; created_by?: string }> }).documents?.[0];
 
-  if (!issue || issue.status === "pending_review" || issue.status === "rejected") {
+  if (!issue || !isPublicIssueStatus(issue.status)) {
     return NextResponse.json({ error: "Issue not found" }, { status: 404 });
   }
 

@@ -94,26 +94,31 @@ test("issue details remain available when initial comments fail", async () => {
   }
 });
 
-test("review-pending issue pages do not load private related data for guests", async () => {
+test("issues outside the public list do not expose page data to guests", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;
   process.env.APPWRITE_API_KEY = "synthetic-test-key";
 
   try {
-    const { default: IssueDetailPage } = await import("./page");
+    const { default: IssueDetailPage, generateMetadata } = await import("./page");
     let issueReads = 0;
-    globalThis.fetch = async (input) => {
-      const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
-      if (collection === "issues") {
-        issueReads += 1;
-        return Response.json({ documents: [{ $id: "synthetic-issue", slug: "synthetic", title: "Private synthetic issue", status: "pending_review", created_by: "owner" }] });
-      }
-      if (collection === "users") return Response.json({ documents: [] });
-      throw new Error("Private issue data was read");
-    };
+    for (const status of ["pending_review", "rejected", "withdrawn", "unexpected"]) {
+      issueReads = 0;
+      globalThis.fetch = async (input) => {
+        const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
+        if (collection === "issues") {
+          issueReads += 1;
+          return Response.json({ documents: [{ $id: "synthetic-issue", slug: "synthetic", title: "Private synthetic issue", status, created_by: "owner" }] });
+        }
+        throw new Error("Private issue data was read");
+      };
 
-    await assert.rejects(IssueDetailPage({ params: Promise.resolve({ slug: "synthetic" }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
-    assert.equal(issueReads, 1);
+      await assert.rejects(IssueDetailPage({ params: Promise.resolve({ slug: "synthetic" }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
+      assert.equal(issueReads, 1);
+      const metadata = await generateMetadata({ params: Promise.resolve({ slug: "synthetic" }) });
+      assert.equal(metadata.title, "Issue not found");
+      assert.deepEqual(metadata.robots, { index: false, follow: false });
+    }
   } finally {
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;

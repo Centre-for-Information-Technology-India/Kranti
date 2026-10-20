@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-test("an issue awaiting review or rejected cannot receive support through its saved link", async () => {
+test("an issue outside the public list cannot receive support through its saved link", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;
   const clerkPath = require.resolve("@clerk/nextjs/server");
@@ -13,7 +13,7 @@ test("an issue awaiting review or rejected cannot receive support through its sa
 
   try {
     const { POST } = await import("./route");
-    for (const status of ["pending_review", "rejected"]) {
+    for (const status of ["pending_review", "rejected", "withdrawn", "unexpected"]) {
       let requests = 0;
       globalThis.fetch = async (_url, init) => {
         requests += 1;

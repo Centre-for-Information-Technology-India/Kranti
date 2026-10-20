@@ -10,7 +10,7 @@ test("unpublished issues are private to the owner and reviewers", async () => {
     getUserRole: async () => { roleLookups += 1; return role; },
   });
 
-  for (const status of ["rejected", "pending_review"]) {
+  for (const status of ["rejected", "pending_review", "withdrawn", "unexpected", undefined]) {
     const issue = { status, created_by: "owner" };
     assert.equal(await canReadUnpublishedIssue(issue, lookup(null)), false);
     assert.equal(await canReadUnpublishedIssue(issue, lookup("stranger")), false);
@@ -22,6 +22,6 @@ test("unpublished issues are private to the owner and reviewers", async () => {
       getUserRole: async () => "admin",
     }), false);
   }
-  assert.equal(roleLookups, 6);
+  assert.equal(roleLookups, 15);
   assert.equal(await canReadUnpublishedIssue({ status: "open" }, lookup(null)), true);
 });

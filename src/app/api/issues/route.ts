@@ -22,6 +22,7 @@ import { buildIssueSlug, issueEvidenceSchema, issueSubmissionSchema } from "@/li
 import { detectEvidenceType } from "@/lib/evidence";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
 import { getUserRole } from "@/lib/role-lookup";
+import { publicIssueStatuses } from "@/lib/public-issue-status";
 
 export const runtime = "nodejs";
 
@@ -223,7 +224,7 @@ export async function GET(request: Request) {
   try {
     const issuesResponse = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [
       // Filter before offset so issues awaiting review cannot appear in any public page.
-      Query.equal("status", ["open", "in_progress", "escalated", "resolved"]),
+      Query.equal("status", [...publicIssueStatuses]),
       Query.orderDesc("$createdAt"),
       Query.limit(26),
       Query.offset(offset),

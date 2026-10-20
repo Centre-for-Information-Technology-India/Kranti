@@ -37,6 +37,7 @@ import type { Metadata } from "next";
 import { JsonLd } from "@/components/json-ld";
 import { canonical, SITE_URL, buildBreadcrumbSchema } from "@/lib/seo";
 import { canReadUnpublishedIssue } from "@/lib/unpublished-issue-access";
+import { isPublicIssueStatus } from "@/lib/public-issue-status";
 
 type IssueEvidence = {
   fileId: string;
@@ -89,7 +90,7 @@ export async function generateMetadata({
     };
   }
 
-  if (!doc || doc.status === "pending_review" || doc.status === "rejected") {
+  if (!doc || !isPublicIssueStatus(doc.status)) {
     return {
       title: "Issue not found",
       robots: { index: false, follow: false },

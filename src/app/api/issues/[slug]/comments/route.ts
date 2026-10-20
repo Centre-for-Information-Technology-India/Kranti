@@ -5,6 +5,7 @@ import { ID } from "node-appwrite";
 import { AppwriteRequestError, appwriteCommentsCollectionId, appwriteDatabaseId, appwriteIssuesCollectionId, createDocument, listDocuments, Query } from "@/lib/appwrite";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
 import { canReadUnpublishedIssue } from "@/lib/unpublished-issue-access";
+import { isPublicIssueStatus } from "@/lib/public-issue-status";
 
 export const runtime = "nodejs";
 
@@ -101,7 +102,7 @@ async function saveComment(request: Request, { params }: { params: Promise<{ slu
   const issueQuery = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [Query.equal("slug", [slug]), Query.limit(1)]);
   const issue = (issueQuery as { documents?: Array<Record<string, unknown>> }).documents?.[0];
 
-  if (!issue || issue.status === "pending_review" || issue.status === "rejected") {
+  if (!issue || !isPublicIssueStatus(issue.status)) {
     return NextResponse.json({ error: "Issue not found" }, { status: 404 });
   }
 

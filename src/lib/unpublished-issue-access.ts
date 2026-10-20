@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 
 import { getUserRole } from "@/lib/role-lookup";
+import { isPublicIssueStatus } from "@/lib/public-issue-status";
 
 export async function canReadUnpublishedIssue(
   issue: Record<string, unknown>,
@@ -9,7 +10,7 @@ export async function canReadUnpublishedIssue(
     getUserRole: (userId: string, email: null) => Promise<string>;
   } = { auth, getUserRole },
 ): Promise<boolean> {
-  if (issue.status !== "rejected" && issue.status !== "pending_review") return true;
+  if (isPublicIssueStatus(issue.status)) return true;
 
   try {
     const { userId } = await lookup.auth();
