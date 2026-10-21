@@ -17,17 +17,21 @@ test("resolution audit keeps the real action when a reason is supplied", async (
   try {
     const writes: Array<{ collection: string; data: Record<string, unknown> }> = [];
     let alertFails = false;
+    let issueReadFails = false;
+    let issueStatus = "pending_review";
     globalThis.fetch = async (input, init) => {
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0] ?? "";
       if (collection === "users") return Response.json({ role: "moderator", clerk_id: "synthetic_moderator" });
       if (collection === "issues" && !init?.method) {
-        return Response.json({ $id: "synthetic_issue", created_by: "synthetic_creator", slug: "marked-issue" });
+        if (issueReadFails) return Response.json({ message: "Synthetic read outage" }, { status: 503 });
+        return Response.json({ $id: "synthetic_issue", status: issueStatus, created_by: "synthetic_creator", slug: "marked-issue" });
       }
       if (collection === "notifications" && alertFails) {
         return Response.json({ message: "Synthetic alert outage" }, { status: 503 });
       }
       const body = JSON.parse(String(init?.body)) as { data: Record<string, unknown> };
       writes.push({ collection, data: body.data });
+      if (collection === "issues") issueStatus = String(body.data.status);
       return Response.json({ $id: "synthetic_record" });
     };
 
@@ -55,6 +59,25 @@ test("resolution audit keeps the real action when a reason is supplied", async (
     }));
     assert.equal(retry.status, 200);
     assert.equal((await retry.json()).notificationSaved, false);
+
+    const writeCount = writes.length;
+    const repeated = await POST(new Request("https://example.test/api/admin/moderate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ issueId: "synthetic_issue", action: "reject", reason: "Repeated click." }),
+    }));
+    assert.equal(repeated.status, 409);
+    assert.match((await repeated.json()).error, /already has that status/);
+    assert.equal(writes.length, writeCount, "repeat review must not write status, audit, or alert");
+
+    issueReadFails = true;
+    const failedRead = await POST(new Request("https://example.test/api/admin/moderate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ issueId: "synthetic_issue", action: "approve" }),
+    }));
+    assert.equal(failedRead.status, 503);
+    assert.equal(writes.length, writeCount, "an unknown current status must not start a review write");
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
     else delete require.cache[clerkPath];
