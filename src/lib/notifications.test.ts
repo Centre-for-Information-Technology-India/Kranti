@@ -110,6 +110,9 @@ test("notification mutations enforce ownership and surface storage failures", as
   try {
     assert.equal(await markNotificationAsRead(own.$id, "owner"), true);
     assert.equal(writes, 1);
+    documents = [{ ...own, read: true }];
+    assert.equal(await markNotificationAsRead(own.$id, "owner"), true);
+    assert.equal(writes, 1);
     documents = [{ ...own, user_id: "someone_else" }];
     assert.equal(await markNotificationAsRead(own.$id, "owner"), false);
     documents = [];

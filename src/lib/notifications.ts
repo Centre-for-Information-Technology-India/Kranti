@@ -79,6 +79,7 @@ export async function markNotificationAsRead(notificationId: string, userId: str
   ]);
   const notification = response.documents[0];
   if (!notification || notification.$id !== notificationId || notification.user_id !== userId) return false;
+  if (notification.read === true) return true;
 
   await updateDocument(appwriteDatabaseId, appwriteNotificationsCollectionId, notificationId, { read: true });
   return true;
