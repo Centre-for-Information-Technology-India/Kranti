@@ -139,6 +139,8 @@ async function createReport(request: Request) {
     });
   }
 
+  const evidenceLinks = Array.isArray(submission.evidenceLinks) ? submission.evidenceLinks.filter(Boolean) : [];
+
   await upsertDocument(appwriteDatabaseId, appwriteReportsCollectionId, reportId, {
     created_by: clerkUser.id,
     title: submission.title,
@@ -152,7 +154,7 @@ async function createReport(request: Request) {
     language: submission.language,
     status: "pending_review",
     visibility: "moderated",
-    evidence_count: uploadedEvidence.length,
+    evidence_count: uploadedEvidence.length + evidenceLinks.length,
     created_at: new Date().toISOString(),
   });
 
@@ -176,7 +178,6 @@ async function createReport(request: Request) {
   }
 
   // Store evidence links
-  const evidenceLinks = Array.isArray(submission.evidenceLinks) ? submission.evidenceLinks.filter(Boolean) : [];
   for (const link of evidenceLinks) {
     const linkEvidenceId = `evidence${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
     try {

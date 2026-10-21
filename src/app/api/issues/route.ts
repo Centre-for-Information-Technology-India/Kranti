@@ -134,6 +134,8 @@ export async function POST(request: Request) {
       });
     }
 
+    const evidenceLinks = Array.isArray(submission.evidenceLinks) ? submission.evidenceLinks.filter(Boolean) : [];
+
     await upsertDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId, {
       created_by: clerkUser.id,
       title: submission.title,
@@ -146,7 +148,7 @@ export async function POST(request: Request) {
       status: "open",
       supporter_count: 0,
       risk_score: submission.evidenceLevel === "high" ? 20 : submission.evidenceLevel === "medium" ? 40 : 60,
-      evidence_count: uploadedEvidence.length,
+      evidence_count: uploadedEvidence.length + evidenceLinks.length,
       featured: false,
       visibility: "public",
     });
@@ -171,7 +173,6 @@ export async function POST(request: Request) {
     }
 
     // Store evidence links
-    const evidenceLinks = Array.isArray(submission.evidenceLinks) ? submission.evidenceLinks.filter(Boolean) : [];
     for (const link of evidenceLinks) {
       const linkEvidenceId = `evidence${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
       try {

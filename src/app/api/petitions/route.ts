@@ -140,6 +140,8 @@ async function createPetition(request: Request) {
     });
   }
 
+  const evidenceLinks = Array.isArray(submission.evidenceLinks) ? submission.evidenceLinks.filter(Boolean) : [];
+
   await upsertDocument(appwriteDatabaseId, appwritePetitionsCollectionId, petitionId, {
     created_by: clerkUser.id,
     title: submission.title,
@@ -154,7 +156,7 @@ async function createPetition(request: Request) {
     status: "open",
     signature_count: 0,
     signature_goal: submission.signatureGoal,
-    evidence_count: uploadedEvidence.length,
+    evidence_count: uploadedEvidence.length + evidenceLinks.length,
     featured: false,
     created_at: new Date().toISOString(),
   });
@@ -179,7 +181,6 @@ async function createPetition(request: Request) {
   }
 
   // Store evidence links
-  const evidenceLinks = Array.isArray(submission.evidenceLinks) ? submission.evidenceLinks.filter(Boolean) : [];
   for (const link of evidenceLinks) {
     const linkEvidenceId = `evidence${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
     try {

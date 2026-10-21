@@ -18,10 +18,12 @@ test("petition save reports failed evidence without hiding the saved petition", 
   try {
     const { POST } = await import("./route");
     const writes: string[] = [];
+    const caseCounts: number[] = [];
     console.warn = () => {};
-    globalThis.fetch = async (input) => {
+    globalThis.fetch = async (input, init) => {
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0] ?? "";
       writes.push(collection);
+      if (collection === "petitions") caseCounts.push(JSON.parse(String(init?.body)).data.evidence_count);
       if (collection === "evidence") return Response.json({ message: "Synthetic evidence failure" }, { status: 503 });
       return Response.json({ $id: "synthetic-petition" });
     };
@@ -53,10 +55,12 @@ test("petition save reports failed evidence without hiding the saved petition", 
     assert.equal(body.evidenceSaved, false);
     assert.match(body.petitionSlug, /synthetic-civic-petition-/);
     assert.deepEqual(writes, ["petitions", "evidence"]);
+    assert.deepEqual(caseCounts, [1]);
 
-    globalThis.fetch = async (input) => {
+    globalThis.fetch = async (input, init) => {
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0] ?? "";
       writes.push(collection);
+      if (collection === "petitions") caseCounts.push(JSON.parse(String(init?.body)).data.evidence_count);
       return Response.json({ $id: "synthetic-petition" });
     };
     const savedResponse = await POST(new Request("https://example.test/api/petitions", {
@@ -82,6 +86,7 @@ test("petition save reports failed evidence without hiding the saved petition", 
     assert.equal(savedResponse.status, 200);
     assert.equal((await savedResponse.json()).evidenceSaved, true);
     assert.deepEqual(writes, ["petitions", "evidence", "petitions", "evidence"]);
+    assert.deepEqual(caseCounts, [1, 1]);
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
     else delete require.cache[clerkPath];
