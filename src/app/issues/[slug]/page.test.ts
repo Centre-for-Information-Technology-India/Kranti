@@ -1,6 +1,69 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+test("issue detail keeps later evidence and earlier links after a later read fails", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+
+  try {
+    const { default: IssueDetailPage } = await import("./page");
+    const offsets: number[] = [];
+    let failSecondPage = false;
+    globalThis.fetch = async (input) => {
+      const url = new URL(String(input));
+      const collection = url.pathname.split("/collections/")[1]?.split("/")[0];
+      if (collection === "issues") return Response.json({ documents: [{ $id: "synthetic-issue", slug: "synthetic", title: "Synthetic issue", status: "open", evidence_count: 101 }] });
+      if (collection === "evidence") {
+        const offsetQuery = url.searchParams.getAll("queries[]")
+          .map((query) => JSON.parse(query) as { method: string; values?: number[] })
+          .find((query) => query.method === "offset");
+        const offset = offsetQuery?.values?.[0] ?? 0;
+        offsets.push(offset);
+        if (offset === 100 && failSecondPage) return Response.json({ message: "Synthetic failure" }, { status: 503 });
+        return Response.json({ documents: Array.from({ length: offset === 0 ? 100 : 1 }, (_, index) => ({
+          $id: `synthetic-evidence-${offset + index}`, issue_id: "synthetic-issue", type: "text/plain", file_url: `https://example.test/evidence-${offset + index}`,
+        })) });
+      }
+      return Response.json({ documents: [] });
+    };
+
+    const renderTree = (page: unknown) => {
+      const seen = new WeakSet<object>();
+      return JSON.stringify(page, (_key, value) => {
+        if (value && typeof value === "object") {
+          if (seen.has(value)) return undefined;
+          seen.add(value);
+        }
+        return value;
+      });
+    };
+    const page = await IssueDetailPage({ params: Promise.resolve({ slug: "synthetic" }) });
+    let tree = renderTree(page);
+    assert.deepEqual(offsets, [0, 100]);
+    assert.match(tree, /Evidence Gallery/);
+    assert.match(tree, /evidence-100/);
+    assert.doesNotMatch(tree, /Some evidence could not load/);
+
+    failSecondPage = true;
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try {
+      tree = renderTree(await IssueDetailPage({ params: Promise.resolve({ slug: "synthetic" }) }));
+    } finally {
+      console.warn = originalWarn;
+    }
+    assert.match(tree, /Some evidence could not load/);
+    assert.match(tree, /evidence-99/);
+    assert.doesNotMatch(tree, /evidence-100/);
+    assert.doesNotMatch(tree, /No evidence has been attached/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});
+
 test("escalated issues stay at the active timeline step", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;

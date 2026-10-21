@@ -155,10 +155,28 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
       const creatorId = String(doc.created_by ?? doc.createdBy ?? "");
       const issueId = String(doc.$id ?? "");
       const [evidenceResponse, commentsData, creatorResponses] = await Promise.all([
-        listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [Query.equal("issue_id", [issueId]), Query.limit(100)]).catch((error) => {
-          console.warn("Issue evidence unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
-          return null;
-        }),
+        (async () => {
+          const documents: Array<Record<string, unknown>> = [];
+          let unavailable = false;
+          try {
+            for (let page = 0; page < 10; page++) {
+              const response = await listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [
+                Query.equal("issue_id", [issueId]),
+                Query.orderAsc("$id"),
+                Query.limit(100),
+                Query.offset(page * 100),
+              ]);
+              const pageDocuments = (response as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+              documents.push(...pageDocuments);
+              if (pageDocuments.length < 100) break;
+              if (page === 9) unavailable = true;
+            }
+          } catch (error) {
+            unavailable = true;
+            console.warn("Issue evidence unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+          }
+          return { documents, unavailable };
+        })(),
         listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, [
           Query.equal("issue_id", [issueId]),
           Query.equal("status", ["approved"]),
@@ -171,7 +189,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
             ))
           : Promise.resolve([]),
       ]);
-      evidenceUnavailable = evidenceResponse === null;
+      evidenceUnavailable = evidenceResponse.unavailable;
       commentsUnavailable = commentsData === null;
       commentsResponse = commentsData ?? { documents: [] };
       const creatorRow = creatorResponses.flatMap((result) =>
@@ -182,7 +200,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
         return String(userDocument.clerk_id ?? userDocument.clerkUserId ?? userDocument.$id ?? "") === creatorId;
       });
 
-      const evidence = ((evidenceResponse as { documents?: Array<Record<string, unknown>> } | null)?.documents ?? [])
+      const evidence = evidenceResponse.documents
         .filter((evidenceDocument) => String(evidenceDocument.issue_id ?? "") === String(doc.$id ?? ""))
         .map((evidenceDocument) => ({
           fileId: String(evidenceDocument.$id ?? ""),
@@ -533,11 +551,12 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {evidenceUnavailable ? (
+                {evidenceUnavailable && (
                   <div className="rounded-2xl border border-slate-900/10 bg-slate-50 p-5 text-sm text-slate-700 dark:border-white/10 dark:bg-slate-950/40 dark:text-slate-200" role="status">
-                    Evidence could not load. The issue is still available. <a href={`/issues/${encodeURIComponent(slug)}`} className="font-semibold underline underline-offset-4">Try again</a>.
+                    {evidence.length > 0 ? "Some evidence could not load. The items shown are still available." : "Evidence could not load. The issue is still available."} <a href={`/issues/${encodeURIComponent(slug)}`} className="font-semibold underline underline-offset-4">Try again</a>.
                   </div>
-                ) : evidence.length > 0 ? (
+                )}
+                {evidence.length > 0 ? (
                   evidence.map((item) => {
                     const isImg = Boolean(item.publicUrl) && item.mimeType.startsWith("image/");
                     const isVid = Boolean(item.publicUrl) && item.mimeType.startsWith("video/");
@@ -590,11 +609,11 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
                       </div>
                     );
                   })
-                ) : (
+                ) : !evidenceUnavailable ? (
                   <div className="rounded-2xl border border-dashed border-slate-900/10 bg-slate-50 p-8 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-slate-950/20">
                     No evidence has been attached.
                   </div>
-                )}
+                ) : null}
               </CardContent>
             </Card>
 
