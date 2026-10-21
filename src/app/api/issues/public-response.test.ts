@@ -9,13 +9,18 @@ test("public issue replies hide creator IDs while moderators retain them", async
   const originalClerk = require.cache[clerkPath];
   const originalRole = require.cache[rolePath];
   let viewerId: string | null = null;
+  let viewerRole = "moderator";
+  let failRoleLookup = false;
   let failCreatorLookup = false;
   let failEvidenceLookup = false;
   let failIssueLookup = false;
   let issueQuery = "";
   process.env.APPWRITE_API_KEY = "synthetic-test-key";
-  require.cache[clerkPath] = { exports: { auth: async () => ({ userId: viewerId }) } } as NodeModule;
-  require.cache[rolePath] = { exports: { getUserRole: async () => "moderator" } } as NodeModule;
+  require.cache[clerkPath] = { exports: { auth: async () => ({ userId: viewerId }), currentUser: async () => null } } as NodeModule;
+  require.cache[rolePath] = { exports: { getUserRole: async () => {
+    if (failRoleLookup) throw new Error("Synthetic role outage");
+    return viewerRole;
+  } } } as NodeModule;
 
   try {
     const { GET } = await import("./route");
@@ -60,7 +65,31 @@ test("public issue replies hide creator IDs while moderators retain them", async
     assert.equal(moderatorIssue.created_by, "private-clerk-id");
     assert.equal("private_note" in moderatorIssue, false);
 
+    const reviewerResponse = await GET(new Request("https://example.test/api/issues?review=1"));
+    assert.equal(reviewerResponse.status, 200);
+    assert.match(issueQuery, /pending_review/);
+    assert.equal((await reviewerResponse.json()).issues[0].created_by, "private-clerk-id");
+
+    const pendingResponse = await GET(new Request("https://example.test/api/issues?review=1&status=pending_review"));
+    assert.equal(pendingResponse.status, 200);
+    assert.match(issueQuery, /pending_review/);
+    assert.doesNotMatch(issueQuery, /open|escalated|resolved/);
+
+    viewerRole = "citizen";
+    issueQuery = "";
+    const citizenReview = await GET(new Request("https://example.test/api/issues?review=1"));
+    assert.equal(citizenReview.status, 403);
+    assert.equal(issueQuery, "");
+
+    failRoleLookup = true;
+    const failedReview = await GET(new Request("https://example.test/api/issues?review=1"));
+    assert.equal(failedReview.status, 503);
+    failRoleLookup = false;
+    viewerRole = "moderator";
+
     viewerId = null;
+    const guestReview = await GET(new Request("https://example.test/api/issues?review=1"));
+    assert.equal(guestReview.status, 401);
     failCreatorLookup = true;
     const fallbackResponse = await GET(new Request("https://example.test/api/issues"));
     assert.equal(fallbackResponse.status, 200);

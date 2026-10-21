@@ -47,7 +47,7 @@ export default function AdminPage() {
   const [issues, setIssues] = useState<IssueRecord[]>([]);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "escalated" | "in_progress" | "resolved">("open");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending_review" | "open" | "escalated" | "in_progress" | "resolved">("pending_review");
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [moderationLogs, setModerationLogs] = useState<AdminLog[]>([]);
@@ -56,6 +56,8 @@ export default function AdminPage() {
   const [roleChecked, setRoleChecked] = useState(false);
   const [roleError, setRoleError] = useState(false);
   const [roleCheckAttempt, setRoleCheckAttempt] = useState(0);
+  const [issueLoadError, setIssueLoadError] = useState(false);
+  const [issueLoadAttempt, setIssueLoadAttempt] = useState(0);
 
   // Client-side role guard
   useEffect(() => {
@@ -88,9 +90,9 @@ export default function AdminPage() {
     const open = issues.filter((i) => i.status === "open").length;
     const escalated = issues.filter((i) => i.status === "escalated" || i.status === "in_progress").length;
     const resolved = issues.filter((i) => i.status === "resolved").length;
-    const rejected = issues.filter((i) => i.status === "rejected").length;
+    const pending = issues.filter((i) => i.status === "pending_review").length;
     
-    return { total, open, escalated, resolved, rejected };
+    return { total, pending, open, escalated, resolved };
   }, [issues]);
 
   // Filtered issues list
@@ -114,22 +116,33 @@ export default function AdminPage() {
   }, [issues, selectedIssueId]);
 
   useEffect(() => {
+    if (!roleChecked || roleError || accessDenied) return;
     const controller = new AbortController();
 
-    fetch("/api/issues", { signal: controller.signal })
-      .then((response) => response.json())
-      .then((data) => {
-        const nextIssues = Array.isArray(data?.issues) ? data.issues : [];
+    Promise.all(["/api/issues?review=1&status=pending_review", "/api/issues"].map(async (url) => {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error("Issue queue unavailable");
+      return response.json();
+    }))
+      .then(([pendingData, publicData]) => {
+        if (controller.signal.aborted) return;
+        const nextIssues = [
+          ...(Array.isArray(pendingData?.issues) ? pendingData.issues : []),
+          ...(Array.isArray(publicData?.issues) ? publicData.issues : []),
+        ];
         setIssues(nextIssues);
-        setSelectedIssueId((current) => current || nextIssues.find((issue: IssueRecord) => issue.status === "open")?.$id || nextIssues[0]?.$id || null);
+        setSelectedIssueId((current) => nextIssues.find((issue: IssueRecord) => issue.$id === current)?.$id || nextIssues.find((issue: IssueRecord) => issue.status === "pending_review")?.$id || nextIssues[0]?.$id || null);
+        setIssueLoadError(false);
       })
       .catch(() => {
+        if (controller.signal.aborted) return;
         setIssues([]);
         setSelectedIssueId(null);
+        setIssueLoadError(true);
       });
 
     return () => controller.abort();
-  }, []);
+  }, [roleChecked, roleError, accessDenied, issueLoadAttempt]);
 
   async function callModerate(issueId: string, action: string, reason: string) {
     setActionLoading(action);
@@ -153,12 +166,18 @@ export default function AdminPage() {
   const handleApprove = async (issueId: string) => {
     const issueToUpdate = issues.find(i => i.$id === issueId);
     if (!issueToUpdate) return;
-    const result = await callModerate(issueId, "approve", "Meets verification criteria. Clear geo-evidence and neutral narrative tone.");
+    const reason = issueToUpdate.status === "pending_review"
+      ? "Moderator approved after review."
+      : "Meets verification criteria. Clear geo-evidence and neutral narrative tone.";
+    const result = await callModerate(issueId, "approve", reason);
     if (!result) return;
     setIssues(prev => prev.map(issue => issue.$id === issueId ? { ...issue, status: "open" } : issue));
+    if (statusFilter === "pending_review") {
+      setSelectedIssueId(issues.find(i => i.$id !== issueId && i.status === "pending_review")?.$id || null);
+    }
     setModerationLogs(prev => [{
       id: `log_${Date.now()}`, issueId, issueTitle: issueToUpdate.title,
-      action: "APPROVE", reason: "Meets verification criteria.",
+      action: "APPROVE", reason: issueToUpdate.status === "pending_review" ? reason : "Meets verification criteria.",
       timestamp: new Date().toISOString(), moderatorName: user?.fullName || "Moderator"
     }, ...prev]);
   };
@@ -178,7 +197,7 @@ export default function AdminPage() {
     }, ...prev]);
     setShowRejectDialog(false);
     setRejectReason("");
-    const nextFirst = issues.find(i => i.$id !== selectedIssueId);
+    const nextFirst = issues.find(i => i.$id !== selectedIssueId && (statusFilter === "all" || i.status === statusFilter));
     setSelectedIssueId(nextFirst?.$id || null);
   };
 
@@ -210,6 +229,8 @@ export default function AdminPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case "pending_review":
+        return <Badge className="bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300 uppercase text-[10px]">Pending review</Badge>;
       case "resolved":
         return <Badge className="bg-emerald-50 border-emerald-250 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-350 uppercase text-[10px]">Resolved</Badge>;
       case "escalated":
@@ -281,7 +302,7 @@ export default function AdminPage() {
             { label: "Active/Open", count: stats.open, color: "text-rose-600 dark:text-rose-400", icon: AlertOctagon },
             { label: "Escalated", count: stats.escalated, color: "text-amber-600 dark:text-amber-400", icon: Clock },
             { label: "Resolved", count: stats.resolved, color: "text-emerald-600 dark:text-emerald-400", icon: CheckCircle2 },
-            { label: "Rejected", count: stats.rejected, color: "text-slate-600 dark:text-slate-300", icon: HelpCircle },
+            { label: "Pending review", count: stats.pending, color: "text-amber-700 dark:text-amber-300", icon: HelpCircle },
             { label: "Total", count: stats.total, color: "text-slate-700 dark:text-slate-200", icon: Layers }
           ].map((item) => (
             <Card key={item.label} className="border-slate-900/10 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-900/70">
@@ -303,6 +324,11 @@ export default function AdminPage() {
           {/* Left Column: Queue List */}
           <div className="flex flex-col gap-4 h-[750px] overflow-hidden rounded-3xl border border-slate-900/10 bg-white/95 p-5 shadow-sm dark:border-white/10 dark:bg-slate-900/80">
             <div className="flex flex-col gap-3 shrink-0">
+              {issueLoadError && (
+                <div role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+                  The review queue could not load. <button className="font-semibold underline" onClick={() => setIssueLoadAttempt((attempt) => attempt + 1)}>Try again</button>
+                </div>
+              )}
               <div className="relative">
                 <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
                 <Input
@@ -317,6 +343,7 @@ export default function AdminPage() {
               {/* Status filtering tabs */}
               <div className="flex flex-wrap gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-2xl">
                 {[
+                  { id: "pending_review", label: "Review" },
                   { id: "open", label: "Open" },
                   { id: "escalated", label: "Escalated" },
                   { id: "resolved", label: "Resolved" },
@@ -515,24 +542,24 @@ export default function AdminPage() {
                   </div>
 
                   {/* AI Assistance Pre-audit Analysis */}
-                  <div className="bg-emerald-50/50 border border-emerald-900/10 rounded-2xl p-4 dark:bg-emerald-950/10 dark:border-emerald-900/20 mb-5">
+                  {selectedIssue.status !== "pending_review" && <div className="bg-emerald-50/50 border border-emerald-900/10 rounded-2xl p-4 dark:bg-emerald-950/10 dark:border-emerald-900/20 mb-5">
                     <div className="flex gap-2">
                       <Sparkles className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5 animate-pulse" />
                       <div className="space-y-1">
                         <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Kranti AI Assistant Pre-audit</p>
                         <p className="text-xs text-emerald-700 leading-relaxed dark:text-emerald-300">
-                          {selectedIssue.status === "pending_review" || selectedIssue.status === "open" 
+                          {selectedIssue.status === "open"
                             ? "Content matches neutral, non-inciting civic standards. Location data matches postal registers. Suggested action: Approve / Publish."
                             : `Audit complete. Issue currently set to '${selectedIssue.status.toUpperCase()}'. Status timelines are synchronized with public directories.`}
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </div>}
 
                   {/* Control Buttons */}
                   <div className="border-t border-slate-900/5 dark:border-white/5 pt-4 flex flex-wrap gap-2 justify-end">
                     {/* Only show reject/approve if it's pending review */}
-                    {selectedIssue.status === "open" ? (
+                    {selectedIssue.status === "pending_review" || selectedIssue.status === "open" ? (
                       <>
                         <Button
                           onClick={() => setShowRejectDialog(true)}

@@ -22,6 +22,7 @@ import { buildIssueSlug, issueEvidenceSchema, issueSubmissionSchema } from "@/li
 import { detectEvidenceType, publicEvidenceWebUrl } from "@/lib/evidence";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
 import { getUserRole } from "@/lib/role-lookup";
+import { verifiedPrimaryEmail } from "@/lib/account-sync";
 import { publicIssueStatuses } from "@/lib/public-issue-status";
 
 export const runtime = "nodejs";
@@ -206,7 +207,10 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const rawOffset = new URL(request.url).searchParams.get("offset") ?? "0";
+  const searchParams = new URL(request.url).searchParams;
+  const rawOffset = searchParams.get("offset") ?? "0";
+  const reviewRequested = searchParams.get("review") === "1";
+  const pendingOnly = reviewRequested && searchParams.get("status") === "pending_review";
   if (!/^(0|[1-9]\d*)$/.test(rawOffset) || Number(rawOffset) > 10000) {
     return NextResponse.json({ ok: false, error: "Invalid issue offset" }, { status: 400 });
   }
@@ -214,17 +218,30 @@ export async function GET(request: Request) {
   let canViewCreatorId = false;
   try {
     const { userId } = await auth();
+    if (reviewRequested && !userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     if (userId) {
-      const role = await getUserRole(userId, null);
+      const role = await getUserRole(userId, null, undefined, reviewRequested ? async () => {
+        const user = await currentUser();
+        if (!user) throw new Error("Clerk user unavailable");
+        return verifiedPrimaryEmail(user);
+      } : undefined);
       canViewCreatorId = role === "admin" || role === "moderator";
     }
   } catch {
+    if (reviewRequested) {
+      return NextResponse.json({ error: "Unable to check reviewer access. Please try again." }, { status: 503 });
+    }
     // Public list access does not depend on a private role lookup.
+  }
+  if (reviewRequested && !canViewCreatorId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   try {
     const issuesResponse = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [
       // Filter before offset so issues awaiting review cannot appear in any public page.
-      Query.equal("status", [...publicIssueStatuses]),
+      Query.equal("status", pendingOnly ? ["pending_review"] : reviewRequested ? ["pending_review", ...publicIssueStatuses] : [...publicIssueStatuses]),
       Query.orderDesc("$createdAt"),
       Query.limit(26),
       Query.offset(offset),
