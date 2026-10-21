@@ -5,6 +5,7 @@ import { Link2, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { isEvidenceWebUrl } from "@/lib/evidence";
 
 interface EvidenceLinksInputProps {
   value: string[];
@@ -19,9 +20,7 @@ export function EvidenceLinksInput({ value, onChange, labels }: EvidenceLinksInp
   function addLink() {
     const url = inputValue.trim();
     if (!url) return;
-    try {
-      new URL(url);
-    } catch {
+    if (!isEvidenceWebUrl(url)) {
       setError(labels?.invalid ?? "Enter a valid URL (e.g. https://...)");
       return;
     }
