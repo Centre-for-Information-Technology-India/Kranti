@@ -143,6 +143,7 @@ test("mark all reads every page of a user's alerts", async () => {
   }));
   const offsets: number[] = [];
   const updated = new Set<string>();
+  let documentReads = 0;
 
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
@@ -153,7 +154,10 @@ test("mark all reads every page of a user's alerts", async () => {
     const queries = url.searchParams.getAll("queries[]").map((query) => JSON.parse(query));
     assert.ok(queries.some((query) => query.attribute === "user_id" && query.values[0] === "owner"));
     const id = queries.find((query) => query.attribute === "$id")?.values[0];
-    if (id) return Response.json({ documents: notifications.filter((item) => item.$id === id) });
+    if (id) {
+      documentReads += 1;
+      return Response.json({ documents: notifications.filter((item) => item.$id === id) });
+    }
     const offset = queries.find((query) => query.method === "offset")?.values[0];
     const limit = queries.find((query) => query.method === "limit")?.values[0];
     assert.equal(limit, 100);
@@ -165,6 +169,7 @@ test("mark all reads every page of a user's alerts", async () => {
     const { markAllNotificationsAsRead } = await import("./notifications");
     await markAllNotificationsAsRead("owner");
     assert.deepEqual(offsets, [0, 100]);
+    assert.equal(documentReads, 0);
     assert.equal(updated.size, 101);
     assert.ok(updated.has("synthetic_101"));
     assert.ok(!updated.has("synthetic_50"));
