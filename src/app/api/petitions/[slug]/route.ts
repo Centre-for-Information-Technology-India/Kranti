@@ -41,14 +41,29 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     }
 
     const createdBy = String(petitionDoc.created_by ?? petitionDoc.createdBy ?? "");
-    const [evidenceResponse, userResults] = await Promise.all([
-      listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [
-        Query.equal("issue_id", [String(petitionDoc.$id)]),
-        Query.limit(100),
-      ]).catch((error) => {
-        console.warn("Petition evidence unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
-        return null;
-      }),
+    const [evidenceResult, userResults] = await Promise.all([
+      (async () => {
+        const documents: Array<Record<string, unknown>> = [];
+        let unavailable = false;
+        try {
+          for (let page = 0; page < 10; page++) {
+            const response = await listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [
+              Query.equal("issue_id", [String(petitionDoc.$id)]),
+              Query.orderAsc("$id"),
+              Query.limit(100),
+              Query.offset(page * 100),
+            ]);
+            const pageDocuments = (response as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+            documents.push(...pageDocuments);
+            if (pageDocuments.length < 100) break;
+            if (page === 9) unavailable = true;
+          }
+        } catch (error) {
+          unavailable = true;
+          console.warn("Petition evidence unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+        }
+        return { documents, unavailable };
+      })(),
       createdBy ? Promise.allSettled(["clerk_id", "$id"].map((field) =>
         listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, [createdBy]), Query.limit(1)])
       )) : Promise.resolve([]),
@@ -65,7 +80,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
       return acc;
     }, {});
 
-    const evidenceByPetition = ((evidenceResponse as { documents?: Array<Record<string, unknown>> } | null)?.documents ?? []).reduce<Record<string, Array<Record<string, unknown>>>>((acc, doc) => {
+    const evidenceByPetition = evidenceResult.documents.reduce<Record<string, Array<Record<string, unknown>>>>((acc, doc) => {
       const petitionId = String(doc.issue_id ?? doc.issueId ?? "");
       if (!petitionId) return acc;
       acc[petitionId] = acc[petitionId] ?? [];
@@ -119,7 +134,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
       }
     }
 
-    return NextResponse.json({ ok: true, petition, hasSigned, evidenceUnavailable: evidenceResponse === null });
+    return NextResponse.json({ ok: true, petition, hasSigned, evidenceUnavailable: evidenceResult.unavailable });
   } catch (error) {
     console.error("Failed to fetch petition:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json({ error: "Petition could not load. Please try again." }, { status: 503 });
