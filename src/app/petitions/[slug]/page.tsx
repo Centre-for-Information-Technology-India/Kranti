@@ -298,10 +298,10 @@ export default function PetitionDetailPage() {
                 <CardContent>
                   {evidenceUnavailable && (
                     <p role="status" className="text-sm text-slate-700 dark:text-slate-200">
-                      Supporting evidence could not load. Refresh this page to try again.
+                      Some supporting evidence may be missing. Refresh this page to try again.
                     </p>
                   )}
-                  {!evidenceUnavailable && (
+                  {petition.evidence.length > 0 && (
                     <div className="grid gap-4 sm:grid-cols-2">
                       {petition.evidence.map((file) => (
                         <div
