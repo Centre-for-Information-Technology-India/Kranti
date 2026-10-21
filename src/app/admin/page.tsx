@@ -58,6 +58,9 @@ export default function AdminPage() {
   const [roleCheckAttempt, setRoleCheckAttempt] = useState(0);
   const [issueLoadError, setIssueLoadError] = useState(false);
   const [issueLoadAttempt, setIssueLoadAttempt] = useState(0);
+  const [pendingHasMore, setPendingHasMore] = useState(false);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingLoadError, setPendingLoadError] = useState(false);
 
   // Client-side role guard
   useEffect(() => {
@@ -131,18 +134,43 @@ export default function AdminPage() {
           ...(Array.isArray(publicData?.issues) ? publicData.issues : []),
         ];
         setIssues(nextIssues);
+        setPendingHasMore(pendingData?.hasMore === true);
+        setPendingLoadError(false);
         setSelectedIssueId((current) => nextIssues.find((issue: IssueRecord) => issue.$id === current)?.$id || nextIssues.find((issue: IssueRecord) => issue.status === "pending_review")?.$id || nextIssues[0]?.$id || null);
         setIssueLoadError(false);
       })
       .catch(() => {
         if (controller.signal.aborted) return;
         setIssues([]);
+        setPendingHasMore(false);
         setSelectedIssueId(null);
         setIssueLoadError(true);
       });
 
     return () => controller.abort();
   }, [roleChecked, roleError, accessDenied, issueLoadAttempt]);
+
+  async function loadMorePending() {
+    if (pendingLoading || !pendingHasMore) return;
+    setPendingLoading(true);
+    setPendingLoadError(false);
+    try {
+      const offset = issues.filter((issue) => issue.status === "pending_review").length;
+      const response = await fetch(`/api/issues?review=1&status=pending_review&offset=${offset}`);
+      if (!response.ok) throw new Error("Review queue unavailable");
+      const data = await response.json();
+      if (!Array.isArray(data?.issues)) throw new Error("Invalid review queue response");
+      setIssues((current) => {
+        const seen = new Set(current.map((issue) => issue.$id));
+        return [...current, ...data.issues.filter((issue: IssueRecord) => !seen.has(issue.$id))];
+      });
+      setPendingHasMore(data.hasMore === true);
+    } catch {
+      setPendingLoadError(true);
+    } finally {
+      setPendingLoading(false);
+    }
+  }
 
   async function callModerate(issueId: string, action: string, reason: string) {
     setActionLoading(action);
@@ -418,6 +446,21 @@ export default function AdminPage() {
                   </div>
                 )}
               </AnimatePresence>
+              {statusFilter === "pending_review" && pendingHasMore && (
+                <button
+                  type="button"
+                  onClick={loadMorePending}
+                  disabled={pendingLoading}
+                  className="min-h-11 w-full rounded-xl border border-slate-900/10 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 disabled:cursor-wait disabled:opacity-60 dark:border-white/15 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  {pendingLoading ? "Loading more reviews..." : "Load more reviews"}
+                </button>
+              )}
+              {statusFilter === "pending_review" && pendingLoadError && (
+                <p role="alert" className="text-center text-sm text-amber-800 dark:text-amber-200">
+                  More reviews could not load. Try again.
+                </p>
+              )}
             </div>
           </div>
 
