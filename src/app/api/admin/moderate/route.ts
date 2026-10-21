@@ -96,6 +96,9 @@ export async function POST(request: Request) {
     if (issue.status === newStatus) {
       return NextResponse.json({ error: "This issue already has that status. Refresh it before another review." }, { status: 409 });
     }
+    if (issue.status === "pending_review" && action !== "approve" && action !== "reject") {
+      return NextResponse.json({ error: "Review this issue before changing its public status." }, { status: 409 });
+    }
   } catch (error) {
     console.error("Moderation status check failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json({ error: "Could not confirm the issue status. Refresh it before trying again." }, { status: 503 });

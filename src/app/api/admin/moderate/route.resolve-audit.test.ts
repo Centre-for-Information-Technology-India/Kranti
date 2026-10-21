@@ -18,7 +18,7 @@ test("resolution audit keeps the real action when a reason is supplied", async (
     const writes: Array<{ collection: string; data: Record<string, unknown> }> = [];
     let alertFails = false;
     let issueReadFails = false;
-    let issueStatus = "pending_review";
+    let issueStatus = "open";
     globalThis.fetch = async (input, init) => {
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0] ?? "";
       if (collection === "users") return Response.json({ role: "moderator", clerk_id: "synthetic_moderator" });
@@ -36,6 +36,18 @@ test("resolution audit keeps the real action when a reason is supplied", async (
     };
 
     const { POST } = await import("./route");
+    for (const action of ["resolve", "escalate"] as const) {
+      issueStatus = "pending_review";
+      const blocked = await POST(new Request("https://example.test/api/admin/moderate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ issueId: "synthetic_issue", action }),
+      }));
+      assert.equal(blocked.status, 409);
+      assert.match((await blocked.json()).error, /Review this issue/);
+      assert.equal(writes.length, 0, "pending issues must not become public without approval");
+    }
+    issueStatus = "open";
     const response = await POST(new Request("https://example.test/api/admin/moderate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
