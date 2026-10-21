@@ -18,10 +18,12 @@ test("incident save reports missing evidence without hiding the saved report", a
   try {
     const { POST } = await import("./route");
     const writes: string[] = [];
+    const caseCounts: number[] = [];
     console.warn = () => {};
-    globalThis.fetch = async (input) => {
+    globalThis.fetch = async (input, init) => {
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0] ?? "";
       writes.push(collection);
+      if (collection === "reports") caseCounts.push(JSON.parse(String(init?.body)).data.evidence_count);
       if (collection === "evidence") return Response.json({ message: "Synthetic failure" }, { status: 503 });
       return Response.json({ $id: "synthetic-report" });
     };
@@ -54,16 +56,19 @@ test("incident save reports missing evidence without hiding the saved report", a
     assert.equal(body.evidenceSaved, false);
     assert.match(body.reportId, /^report/);
     assert.deepEqual(writes, ["reports", "evidence", "evidence"]);
+    assert.deepEqual(caseCounts, [2]);
 
-    globalThis.fetch = async (input) => {
+    globalThis.fetch = async (input, init) => {
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0] ?? "";
       writes.push(collection);
+      if (collection === "reports") caseCounts.push(JSON.parse(String(init?.body)).data.evidence_count);
       return Response.json({ $id: "synthetic-report" });
     };
     const savedResponse = await save();
     assert.equal(savedResponse.status, 200);
     assert.equal((await savedResponse.json()).evidenceSaved, true);
     assert.deepEqual(writes, ["reports", "evidence", "evidence", "reports", "evidence", "evidence"]);
+    assert.deepEqual(caseCounts, [2, 2]);
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
     else delete require.cache[clerkPath];
