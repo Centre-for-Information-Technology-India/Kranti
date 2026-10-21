@@ -3,6 +3,7 @@
 API routes are a security boundary.
 
 Issue and petition evidence links, including supplied file-view URLs, accept HTTP or HTTPS only. Unsafe schemes fail validation before any case or evidence write.
+Incident report evidence links and supplied file-view URLs follow the same rule. The shared evidence field rejects unsafe schemes before submission.
 Public issue and petition reads withhold unsafe saved evidence URLs, including links stored before this validation rule. The evidence record and count remain intact.
 
 Every mutation must authenticate when required, authorize the resource/action, validate input, enforce size/rate limits, return safe errors, and avoid leaking implementation details.
