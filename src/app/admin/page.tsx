@@ -52,6 +52,7 @@ export default function AdminPage() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [moderationLogs, setModerationLogs] = useState<AdminLog[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [accessDenied, setAccessDenied] = useState(false);
   const [roleChecked, setRoleChecked] = useState(false);
   const [roleError, setRoleError] = useState(false);
@@ -174,6 +175,7 @@ export default function AdminPage() {
 
   async function callModerate(issueId: string, action: string, reason: string) {
     setActionLoading(action);
+    setActionError(null);
     try {
       const res = await fetch("/api/admin/moderate", {
         method: "POST",
@@ -184,8 +186,17 @@ export default function AdminPage() {
         setAccessDenied(true);
         return null;
       }
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setActionError(typeof body?.error === "string"
+          ? body.error
+          : "Could not confirm this action. Refresh the issue before trying again.");
+        return null;
+      }
       return await res.json();
+    } catch {
+      setActionError("Could not confirm this action. Refresh the issue before trying again.");
+      return null;
     } finally {
       setActionLoading(null);
     }
@@ -403,7 +414,10 @@ export default function AdminPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      onClick={() => setSelectedIssueId(issue.$id)}
+                      onClick={() => {
+                        setSelectedIssueId(issue.$id);
+                        setActionError(null);
+                      }}
                       className={`group flex flex-col p-4 rounded-2xl border transition-all cursor-pointer ${
                         selectedIssueId === issue.$id
                           ? "bg-slate-100 border-slate-900/10 dark:bg-slate-850 dark:border-white/20"
@@ -600,6 +614,11 @@ export default function AdminPage() {
                   </div>}
 
                   {/* Control Buttons */}
+                  {actionError && (
+                    <p role="alert" className="mt-4 text-sm text-amber-800 dark:text-amber-200">
+                      {actionError}
+                    </p>
+                  )}
                   <div className="border-t border-slate-900/5 dark:border-white/5 pt-4 flex flex-wrap gap-2 justify-end">
                     {/* Only show reject/approve if it's pending review */}
                     {selectedIssue.status === "pending_review" || selectedIssue.status === "open" ? (
