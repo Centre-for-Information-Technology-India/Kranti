@@ -16,9 +16,16 @@ test("resolution audit keeps the real action when a reason is supplied", async (
 
   try {
     const writes: Array<{ collection: string; data: Record<string, unknown> }> = [];
+    let alertFails = false;
     globalThis.fetch = async (input, init) => {
       const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0] ?? "";
       if (collection === "users") return Response.json({ role: "moderator", clerk_id: "synthetic_moderator" });
+      if (collection === "issues" && !init?.method) {
+        return Response.json({ $id: "synthetic_issue", created_by: "synthetic_creator", slug: "marked-issue" });
+      }
+      if (collection === "notifications" && alertFails) {
+        return Response.json({ message: "Synthetic alert outage" }, { status: 503 });
+      }
       const body = JSON.parse(String(init?.body)) as { data: Record<string, unknown> };
       writes.push({ collection, data: body.data });
       return Response.json({ $id: "synthetic_record" });
@@ -32,10 +39,22 @@ test("resolution audit keeps the real action when a reason is supplied", async (
     }));
 
     assert.equal(response.status, 200);
-    assert.deepEqual(writes.map((write) => write.collection), ["issues", "moderation_logs"]);
+    assert.deepEqual(writes.map((write) => write.collection), ["issues", "moderation_logs", "notifications"]);
     assert.equal(writes[0].data.status, "resolved");
     assert.equal(writes[1].data.action, "approve");
     assert.equal(writes[1].data.reason, "Action: resolve. Synthetic review evidence confirmed.");
+    assert.equal(writes[2].data.user_id, "synthetic_creator");
+    assert.equal(writes[2].data.link, "/issues/marked-issue");
+    assert.equal((await response.json()).notificationSaved, true);
+
+    alertFails = true;
+    const retry = await POST(new Request("https://example.test/api/admin/moderate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ issueId: "synthetic_issue", action: "reject", reason: "Synthetic review reason." }),
+    }));
+    assert.equal(retry.status, 200);
+    assert.equal((await retry.json()).notificationSaved, false);
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
     else delete require.cache[clerkPath];

@@ -7,11 +7,13 @@ import {
   appwriteIssuesCollectionId,
   appwriteModerationLogsCollectionId,
   createDocument,
+  getDocument,
   updateDocument,
 } from "@/lib/appwrite";
 import { getUserRole } from "@/lib/role-lookup";
 import { verifiedPrimaryEmail } from "@/lib/account-sync";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
+import { createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
@@ -115,5 +117,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "The issue status may have changed, but its review record was not confirmed. Refresh it and ask an administrator to check the action before trying again." }, { status: 503 });
   }
 
-  return NextResponse.json({ ok: true, issueId, newStatus, action });
+  // The review is complete even if its secondary creator alert cannot be saved.
+  let notificationSaved: boolean | null = null;
+  try {
+    const issue = await getDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId) as { created_by?: unknown; slug?: unknown };
+    const creatorId = typeof issue.created_by === "string" ? issue.created_by : "";
+    const issueSlug = typeof issue.slug === "string" ? issue.slug : "";
+    if (creatorId) {
+      notificationSaved = await createNotification({
+        userId: creatorId,
+        type: "moderation",
+        title: "Issue review updated",
+        message: `Your issue status is now ${newStatus.replaceAll("_", " ")}.`,
+        link: issueSlug ? `/issues/${encodeURIComponent(issueSlug)}` : undefined,
+      });
+    }
+  } catch (error) {
+    notificationSaved = false;
+    console.error("Moderation creator alert failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+  }
+
+  return NextResponse.json({ ok: true, issueId, newStatus, action, notificationSaved });
 }
