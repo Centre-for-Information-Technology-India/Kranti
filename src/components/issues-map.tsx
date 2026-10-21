@@ -63,8 +63,9 @@ export function IssuesMap({ issues }: IssuesMapProps) {
         // Add markers for issues with location data
         issues.forEach((issue) => {
           if (issue.location && Array.isArray(issue.location) && issue.location.length === 2) {
-            const [lat, lng] = issue.location;
-            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+            // Stored issue coordinates use longitude, latitude order.
+            const [lng, lat] = issue.location;
+            if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
               const marker = L!.marker([lat, lng]);
               
               const popupContent = document.createElement("div");
