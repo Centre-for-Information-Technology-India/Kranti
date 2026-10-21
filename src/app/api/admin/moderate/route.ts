@@ -89,6 +89,18 @@ export async function POST(request: Request) {
 
   const newStatus = ACTION_STATUS_MAP[action as ModerationAction];
 
+  // A repeated review must not write another audit entry or creator alert.
+  let issue: { status?: unknown; created_by?: unknown; slug?: unknown };
+  try {
+    issue = await getDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId) as typeof issue;
+    if (issue.status === newStatus) {
+      return NextResponse.json({ error: "This issue already has that status. Refresh it before another review." }, { status: 409 });
+    }
+  } catch (error) {
+    console.error("Moderation status check failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+    return NextResponse.json({ error: "Could not confirm the issue status. Refresh it before trying again." }, { status: 503 });
+  }
+
   // Update issue status
   try {
     await updateDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId, {
@@ -120,7 +132,6 @@ export async function POST(request: Request) {
   // The review is complete even if its secondary creator alert cannot be saved.
   let notificationSaved: boolean | null = null;
   try {
-    const issue = await getDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId) as { created_by?: unknown; slug?: unknown };
     const creatorId = typeof issue.created_by === "string" ? issue.created_by : "";
     const issueSlug = typeof issue.slug === "string" ? issue.slug : "";
     if (creatorId) {
