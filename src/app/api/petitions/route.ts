@@ -225,15 +225,29 @@ export async function GET(request: Request) {
     const pageDocuments = (petitionsResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
     const petitionDocuments = pageDocuments.slice(0, 25);
     const petitionIds = petitionDocuments.map((document) => String(document.$id ?? "")).filter(Boolean);
-    const evidenceResponse = petitionIds.length > 0
-      ? await listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [
-        Query.equal("issue_id", petitionIds),
-        Query.limit(100),
-      ]).catch((error) => {
+    const evidenceDocuments: Array<Record<string, unknown>> = [];
+    let evidenceUnavailable = false;
+    if (petitionIds.length > 0) {
+      try {
+        // One petition page can have more than 100 linked evidence records.
+        // Keep reads scoped to its 25 petitions and bound the total work.
+        for (let page = 0; page < 10; page++) {
+          const response = await listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [
+            Query.equal("issue_id", petitionIds),
+            Query.orderAsc("$id"),
+            Query.limit(100),
+            Query.offset(page * 100),
+          ]);
+          const documents = (response as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+          evidenceDocuments.push(...documents);
+          if (documents.length < 100) break;
+          if (page === 9) evidenceUnavailable = true;
+        }
+      } catch (error) {
+        evidenceUnavailable = true;
         console.warn("Petition list evidence unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
-        return null;
-      })
-      : { documents: [] };
+      }
+    }
     const creatorIds = [...new Set(petitionDocuments
       .map((document) => String(document.created_by ?? document.createdBy ?? ""))
       .filter(Boolean))];
@@ -254,7 +268,7 @@ export async function GET(request: Request) {
       return accumulator;
     }, {});
 
-    const evidenceByPetition = ((evidenceResponse as { documents?: Array<Record<string, unknown>> } | null)?.documents ?? []).reduce<Record<string, Array<Record<string, unknown>>>>((accumulator, document) => {
+    const evidenceByPetition = evidenceDocuments.reduce<Record<string, Array<Record<string, unknown>>>>((accumulator, document) => {
       const petitionId = String(document.issue_id ?? document.issueId ?? "");
       if (!petitionId) {
         return accumulator;
@@ -300,7 +314,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ ok: true, petitions, hasMore: pageDocuments.length > 25 && offset + 25 <= 10000, evidenceUnavailable: evidenceResponse === null });
+    return NextResponse.json({ ok: true, petitions, hasMore: pageDocuments.length > 25 && offset + 25 <= 10000, evidenceUnavailable });
   } catch (error) {
     console.error("Failed to list petitions from Appwrite:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json({ error: "Petitions are temporarily unavailable. Please try again." }, { status: 503 });

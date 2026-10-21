@@ -78,7 +78,8 @@ Petition detail still loads with a generic creator name if optional creator-prof
 Signed-in alert reads return up to 50 records by default, with `hasMore` and an `offset` from 0 to 10000 for older alerts. The existing `limit` option stays capped at 100.
 
 The public petition list reads evidence only for petitions in its bounded result set.
-If that separate evidence read fails, the list stays readable and returns `evidenceUnavailable: true` with empty evidence arrays. Stored evidence counts stay unchanged; the page shows a retry notice.
+It pages through linked evidence for those petitions, up to 1,000 records per list request. If that bound is reached, it reports evidence as incomplete.
+If an evidence read fails, the list stays readable and returns `evidenceUnavailable: true` with any records already loaded. Stored evidence counts stay unchanged; the page shows a retry notice.
 Creator-profile lookups are optional for petition lists. Missing names use "Citizen"; petition read failures still stop the list.
 Public petition list and detail replies omit the stored creator account ID. Creator display names remain available.
 Public issue and petition evidence uses a generic display name. Uploaded filenames remain out of public replies and issue pages.
