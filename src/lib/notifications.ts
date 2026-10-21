@@ -99,7 +99,7 @@ export async function markAllNotificationsAsRead(userId: string): Promise<void> 
     const notifications = response.documents as Array<{ $id: string; read: boolean }>;
     await Promise.all(notifications
       .filter((notification) => !notification.read)
-      .map((notification) => markNotificationAsRead(notification.$id, userId)));
+      .map((notification) => updateDocument(appwriteDatabaseId, appwriteNotificationsCollectionId, notification.$id, { read: true })));
 
     if (notifications.length < pageSize) return;
     offset += notifications.length;
