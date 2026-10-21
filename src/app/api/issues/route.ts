@@ -253,14 +253,31 @@ export async function GET(request: Request) {
     const creatorIds = [...new Set(issueDocuments
       .map((document) => String(document.created_by ?? document.createdBy ?? ""))
       .filter(Boolean))];
-    const [evidenceResponse, userResults] = await Promise.all([
-      issueIds.length > 0
-        ? listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [Query.equal("issue_id", issueIds), Query.limit(100)])
-            .catch((error) => {
-              console.warn("Issue list evidence unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
-              return null;
-            })
-        : Promise.resolve({ documents: [] }),
+    const [evidenceResult, userResults] = await Promise.all([
+      (async () => {
+        const documents: Array<Record<string, unknown>> = [];
+        let unavailable = false;
+        if (issueIds.length === 0) return { documents, unavailable };
+        try {
+          // Read evidence only for this issue page. Bound the total read cost.
+          for (let page = 0; page < 10; page++) {
+            const response = await listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [
+              Query.equal("issue_id", issueIds),
+              Query.orderAsc("$id"),
+              Query.limit(100),
+              Query.offset(page * 100),
+            ]);
+            const batch = (response as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+            documents.push(...batch);
+            if (batch.length < 100) break;
+            if (page === 9) unavailable = true;
+          }
+        } catch (error) {
+          unavailable = true;
+          console.warn("Issue list evidence unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+        }
+        return { documents, unavailable };
+      })(),
       creatorIds.length > 0
         ? Promise.all(["clerk_id", "$id"].map(async (field) => {
           try {
@@ -280,7 +297,7 @@ export async function GET(request: Request) {
       return accumulator;
     }, {});
 
-    const evidenceByIssue = ((evidenceResponse as { documents?: Array<Record<string, unknown>> } | null)?.documents ?? []).reduce<Record<string, Array<Record<string, unknown>>>>((accumulator, document) => {
+    const evidenceByIssue = evidenceResult.documents.reduce<Record<string, Array<Record<string, unknown>>>>((accumulator, document) => {
       const issueId = String(document.issue_id ?? document.issueId ?? "");
       if (!issueId) {
         return accumulator;
@@ -324,7 +341,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ ok: true, issues, hasMore: pageDocuments.length > 25 && offset + 25 <= 10000, evidenceUnavailable: evidenceResponse === null });
+    return NextResponse.json({ ok: true, issues, hasMore: pageDocuments.length > 25 && offset + 25 <= 10000, evidenceUnavailable: evidenceResult.unavailable });
   } catch (error) {
     console.error("Failed to list issues from Appwrite:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json({ ok: false, error: "Issues are temporarily unavailable. Please try again." }, { status: 503 });

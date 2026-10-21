@@ -87,7 +87,8 @@ The public petition list returns up to 25 petitions per request. Use an `offset`
 At the offset cap, `hasMore` is false even when more records exist beyond the supported range.
 
 The public issue list reads evidence and creator profiles only for issues in its bounded result set.
-If that separate evidence read fails, the list stays readable and returns `evidenceUnavailable: true` with empty evidence arrays. Stored evidence counts stay unchanged; the page shows a retry notice.
+It pages through linked evidence for those issues, up to 1,000 records per list request. If that bound is reached, it reports evidence as incomplete.
+If an evidence read fails, the list stays readable and returns `evidenceUnavailable: true` with any records already loaded. Stored evidence counts stay unchanged; the page shows a retry notice.
 The public issue list and saved links allow only `open`, `in_progress`, `escalated`, and `resolved` issues. Other statuses stay off public pages, metadata, comments, and support. Creators and reviewers may still read their own non-public issue pages.
 Creator-profile lookups are optional for issue lists. Missing names use "Citizen Reporter"; only an issue read failure stops the list.
 Public issue list replies omit stored creator account IDs. Signed-in moderators and admins can see those IDs for review.
