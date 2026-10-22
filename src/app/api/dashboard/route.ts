@@ -65,10 +65,11 @@ async function loadDashboard(userId: string) {
   const users = profileResults.flatMap((result) => result.status === "fulfilled"
     ? (result.value as { documents?: Array<Record<string, unknown>> }).documents ?? []
     : []).reduce<Record<string, Record<string, unknown>>>((accumulator, document) => {
-    const clerkId = String(document.clerk_id ?? document.clerkUserId ?? document.$id ?? "");
-    if (clerkId) {
-      accumulator[clerkId] = document;
-    }
+    const linkedIds = [document.clerk_id, document.clerkUserId]
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
+    if (new Set(linkedIds).size > 1) return accumulator;
+    const ownerId = linkedIds[0] ?? document.$id;
+    if (typeof ownerId === "string" && ownerId.length > 0) accumulator[ownerId] = document;
     return accumulator;
   }, {});
 

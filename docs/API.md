@@ -116,7 +116,7 @@ The dashboard keeps a creator's own non-public issues and petitions visible to t
 The dashboard returns safe HTTP 503 retry guidance if Clerk authentication fails before any case read. Unsigned access remains HTTP 401.
 The dashboard response contains case lists only. The client reads its signed-in profile from Clerk; the case API does not return that profile.
 Dashboard case lists omit stored creator IDs. The server uses those IDs only to group owned and backed cases.
-Creator-name lookups are optional for dashboard case lists. If a profile query fails, the cases still load with generic creator names.
+Creator-name lookups are optional for dashboard case lists. If a profile query fails or its Clerk links conflict, the cases still load with generic creator names.
 
 New petition addresses contain a readable English title prefix when available, followed by the petition ID. Hindi-only titles use `petition` as the prefix. Existing addresses stay unchanged.
 

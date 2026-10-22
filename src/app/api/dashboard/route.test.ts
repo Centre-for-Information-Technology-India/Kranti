@@ -16,6 +16,7 @@ test("dashboard groups synthetic cases without returning creator IDs", async () 
   try {
     const { GET } = await import("./route");
     let profileFailure = false;
+    let conflictingProfile = false;
     globalThis.fetch = async (input) => {
       const url = new URL(String(input));
       const collection = url.pathname.split("/collections/")[1]?.split("/")[0];
@@ -23,7 +24,7 @@ test("dashboard groups synthetic cases without returning creator IDs", async () 
       const field = (name: string) => queries.find((query) => query.method === "equal" && query.attribute === name)?.values;
       if (collection === "users") {
         if (profileFailure) return Response.json({ message: "Synthetic profile outage" }, { status: 503 });
-        return Response.json({ documents: [{ $id: "synthetic_profile", clerk_id: "synthetic_other", display_name: "Case creator" }] });
+        return Response.json({ documents: [{ $id: "synthetic_profile", clerk_id: "synthetic_other", ...(conflictingProfile ? { clerkUserId: "synthetic_foreign" } : {}), display_name: "Case creator" }] });
       }
       const documents = collection === "issues"
         ? field("created_by") ? [{ $id: "owned_issue", title: "Owned issue", status: "pending_review", created_by: "synthetic_owner", private_note: "private" }]
@@ -64,6 +65,14 @@ test("dashboard groups synthetic cases without returning creator IDs", async () 
       assert.equal("private_note" in group[0], false);
     }
     assert.equal(body.supportedIssues[0].creatorName, "Case creator");
+
+    conflictingProfile = true;
+    const conflictResponse = await GET();
+    assert.equal(conflictResponse.status, 200);
+    const conflictBody = await conflictResponse.json();
+    assert.equal(conflictBody.supportedIssues[0].creatorName, "Citizen Reporter");
+    assert.equal(conflictBody.signedPetitions[0].creatorName, "Citizen");
+    conflictingProfile = false;
 
     profileFailure = true;
     const outageResponse = await GET();
