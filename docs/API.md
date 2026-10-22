@@ -18,6 +18,7 @@ Petition signing returns account retry guidance when Clerk authentication fails 
 Issue support returns a safe HTTP 503 JSON response when its result cannot be confirmed. Retrying the same support cannot create a second support record.
 Issues awaiting review and rejected issues cannot receive new support through a saved direct link. The support route returns HTTP 404 before any support or alert write.
 Issue support uses the authenticated Clerk user ID. If the optional supporter profile lookup fails, the support still saves and the creator alert uses a generic name.
+If the optional supporter profile belongs to another Clerk ID, the creator alert also uses a generic name.
 Alert read updates return safe HTTP 503 JSON when Appwrite cannot confirm the result. The dashboard reloads alerts before another try.
 Bulk alert read updates give account retry guidance if Clerk fails before any Appwrite request.
 Single-alert read updates give account retry guidance if Clerk authentication fails before any Appwrite request.
