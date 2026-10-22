@@ -1,6 +1,49 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+test("issue detail shows a creator only when profile account links agree", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+
+  try {
+    const { default: IssueDetailPage } = await import("./page");
+    let profile: Record<string, unknown> = {
+      $id: "synthetic-owner", clerk_id: "synthetic-owner", clerkUserId: "different-owner",
+      display_name: "Wrong Person", avatar_url: "https://example.test/wrong-avatar.png",
+    };
+    globalThis.fetch = async (input) => {
+      const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
+      if (collection === "issues") return Response.json({ documents: [{
+        $id: "synthetic-issue", slug: "synthetic", title: "Synthetic issue", status: "open", created_by: "synthetic-owner",
+      }] });
+      if (collection === "users") return Response.json({ documents: [profile] });
+      return Response.json({ documents: [] });
+    };
+    const render = async () => {
+      const seen = new WeakSet<object>();
+      return JSON.stringify(await IssueDetailPage({ params: Promise.resolve({ slug: "synthetic" }) }), (_key, value) => {
+        if (value && typeof value === "object") {
+          if (seen.has(value)) return undefined;
+          seen.add(value);
+        }
+        return value;
+      });
+    };
+
+    const mismatch = await render();
+    assert.match(mismatch, /Citizen Reporter/);
+    assert.doesNotMatch(mismatch, /Wrong Person|wrong-avatar/);
+
+    profile = { ...profile, clerkUserId: "synthetic-owner", display_name: "Matching Creator" };
+    assert.match(await render(), /Matching Creator/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});
+
 test("issue detail keeps later evidence and earlier links after a later read fails", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;
