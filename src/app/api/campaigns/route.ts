@@ -50,6 +50,9 @@ export async function POST(request: NextRequest) {
     } catch {
       return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
     }
+    if (user.id !== userId) {
+      return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
+    }
     const userName = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username || "Anonymous";
     const userAvatar = user.imageUrl;
 
