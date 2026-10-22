@@ -12,7 +12,6 @@ import {
   deleteFile,
   downloadFile,
   getFileViewUrl,
-  upsertDocument,
   uploadFileBuffer,
 } from "@/lib/appwrite";
 import { buildReportSlug, reportEvidenceSchema, reportSubmissionSchema } from "@/lib/report-form";
@@ -141,7 +140,7 @@ async function createReport(request: Request) {
 
   const evidenceLinks = Array.isArray(submission.evidenceLinks) ? submission.evidenceLinks.filter(Boolean) : [];
 
-  await upsertDocument(appwriteDatabaseId, appwriteReportsCollectionId, reportId, {
+  await createDocument(appwriteDatabaseId, appwriteReportsCollectionId, reportId, {
     created_by: clerkUser.id,
     title: submission.title,
     slug: reportSlug,
