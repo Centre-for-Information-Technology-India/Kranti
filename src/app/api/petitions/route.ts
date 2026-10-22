@@ -261,9 +261,11 @@ export async function GET(request: Request) {
         ? (result.value as { documents?: Array<Record<string, unknown>> }).documents ?? []
         : []
     )).reduce<Record<string, Record<string, unknown>>>((accumulator, document) => {
-      for (const id of [document.clerk_id, document.clerkUserId, document.$id]) {
-        if (id) accumulator[String(id)] = document;
-      }
+      const linkedIds = [document.clerk_id, document.clerkUserId]
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+      if (new Set(linkedIds).size > 1) return accumulator;
+      const ownerId = linkedIds[0] ?? document.$id;
+      if (typeof ownerId === "string" && ownerId.length > 0) accumulator[ownerId] = document;
       return accumulator;
     }, {});
 

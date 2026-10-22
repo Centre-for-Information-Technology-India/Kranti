@@ -74,9 +74,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
         ? (result.value as { documents?: Array<Record<string, unknown>> }).documents ?? []
         : []
     ).reduce<Record<string, Record<string, unknown>>>((acc, doc) => {
-      for (const id of [doc.clerk_id, doc.clerkUserId, doc.$id]) {
-        if (id) acc[String(id)] = doc;
-      }
+      const linkedIds = [doc.clerk_id, doc.clerkUserId]
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+      if (new Set(linkedIds).size > 1) return acc;
+      const ownerId = linkedIds[0] ?? doc.$id;
+      if (typeof ownerId === "string" && ownerId.length > 0) acc[ownerId] = doc;
       return acc;
     }, {});
 
