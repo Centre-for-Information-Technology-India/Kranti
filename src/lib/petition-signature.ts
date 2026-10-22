@@ -14,3 +14,7 @@ export function signatureDocumentId(petitionId: string, userId: string): string 
 export function isExistingSignature(error: unknown): boolean {
   return error instanceof AppwriteRequestError && error.status === 409;
 }
+
+export function belongsToSigner(document: Record<string, unknown>, petitionId: string, userId: string): boolean {
+  return document.petition_id === petitionId && document.user_id === userId;
+}
