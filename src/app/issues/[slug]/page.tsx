@@ -197,7 +197,10 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
           ? (result.value as { documents?: Array<Record<string, unknown>> }).documents ?? []
           : []
       ).find((userDocument) => {
-        return String(userDocument.clerk_id ?? userDocument.clerkUserId ?? userDocument.$id ?? "") === creatorId;
+        const linkedIds = [userDocument.clerk_id, userDocument.clerkUserId]
+          .filter((id): id is string => typeof id === "string" && id.length > 0);
+        if (new Set(linkedIds).size > 1) return false;
+        return (linkedIds[0] ?? userDocument.$id) === creatorId;
       });
 
       const evidence = evidenceResponse.documents
