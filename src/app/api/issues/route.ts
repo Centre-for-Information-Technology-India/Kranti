@@ -291,9 +291,12 @@ export async function GET(request: Request) {
     ]);
 
     const users = userResults.flatMap((result) => (result as { documents?: Array<Record<string, unknown>> }).documents ?? []).reduce<Record<string, Record<string, unknown>>>((accumulator, document) => {
-      for (const id of [document.clerk_id, document.clerkUserId, document.$id]) {
-        if (id) accumulator[String(id)] = document;
-      }
+      const linkedIds = [document.clerk_id, document.clerkUserId]
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+      // A document ID is only an account ID when no separate Clerk link disagrees.
+      if (new Set(linkedIds).size > 1) return accumulator;
+      const ownerId = linkedIds[0] ?? document.$id;
+      if (typeof ownerId === "string" && ownerId.length > 0) accumulator[ownerId] = document;
       return accumulator;
     }, {});
 

@@ -14,6 +14,7 @@ test("public issue replies hide creator IDs while moderators retain them", async
   let failCreatorLookup = false;
   let failEvidenceLookup = false;
   let failIssueLookup = false;
+  let conflictingCreatorLink = false;
   let issueQuery = "";
   process.env.APPWRITE_API_KEY = "synthetic-test-key";
   require.cache[clerkPath] = { exports: { auth: async () => ({ userId: viewerId }), currentUser: async () => null } } as NodeModule;
@@ -39,7 +40,7 @@ test("public issue replies hide creator IDs while moderators retain them", async
       const documents = collection === "issues"
         ? [{ $id: "synthetic-issue", slug: "synthetic", title: "Synthetic issue", created_by: "private-clerk-id", private_note: "private", evidence_count: 2 }]
         : collection === "users"
-          ? [{ $id: "private-clerk-id", display_name: "Citizen" }]
+          ? [{ $id: "private-clerk-id", clerk_id: conflictingCreatorLink ? "different-clerk-id" : "private-clerk-id", display_name: "Citizen", avatar_url: "https://example.test/citizen.png" }]
           : collection === "evidence"
             ? [{ $id: "synthetic-evidence", issue_id: "synthetic-issue", file_name: "private-person-name.jpg", file_url: "javascript:alert(1)" }]
           : [];
@@ -57,6 +58,14 @@ test("public issue replies hide creator IDs while moderators retain them", async
     assert.equal(publicIssue.evidence[0].name, "Evidence");
     assert.equal(publicIssue.evidence[0].publicUrl, "");
     assert.doesNotMatch(JSON.stringify(publicIssue), /private-person-name/);
+
+    conflictingCreatorLink = true;
+    const mismatchedResponse = await GET(new Request("https://example.test/api/issues"));
+    assert.equal(mismatchedResponse.status, 200);
+    const mismatchedIssue = (await mismatchedResponse.json()).issues[0];
+    assert.equal(mismatchedIssue.creatorName, "Citizen Reporter");
+    assert.equal(mismatchedIssue.creatorAvatar, "");
+    conflictingCreatorLink = false;
 
     viewerId = "synthetic-moderator";
     const moderatorResponse = await GET(new Request("https://example.test/api/issues"));
