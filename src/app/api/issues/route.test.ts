@@ -71,6 +71,58 @@ test("an uncertain issue save tells citizens to check before retrying", async ()
   }
 });
 
+test("an issue ID conflict never overwrites an existing issue", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.APPWRITE_API_KEY;
+  const clerkPath = require.resolve("@clerk/nextjs/server");
+  const originalClerk = require.cache[clerkPath];
+  process.env.APPWRITE_API_KEY = "synthetic-test-key";
+  require.cache[clerkPath] = {
+    exports: {
+      auth: async () => ({ userId: "synthetic_owner" }),
+      currentUser: async () => ({ id: "synthetic_owner" }),
+    },
+  } as NodeModule;
+
+  try {
+    const { POST } = await import("./route");
+    const methods: string[] = [];
+    globalThis.fetch = async (_input, init) => {
+      methods.push(init?.method ?? "GET");
+      return Response.json({ message: "Document already exists" }, { status: 409 });
+    };
+    const request = new Request("https://example.test/api/issues", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        payload: {
+          title: "Synthetic broken streetlight",
+          description: "This synthetic report contains enough text to pass validation. It does not name a real location or citizen.",
+          category: "infrastructure",
+          state: "Test State",
+          district: "Test District",
+          landmark: "Test Landmark",
+          evidenceLevel: "low",
+          evidenceLinks: [],
+          language: "en",
+          consent: true,
+        },
+        evidence: [],
+      }),
+    });
+
+    const response = await POST(request);
+    assert.equal(response.status, 503);
+    assert.deepEqual(methods, ["POST"]);
+  } finally {
+    if (originalClerk) require.cache[clerkPath] = originalClerk;
+    else delete require.cache[clerkPath];
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.APPWRITE_API_KEY;
+    else process.env.APPWRITE_API_KEY = originalKey;
+  }
+});
+
 test("a saved issue reply contains only its link fields", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;

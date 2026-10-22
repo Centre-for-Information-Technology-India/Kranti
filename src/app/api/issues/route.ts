@@ -15,7 +15,6 @@ import {
   getFileViewUrl,
   listDocuments,
   Query,
-  upsertDocument,
   uploadFileBuffer,
 } from "@/lib/appwrite";
 import { buildIssueSlug, issueEvidenceSchema, issueSubmissionSchema } from "@/lib/issue-form";
@@ -136,7 +135,7 @@ export async function POST(request: Request) {
 
     const evidenceLinks = Array.isArray(submission.evidenceLinks) ? submission.evidenceLinks.filter(Boolean) : [];
 
-    await upsertDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId, {
+    await createDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId, {
       created_by: clerkUser.id,
       title: submission.title,
       slug: issueSlug,

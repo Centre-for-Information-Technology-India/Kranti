@@ -32,6 +32,7 @@ The role API returns safe HTTP 503 retry guidance if Clerk authentication fails 
 The admin page gate also checks linked roles before asking Clerk for a verified email. A foreign Clerk ID cannot inherit a stored admin or moderator role.
 
 Issue creation accepts no evidence or a list of valid evidence metadata. Malformed evidence metadata returns HTTP 400 before file or issue writes.
+Issue creation never updates an existing issue if a generated document ID conflicts with one already stored.
 Issue creation stores the required nearby landmark in its optional `landmark` field. Landmarks over 255 characters fail validation before a write.
 Issue creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
 Issue creation returns safe HTTP 503 when a save result cannot be confirmed. The citizen must check the dashboard before retrying.
