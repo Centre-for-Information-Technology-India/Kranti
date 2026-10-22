@@ -6,15 +6,16 @@ test("account sync gives retry guidance when Clerk authentication fails before w
   const clerkPath = require.resolve("@clerk/nextjs/server");
   const originalClerk = require.cache[clerkPath];
   let authFails = true;
+  let signedInId: string | null = null;
   let appwriteRequests = 0;
 
   require.cache[clerkPath] = {
     exports: {
       auth: async () => {
         if (authFails) throw new Error("Synthetic Clerk outage");
-        return { userId: null };
+        return { userId: signedInId };
       },
-      currentUser: async () => { throw new Error("Unexpected profile lookup"); },
+      currentUser: async () => ({ id: "different-account" }),
     },
   } as NodeModule;
 
@@ -34,6 +35,12 @@ test("account sync gives retry guidance when Clerk authentication fails before w
     const unsigned = await POST();
     assert.equal(unsigned.status, 401);
     assert.deepEqual(await unsigned.json(), { error: "Unauthorized" });
+    assert.equal(appwriteRequests, 0);
+
+    signedInId = "signed-in-account";
+    const mismatched = await POST();
+    assert.equal(mismatched.status, 503);
+    assert.deepEqual(await mismatched.json(), { error: "Unable to confirm your account. Please try again." });
     assert.equal(appwriteRequests, 0);
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
