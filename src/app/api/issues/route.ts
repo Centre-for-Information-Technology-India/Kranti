@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
     }
 
-    if (!clerkUser) {
+    if (!clerkUser || clerkUser.id !== userId) {
       return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
     }
 
