@@ -44,6 +44,7 @@ Successful issue creation returns `ok`, `issueId`, `issueSlug`, and `evidenceSav
 Petition creation rejects JSON request bodies over 1 MiB with HTTP 413 before any Appwrite write.
 Petition creation returns safe HTTP 503 JSON when Clerk cannot load the signed-in account. No Appwrite write starts in that case.
 Petition creation also gives account retry guidance if Clerk authentication throws before any Appwrite request. Unsigned access remains HTTP 401.
+Petition creation also stops before storage if the loaded Clerk profile ID differs from the signed-in ID.
 Successful petition creation returns `ok`, `petitionId`, `petitionSlug`, and `evidenceSaved`. A false `evidenceSaved` means the petition saved but its evidence metadata did not. The creator should keep the evidence and open the saved petition instead of submitting it again. The response does not return the stored petition document or evidence metadata.
 Incident report creation rejects JSON request bodies over 1 MiB with HTTP 413 before evidence processing or Appwrite writes.
 Incident report creation returns safe HTTP 503 JSON before any Appwrite write when Clerk cannot load the signed-in account.
