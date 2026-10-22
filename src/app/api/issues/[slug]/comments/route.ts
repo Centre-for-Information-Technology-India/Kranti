@@ -113,6 +113,8 @@ async function saveComment(request: Request, { params }: { params: Promise<{ slu
     // The authenticated user ID owns the comment. A display name is optional.
     console.warn("Issue commenter display name unavailable");
   }
+  // The optional profile must not attribute this account's comment to another user.
+  if (user?.id !== userId) user = null;
 
   const commentId = `comment-${ID.unique()}`;
   const document = await createDocument(appwriteDatabaseId, appwriteCommentsCollectionId, commentId, {

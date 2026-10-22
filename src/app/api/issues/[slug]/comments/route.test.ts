@@ -8,13 +8,14 @@ test("comment replies keep private fields out and survive a Clerk profile outage
   const originalClerk = require.cache[clerkPath];
   const originalWarn = console.warn;
   let profileUnavailable = false;
+  let profileId = "synthetic_owner";
   process.env.APPWRITE_API_KEY = "synthetic-test-key";
   require.cache[clerkPath] = {
     exports: {
       auth: async () => ({ userId: "synthetic_owner" }),
       currentUser: async () => {
         if (profileUnavailable) throw new Error("synthetic profile outage");
-        return { firstName: "Test", lastName: "Citizen" };
+        return { id: profileId, firstName: "Test", lastName: "Citizen", imageUrl: "https://example.test/avatar.png" };
       },
     },
   } as NodeModule;
@@ -34,7 +35,7 @@ test("comment replies keep private fields out and survive a Clerk profile outage
           created_at: "2026-10-16T00:00:00.000Z",
           private_note: "do not return",
         })
-      : Response.json({ documents: [{ $id: "synthetic_issue" }] });
+      : Response.json({ documents: [{ $id: "synthetic_issue", status: "open" }] });
 
     const response = await POST(new Request("https://example.test/api/issues/test/comments", {
       method: "POST",
@@ -48,6 +49,19 @@ test("comment replies keep private fields out and survive a Clerk profile outage
     assert.equal(body.comment.$id, "synthetic_comment");
     assert.equal(body.comment.createdAt, "2026-10-16T00:00:00.000Z");
     assert.equal(body.comment.avatar_url, "");
+    assert.equal(body.comment.user_name, "Test Citizen");
+
+    profileId = "synthetic_other_account";
+    const mismatchResponse = await POST(new Request("https://example.test/api/issues/test/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "Mismatched synthetic profile" }),
+    }), { params: Promise.resolve({ slug: "test" }) });
+    assert.equal(mismatchResponse.status, 200);
+    assert.equal(saved.user_id, "synthetic_owner");
+    assert.equal(saved.user_name, "Citizen");
+    assert.equal(saved.avatar_url, null);
+    assert.equal((await mismatchResponse.json()).comment.user_name, "Citizen");
 
     profileUnavailable = true;
     console.warn = () => {};
@@ -91,7 +105,7 @@ test("an uncertain comment save returns safe retry guidance", async () => {
     console.error = (...args: unknown[]) => { logged.push(args); };
     globalThis.fetch = async (_url, init) => init?.method === "POST"
       ? Response.json({ message: "private synthetic detail" }, { status: 500 })
-      : Response.json({ documents: [{ $id: "synthetic_issue" }] });
+      : Response.json({ documents: [{ $id: "synthetic_issue", status: "open" }] });
 
     const response = await POST(new Request("https://example.test/api/issues/test/comments", {
       method: "POST",
