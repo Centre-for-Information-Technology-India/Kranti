@@ -27,6 +27,9 @@ export async function POST() {
     if (!user) {
       return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
     }
+    if (user.id !== userId) {
+      return NextResponse.json({ error: "Unable to confirm your account. Please try again." }, { status: 503 });
+    }
 
     const primaryEmail = user.emailAddresses.find((address) => address.id === user.primaryEmailAddressId)?.emailAddress ?? null;
     const verifiedEmail = verifiedPrimaryEmail(user);
