@@ -15,7 +15,6 @@ import {
   getFileViewUrl,
   listDocuments,
   Query,
-  upsertDocument,
   uploadFileBuffer,
 } from "@/lib/appwrite";
 import { buildPetitionSlug, petitionEvidenceSchema, petitionSubmissionSchema } from "@/lib/petition-form";
@@ -142,7 +141,7 @@ async function createPetition(request: Request) {
 
   const evidenceLinks = Array.isArray(submission.evidenceLinks) ? submission.evidenceLinks.filter(Boolean) : [];
 
-  await upsertDocument(appwriteDatabaseId, appwritePetitionsCollectionId, petitionId, {
+  await createDocument(appwriteDatabaseId, appwritePetitionsCollectionId, petitionId, {
     created_by: clerkUser.id,
     title: submission.title,
     slug: petitionSlug,
