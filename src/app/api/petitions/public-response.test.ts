@@ -60,6 +60,7 @@ test("public petition list and detail omit stored creator IDs", async () => {
   const originalClerk = require.cache[clerkPath];
   process.env.APPWRITE_API_KEY = "synthetic-test-key";
   require.cache[clerkPath] = { exports: { auth: async () => ({ userId: null }) } } as NodeModule;
+  let profileOwner = "private-clerk-id";
 
   try {
     const { GET: listPetitions } = await import("./route");
@@ -69,7 +70,7 @@ test("public petition list and detail omit stored creator IDs", async () => {
       const documents = collection === "petitions"
         ? [{ $id: "synthetic-petition", slug: "synthetic", title: "Synthetic petition", status: "open", created_by: "private-clerk-id", private_note: "private", signature_count: 2 }]
         : collection === "users"
-          ? [{ $id: "private-clerk-id", display_name: "Citizen" }]
+          ? [{ $id: "private-clerk-id", clerk_id: profileOwner, display_name: "Named Citizen", avatar_url: "https://example.test/avatar.png" }]
           : collection === "evidence"
             ? [{ $id: "synthetic-evidence", issue_id: "synthetic-petition", file_name: "private-person-name.jpg", file_url: "javascript:alert(1)" }]
           : [];
@@ -85,12 +86,20 @@ test("public petition list and detail omit stored creator IDs", async () => {
     const detailBody = await detailResponse.json();
     for (const petition of [listBody.petitions[0], detailBody.petition]) {
       assert.equal(petition.$id, "synthetic-petition");
-      assert.equal(petition.creatorName, "Citizen");
+      assert.equal(petition.creatorName, "Named Citizen");
       assert.equal("created_by" in petition, false);
       assert.equal("private_note" in petition, false);
       assert.equal(petition.evidence[0].name, "Evidence");
       assert.equal(petition.evidence[0].publicUrl, "");
       assert.doesNotMatch(JSON.stringify(petition), /private-person-name/);
+    }
+
+    profileOwner = "another-clerk-id";
+    const mismatchedList = await listPetitions(new Request("https://example.test/api/petitions"));
+    const mismatchedDetail = await getPetition(new Request("https://example.test/api/petitions/synthetic"), { params: Promise.resolve({ slug: "synthetic" }) });
+    for (const petition of [(await mismatchedList.json()).petitions[0], (await mismatchedDetail.json()).petition]) {
+      assert.equal(petition.creatorName, "Citizen");
+      assert.equal(petition.creatorAvatar, "");
     }
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
