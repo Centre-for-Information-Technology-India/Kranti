@@ -7,13 +7,14 @@ import {
   appwritePetitionsCollectionId,
   appwriteSignaturesCollectionId,
   createDocument,
+  getDocument,
   incrementDocumentAttribute,
   listDocuments,
   Query,
 } from "@/lib/appwrite";
 import { notifyNewSignature } from "@/lib/notifications";
 import { updateSignatureCountAfterSave } from "@/lib/petition-signature-count";
-import { isExistingSignature, signatureDocumentId } from "@/lib/petition-signature";
+import { belongsToSigner, isExistingSignature, signatureDocumentId } from "@/lib/petition-signature";
 import { canSignPetition } from "@/lib/petition-signing-status";
 
 export const runtime = "nodejs";
@@ -73,6 +74,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     } catch (error) {
       // Another request can save the same signature after the lookup above.
       if (isExistingSignature(error)) {
+        const existing = await getDocument(appwriteDatabaseId, appwriteSignaturesCollectionId, signatureId) as Record<string, unknown>;
+        if (!belongsToSigner(existing, petitionId, userId)) throw error;
         return NextResponse.json({ ok: true, alreadySigned: true, countUpdated: false, notificationSaved: null });
       }
       throw error;
