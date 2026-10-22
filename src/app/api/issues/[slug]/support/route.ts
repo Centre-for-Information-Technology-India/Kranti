@@ -101,6 +101,8 @@ async function saveSupport(_: Request, { params }: { params: Promise<{ slug: str
         // The authenticated userId owns the support. The alert name is optional.
         console.warn("Issue supporter display name unavailable");
       }
+      // Clerk auth owns the action; an optional profile may supply only its own name.
+      if (user?.id !== userId) user = null;
       const supporterName = user?.firstName && user?.lastName 
         ? `${user.firstName} ${user.lastName}` 
         : user?.username || "Someone";
