@@ -46,7 +46,7 @@ Incident report creation rejects JSON request bodies over 1 MiB with HTTP 413 be
 Incident report creation returns safe HTTP 503 JSON before any Appwrite write when Clerk cannot load the signed-in account.
 Incident report creation also gives account retry guidance if Clerk authentication throws before any write. Unsigned access remains HTTP 401.
 An incident account lookup exception uses that pre-write retry message, not uncertain-save guidance.
-Incident report creation returns safe HTTP 503 JSON when its save result cannot be confirmed. Check the dashboard before retrying.
+Incident report creation returns safe HTTP 503 JSON when its save result cannot be confirmed. The dashboard does not list incident reports, so keep the draft and contact Kranti before retrying.
 Successful incident report creation returns `ok`, `reportId`, `reportSlug`, and `evidenceSaved`. A false `evidenceSaved` means the report saved but its evidence metadata did not. The creator should keep the evidence and use the saved report reference instead of submitting it again. The response does not return the stored report document or evidence metadata.
 Moderator actions reject JSON request bodies over 1 MiB with HTTP 413 before issue or moderation-log writes.
 Moderator actions give account retry guidance if Clerk authentication fails before any role lookup or write. Unsigned access remains HTTP 401.

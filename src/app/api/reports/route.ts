@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Incident report creation failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json(
-      { error: "We couldn't confirm your report was saved. Check your dashboard before trying again." },
+      { error: "We couldn't confirm your report was saved. Keep your draft and contact Kranti before trying again." },
       { status: 503 },
     );
   }

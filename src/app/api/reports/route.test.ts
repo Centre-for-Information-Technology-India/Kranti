@@ -97,7 +97,7 @@ test("an uncertain incident save returns safe retry guidance", async () => {
     }));
 
     assert.equal(response.status, 503);
-    assert.match((await response.json()).error, /check your dashboard before trying again/i);
+    assert.match((await response.json()).error, /keep your draft and contact Kranti before trying again/i);
     assert.equal(writes, 1);
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
