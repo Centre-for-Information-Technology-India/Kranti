@@ -96,6 +96,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
         // The verified Clerk userId already owns the signature. A display name is optional.
         console.warn("Petition signer display name unavailable");
       }
+      // Only the authenticated account may supply the optional alert name.
+      if (user?.id !== userId) user = null;
       const signerName = user?.firstName && user?.lastName 
         ? `${user.firstName} ${user.lastName}` 
         : user?.username || "Someone";
