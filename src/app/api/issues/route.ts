@@ -144,6 +144,7 @@ export async function POST(request: Request) {
       category: submission.category,
       state: submission.state,
       district: submission.district,
+      landmark: submission.landmark,
       language: submission.language,
       status: "open",
       supporter_count: 0,

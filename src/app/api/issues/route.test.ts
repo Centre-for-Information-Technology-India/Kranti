@@ -1,5 +1,22 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { issueSubmissionSchema } from "@/lib/issue-form";
+
+test("issue landmarks stay within the live collection limit", () => {
+  const payload = {
+    title: "Synthetic broken streetlight",
+    description: "This synthetic report contains enough text to pass validation. It does not name a real location or citizen.",
+    category: "infrastructure",
+    state: "Test State",
+    district: "Test District",
+    landmark: "x".repeat(256),
+    evidenceLevel: "low",
+    language: "en",
+    consent: true,
+  };
+  assert.equal(issueSubmissionSchema.safeParse(payload).success, false);
+  assert.equal(issueSubmissionSchema.safeParse({ ...payload, landmark: "x".repeat(255) }).success, true);
+});
 
 test("an uncertain issue save tells citizens to check before retrying", async () => {
   const originalFetch = globalThis.fetch;
@@ -69,7 +86,11 @@ test("a saved issue reply contains only its link fields", async () => {
 
   try {
     const { POST } = await import("./route");
-    globalThis.fetch = async () => Response.json({ $id: "synthetic_issue", private_note: "do not return" });
+    let savedData: Record<string, unknown> | undefined;
+    globalThis.fetch = async (_input, init) => {
+      savedData = JSON.parse(String(init?.body)).data;
+      return Response.json({ $id: "synthetic_issue", private_note: "do not return" });
+    };
     const request = new Request("https://example.test/api/issues", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -97,6 +118,7 @@ test("a saved issue reply contains only its link fields", async () => {
     assert.equal(body.ok, true);
     assert.equal(body.evidenceSaved, true);
     assert.match(body.issueSlug, /^synthetic-broken-streetlight-issue/);
+    assert.equal(savedData?.landmark, "Test Landmark");
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
     else delete require.cache[clerkPath];

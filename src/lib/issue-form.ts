@@ -26,7 +26,7 @@ export const issueSubmissionSchema = z.object({
   category: z.enum(issueCategories),
   state: z.string().min(2, "State is required.").max(100, "Keep the state within 100 characters."),
   district: z.string().min(2, "District is required.").max(100, "Keep the district within 100 characters."),
-  landmark: z.string().min(3, "Add a nearby landmark or locality."),
+  landmark: z.string().min(3, "Add a nearby landmark or locality.").max(255, "Keep the landmark within 255 characters."),
   evidenceLevel: z.enum(evidenceLevels),
   evidenceLinks: evidenceWebUrlSchema.array().optional(),
   language: z.enum(issueLanguages),
