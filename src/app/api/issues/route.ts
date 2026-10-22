@@ -21,7 +21,7 @@ import { buildIssueSlug, issueEvidenceSchema, issueSubmissionSchema } from "@/li
 import { detectEvidenceType, publicEvidenceWebUrl } from "@/lib/evidence";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
 import { getUserRole } from "@/lib/role-lookup";
-import { verifiedPrimaryEmail } from "@/lib/account-sync";
+import { verifiedPrimaryEmailForAccount } from "@/lib/account-sync";
 import { publicIssueStatuses } from "@/lib/public-issue-status";
 
 export const runtime = "nodejs";
@@ -226,7 +226,7 @@ export async function GET(request: Request) {
       const role = await getUserRole(userId, null, undefined, reviewRequested ? async () => {
         const user = await currentUser();
         if (!user) throw new Error("Clerk user unavailable");
-        return verifiedPrimaryEmail(user);
+        return verifiedPrimaryEmailForAccount(user, userId);
       } : undefined);
       canViewCreatorId = role === "admin" || role === "moderator";
     }

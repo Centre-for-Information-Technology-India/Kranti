@@ -14,6 +14,11 @@ export function verifiedPrimaryEmail(user: {
   return address?.verification?.status === "verified" ? address.emailAddress : null;
 }
 
+export function verifiedPrimaryEmailForAccount(user: Parameters<typeof verifiedPrimaryEmail>[0] & { id: string }, clerkId: string): string | null {
+  if (user.id !== clerkId) throw new Error("Clerk profile does not match the authenticated account");
+  return verifiedPrimaryEmail(user);
+}
+
 export function belongsToClerkAccount(document: Record<string, unknown>, clerkId: string): boolean {
   const linkedId = document.clerk_id;
   return linkedId === null || linkedId === undefined || linkedId === "" || linkedId === clerkId;

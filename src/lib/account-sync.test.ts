@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { belongsToClerkAccount, preservedAccountFields, verifiedPrimaryEmail } from "./account-sync";
+import { belongsToClerkAccount, preservedAccountFields, verifiedPrimaryEmail, verifiedPrimaryEmailForAccount } from "./account-sync";
 
 test("later account sync preserves stored decisions", () => {
   assert.deepEqual(preservedAccountFields({ role: "moderator", trust_score: 82, consent_accepted: false }), {
@@ -29,6 +29,16 @@ test("only a verified primary email can link a seeded account", () => {
   assert.equal(verifiedPrimaryEmail(user), null);
   user.emailAddresses[0].verification.status = "verified";
   assert.equal(verifiedPrimaryEmail(user), "person@example.invalid");
+});
+
+test("a foreign Clerk profile cannot supply a seeded reviewer email", () => {
+  const user = {
+    id: "user-other",
+    primaryEmailAddressId: "primary",
+    emailAddresses: [{ id: "primary", emailAddress: "moderator@example.invalid", verification: { status: "verified" } }],
+  };
+  assert.throws(() => verifiedPrimaryEmailForAccount(user, "user-current"));
+  assert.equal(verifiedPrimaryEmailForAccount({ ...user, id: "user-current" }, "user-current"), "moderator@example.invalid");
 });
 
 test("a record linked to another Clerk account cannot be relinked", () => {

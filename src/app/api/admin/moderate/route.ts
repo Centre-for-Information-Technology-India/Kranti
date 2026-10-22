@@ -11,7 +11,7 @@ import {
   updateDocument,
 } from "@/lib/appwrite";
 import { getUserRole } from "@/lib/role-lookup";
-import { verifiedPrimaryEmail } from "@/lib/account-sync";
+import { verifiedPrimaryEmailForAccount } from "@/lib/account-sync";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
 import { createNotification } from "@/lib/notifications";
 
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     role = await getUserRole(userId, null, undefined, async () => {
       const user = await currentUser();
       if (!user) throw new Error("Clerk user unavailable");
-      return verifiedPrimaryEmail(user);
+      return verifiedPrimaryEmailForAccount(user, userId);
     });
   } catch {
     return NextResponse.json({ error: "Unable to check your role. Please try again." }, { status: 503 });
