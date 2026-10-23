@@ -39,8 +39,8 @@ export async function GET() {
 
 async function loadDashboard(userId: string) {
   const [allIssueDocuments, allPetitionDocuments] = await Promise.all([
-    dashboardCasesForUser(appwriteIssuesCollectionId, appwriteSupportsCollectionId, "issue_id", userId),
-    dashboardCasesForUser(appwritePetitionsCollectionId, appwriteSignaturesCollectionId, "petition_id", userId),
+    dashboardCasesForUser(appwriteIssuesCollectionId, appwriteSupportsCollectionId, "issue_id", userId, listDocuments, "issue"),
+    dashboardCasesForUser(appwritePetitionsCollectionId, appwriteSignaturesCollectionId, "petition_id", userId, listDocuments, "petition"),
   ]);
 
   const isOwned = (document: Record<string, unknown>) => String(document.created_by ?? document.createdBy ?? "") === userId;

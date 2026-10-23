@@ -30,3 +30,22 @@ test("dashboard pages owned cases without querying the absent created_at field",
   assert.equal(calls.filter((call) => call.collection === "issues").length, 3);
   assert.deepEqual(calls.find((call) => call.queries.some((query) => query.attribute === "$id"))?.queries.find((query) => query.attribute === "$id")?.values, ["joined-1"]);
 });
+
+test("dashboard identifies a failing read without logging account or case IDs", async () => {
+  const originalError = console.error;
+  const messages: string[] = [];
+  console.error = (message: string) => { messages.push(message); };
+  try {
+    const list = async (_database: string, collection: string, queries: string[]) => {
+      if (collection === "supports") {
+        const offset = queries.map((query) => JSON.parse(query)).find((query) => query.method === "offset")?.values[0];
+        if (offset === 0) throw new Error("Synthetic storage failure with private detail");
+      }
+      return { documents: [] };
+    };
+    await assert.rejects(dashboardCasesForUser("issues", "supports", "issue_id", "private-user", list, "issue"));
+    assert.deepEqual(messages, ["Dashboard issue participation read failed at offset 0"]);
+  } finally {
+    console.error = originalError;
+  }
+});
