@@ -59,22 +59,20 @@ async function fetchPublicSlugs(
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date().toISOString();
-
   // ── Static public pages ────────────────────────────────────────────────────
   const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${SITE_URL}/`,            lastModified: now, changeFrequency: "daily",   priority: 1.0  },
-    { url: `${SITE_URL}/issues`,      lastModified: now, changeFrequency: "hourly",  priority: 0.95 },
-    { url: `${SITE_URL}/petitions`,   lastModified: now, changeFrequency: "hourly",  priority: 0.95 },
-    { url: `${SITE_URL}/campaigns`,   lastModified: now, changeFrequency: "daily",   priority: 0.9  },
+    { url: `${SITE_URL}/`,            changeFrequency: "daily",   priority: 1.0  },
+    { url: `${SITE_URL}/issues`,      changeFrequency: "hourly",  priority: 0.95 },
+    { url: `${SITE_URL}/petitions`,   changeFrequency: "hourly",  priority: 0.95 },
+    { url: `${SITE_URL}/campaigns`,   changeFrequency: "daily",   priority: 0.9  },
     { url: `${SITE_URL}/guides`,      changeFrequency: "weekly",  priority: 0.9  },
-    { url: `${SITE_URL}/create`,      lastModified: now, changeFrequency: "weekly",  priority: 0.8  },
-    { url: `${SITE_URL}/transparency`,lastModified: now, changeFrequency: "weekly",  priority: 0.7  },
-    { url: `${SITE_URL}/about`,       lastModified: now, changeFrequency: "monthly", priority: 0.6  },
-    { url: `${SITE_URL}/guidelines`,  lastModified: now, changeFrequency: "monthly", priority: 0.5  },
-    { url: `${SITE_URL}/moderation`,  lastModified: now, changeFrequency: "yearly",  priority: 0.4  },
-    { url: `${SITE_URL}/terms`,       lastModified: now, changeFrequency: "yearly",  priority: 0.3  },
-    { url: `${SITE_URL}/privacy`,     lastModified: now, changeFrequency: "yearly",  priority: 0.3  },
+    { url: `${SITE_URL}/create`,      changeFrequency: "weekly",  priority: 0.8  },
+    { url: `${SITE_URL}/transparency`,changeFrequency: "weekly",  priority: 0.7  },
+    { url: `${SITE_URL}/about`,       changeFrequency: "monthly", priority: 0.6  },
+    { url: `${SITE_URL}/guidelines`,  changeFrequency: "monthly", priority: 0.5  },
+    { url: `${SITE_URL}/moderation`,  changeFrequency: "yearly",  priority: 0.4  },
+    { url: `${SITE_URL}/terms`,       changeFrequency: "yearly",  priority: 0.3  },
+    { url: `${SITE_URL}/privacy`,     changeFrequency: "yearly",  priority: 0.3  },
   ];
 
   // ── Individual guide pages (static, high-value content) ───────────────────
