@@ -49,3 +49,30 @@ test("dashboard identifies a failing read without logging account or case IDs", 
     console.error = originalError;
   }
 });
+
+test("dashboard loads participation beyond one page and batches joined cases", async () => {
+  const participation = Array.from({ length: 101 }, (_, index) => ({ issue_id: `joined-${index}` }));
+  const joinedBatches: string[][] = [];
+  const participationOffsets: number[] = [];
+  const list = async (_database: string, collection: string, rawQueries: string[]) => {
+    const queries = rawQueries.map((query) => JSON.parse(query));
+    const offset = Number(queries.find((query) => query.method === "offset")?.values[0] ?? 0);
+    if (collection === "supports") {
+      participationOffsets.push(offset);
+      return { documents: participation.slice(offset, offset + 100) };
+    }
+    const ids = queries.find((query) => query.attribute === "$id")?.values as string[] | undefined;
+    if (ids) {
+      joinedBatches.push(ids);
+      assert.ok(ids.length <= 50);
+      return { documents: ids.map(($id) => ({ $id, created_by: "another-account" })) };
+    }
+    return { documents: [] };
+  };
+
+  const cases = await dashboardCasesForUser("issues", "supports", "issue_id", "marked-account", list);
+  assert.equal(cases.length, 101);
+  assert.deepEqual(participationOffsets, [0, 100]);
+  assert.deepEqual(joinedBatches.map((batch) => batch.length), [50, 50, 1]);
+  assert.equal(new Set(cases.map((document) => document.$id)).size, 101);
+});
