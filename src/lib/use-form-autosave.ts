@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef } from "react";
-import type { UseFormReturn, FieldValues } from "react-hook-form";
+import type { UseFormReturn, FieldValues, Path, PathValue } from "react-hook-form";
 
 const DEBOUNCE_MS = 500;
 
@@ -17,7 +17,8 @@ export function useFormAutoSave<T extends FieldValues>(
       const parsed = JSON.parse(saved) as Partial<T>;
       Object.entries(parsed).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== "") {
-          form.setValue(key as any, value as any, { shouldValidate: false });
+          const field = key as Path<T>;
+          form.setValue(field, value as PathValue<T, Path<T>>, { shouldValidate: false });
         }
       });
     } catch {}
@@ -38,6 +39,10 @@ export function useFormAutoSave<T extends FieldValues>(
   }, [values, storageKey]);
 
   const clear = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     try { localStorage.removeItem(storageKey); } catch {}
   }, [storageKey]);
 
