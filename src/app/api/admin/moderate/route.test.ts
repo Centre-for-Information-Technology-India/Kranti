@@ -21,6 +21,7 @@ test("moderation keeps linked roles and verified seeded roles available", async 
         profileCalls += 1;
         if (profileFails) throw new Error("synthetic profile outage");
         return {
+          id: "synthetic_moderator",
           primaryEmailAddressId: "primary",
           emailAddresses: [{
             id: "primary",
