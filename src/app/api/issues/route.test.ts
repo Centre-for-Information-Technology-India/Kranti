@@ -171,6 +171,7 @@ test("a saved issue reply contains only its link fields", async () => {
     assert.equal(body.evidenceSaved, true);
     assert.match(body.issueSlug, /^synthetic-broken-streetlight-issue/);
     assert.equal(savedData?.landmark, "Test Landmark");
+    assert.equal(savedData?.status, "pending_review");
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;
     else delete require.cache[clerkPath];

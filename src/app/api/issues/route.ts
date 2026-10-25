@@ -145,7 +145,7 @@ export async function POST(request: Request) {
       district: submission.district,
       landmark: submission.landmark,
       language: submission.language,
-      status: "open",
+      status: "pending_review",
       supporter_count: 0,
       risk_score: submission.evidenceLevel === "high" ? 20 : submission.evidenceLevel === "medium" ? 40 : 60,
       evidence_count: uploadedEvidence.length + evidenceLinks.length,
