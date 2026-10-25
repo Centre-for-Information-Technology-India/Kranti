@@ -5,15 +5,23 @@ type List = (databaseId: string, collectionId: string, queries: string[]) => Pro
 
 const PAGE_SIZE = 100;
 
-async function allPages(collectionId: string, filters: string[], list: List, stage: string): Promise<Document[]> {
+export type DashboardReadStage = "issue_owned" | "issue_participation" | "issue_joined" | "petition_owned" | "petition_participation" | "petition_joined";
+
+export class DashboardReadError extends Error {
+  constructor(readonly stage: DashboardReadStage) {
+    super("Dashboard case read failed");
+  }
+}
+
+async function allPages(collectionId: string, filters: string[], list: List, stage: DashboardReadStage): Promise<Document[]> {
   const documents: Document[] = [];
   for (let offset = 0; ; offset += PAGE_SIZE) {
     let response: unknown;
     try {
       response = await list(appwriteDatabaseId, collectionId, [...filters, Query.limit(PAGE_SIZE), Query.offset(offset)]);
-    } catch (error) {
+    } catch {
       console.error(`Dashboard ${stage} read failed at offset ${offset}`);
-      throw error;
+      throw new DashboardReadError(stage);
     }
     const page = (response as { documents?: Document[] }).documents ?? [];
     documents.push(...page);
@@ -27,11 +35,12 @@ export async function dashboardCasesForUser(
   participationCaseField: string,
   userId: string,
   list: List = listDocuments,
-  caseKind = "case",
+  caseKind: "issue" | "petition" = "issue",
 ): Promise<Document[]> {
+  const stageKind = caseKind;
   const [owned, participation] = await Promise.all([
-    allPages(collectionId, [Query.equal("created_by", [userId])], list, `${caseKind} owned`),
-    allPages(participationCollectionId, [Query.equal("user_id", [userId])], list, `${caseKind} participation`),
+    allPages(collectionId, [Query.equal("created_by", [userId])], list, `${stageKind}_owned`),
+    allPages(participationCollectionId, [Query.equal("user_id", [userId])], list, `${stageKind}_participation`),
   ]);
 
   const ownedIds = new Set(owned.map((document) => String(document.$id)));
@@ -40,9 +49,9 @@ export async function dashboardCasesForUser(
   const joined = (await Promise.all(Array.from({ length: Math.ceil(joinedIds.length / 50) }, (_, index) => {
     const ids = joinedIds.slice(index * 50, (index + 1) * 50);
     return list(appwriteDatabaseId, collectionId, [Query.equal("$id", ids), Query.limit(50)])
-      .catch((error) => {
+      .catch(() => {
         console.error(`Dashboard ${caseKind} joined read failed at batch ${index}`);
-        throw error;
+        throw new DashboardReadError(`${stageKind}_joined`);
       });
   }))).flatMap((response) => (response as { documents?: Document[] }).documents ?? []);
 

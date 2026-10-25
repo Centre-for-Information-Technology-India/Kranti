@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { dashboardCasesForUser } from "./dashboard-cases";
+import { DashboardReadError, dashboardCasesForUser } from "./dashboard-cases";
 
 test("dashboard pages owned cases without querying the absent created_at field", async () => {
   const owned = Array.from({ length: 101 }, (_, index) => ({
@@ -43,8 +43,9 @@ test("dashboard identifies a failing read without logging account or case IDs", 
       }
       return { documents: [] };
     };
-    await assert.rejects(dashboardCasesForUser("issues", "supports", "issue_id", "private-user", list, "issue"));
-    assert.deepEqual(messages, ["Dashboard issue participation read failed at offset 0"]);
+    await assert.rejects(dashboardCasesForUser("issues", "supports", "issue_id", "private-user", list, "issue"),
+      (error: unknown) => error instanceof DashboardReadError && error.stage === "issue_participation");
+    assert.deepEqual(messages, ["Dashboard issue_participation read failed at offset 0"]);
   } finally {
     console.error = originalError;
   }

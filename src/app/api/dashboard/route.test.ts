@@ -84,6 +84,18 @@ test("dashboard groups synthetic cases without returning creator IDs", async () 
     assert.equal(outageBody.signedPetitions.length, 1);
     assert.equal("created_by" in outageBody.supportedIssues[0], false);
 
+    profileFailure = false;
+    globalThis.fetch = async (input) => {
+      const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
+      if (collection === "supports") return Response.json({ message: "Private citizen detail" }, { status: 503 });
+      return Response.json({ documents: [] });
+    };
+    const readFailureResponse = await GET();
+    assert.equal(readFailureResponse.status, 503);
+    const readFailureBody = await readFailureResponse.json();
+    assert.equal(readFailureBody.readStage, "issue_participation");
+    assert.equal(JSON.stringify(readFailureBody).includes("Private citizen detail"), false);
+
     authFailure = true;
     let appwriteRequests = 0;
     globalThis.fetch = async () => {

@@ -12,7 +12,7 @@ import {
   listDocuments,
   Query,
 } from "@/lib/appwrite";
-import { dashboardCasesForUser } from "@/lib/dashboard-cases";
+import { DashboardReadError, dashboardCasesForUser } from "@/lib/dashboard-cases";
 import { isPublicIssueStatus } from "@/lib/public-issue-status";
 import { isPublicPetitionStatus } from "@/lib/public-petition-status";
 
@@ -33,7 +33,11 @@ export async function GET() {
     return await loadDashboard(userId);
   } catch (error) {
     console.error("Dashboard cases fetch error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
-    return NextResponse.json({ ok: false, error: "Your cases could not load. Please try again." }, { status: 503 });
+    return NextResponse.json({
+      ok: false,
+      error: "Your cases could not load. Please try again.",
+      ...(error instanceof DashboardReadError ? { readStage: error.stage } : {}),
+    }, { status: 503 });
   }
 }
 

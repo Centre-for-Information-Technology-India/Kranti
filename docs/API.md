@@ -116,6 +116,7 @@ The signed-in dashboard reads only the citizen's own cases and cases they suppor
 The dashboard keeps a creator's own non-public issues and petitions visible to that creator. A past supporter or signer sees a case there only while its status is allowed on the public list.
 The dashboard returns safe HTTP 503 retry guidance if Clerk authentication fails before any case read. Unsigned access remains HTTP 401.
 The dashboard response contains case lists only. The client reads its signed-in profile from Clerk; the case API does not return that profile.
+Failed dashboard case reads return a fixed `readStage` code for the failing case type and read stage. The code contains no citizen or case identifier.
 Dashboard case lists omit stored creator IDs. The server uses those IDs only to group owned and backed cases.
 Creator-name lookups are optional for dashboard case lists. If a profile query fails or its Clerk links conflict, the cases still load with generic creator names.
 
