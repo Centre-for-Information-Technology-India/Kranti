@@ -46,7 +46,7 @@ const nextConfig: NextConfig = {
       },
       {
         // Allow public pages to be cached by CDN and browser
-        source: "/((?!api|_next|sign-in|sign-up|dashboard|admin|issue/new|petition/new|campaign/new|report/new).*)",
+        source: "/((?!api|_next|sign-in|sign-up|dashboard|admin|issues|issue/new|petition/new|campaign/new|report/new).*)",
         headers: [
           {
             key: "Cache-Control",
@@ -65,6 +65,16 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value: "no-store, no-cache, must-revalidate",
+          },
+        ],
+      },
+      {
+        // Issue details may include review-pending content for the creator.
+        source: "/issues/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-store, max-age=0",
           },
         ],
       },

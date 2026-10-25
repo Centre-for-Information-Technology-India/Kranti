@@ -40,6 +40,9 @@ import { canReadUnpublishedIssue } from "@/lib/unpublished-issue-access";
 import { isPublicIssueStatus } from "@/lib/public-issue-status";
 import { publicEvidenceWebUrl } from "@/lib/evidence";
 
+// This page can render a review-pending issue for its signed-in creator.
+export const dynamic = "force-dynamic";
+
 type IssueEvidence = {
   fileId: string;
   name: string;
