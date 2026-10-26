@@ -85,16 +85,31 @@ test("dashboard groups synthetic cases without returning creator IDs", async () 
     assert.equal("created_by" in outageBody.supportedIssues[0], false);
 
     profileFailure = false;
-    globalThis.fetch = async (input) => {
-      const collection = new URL(String(input)).pathname.split("/collections/")[1]?.split("/")[0];
-      if (collection === "supports") return Response.json({ message: "Private citizen detail" }, { status: 503 });
-      return Response.json({ documents: [] });
-    };
-    const readFailureResponse = await GET();
-    assert.equal(readFailureResponse.status, 503);
-    const readFailureBody = await readFailureResponse.json();
-    assert.equal(readFailureBody.readStage, "issue_participation");
-    assert.equal(JSON.stringify(readFailureBody).includes("Private citizen detail"), false);
+    for (const stage of [
+      "issue_owned", "issue_participation", "issue_joined",
+      "petition_owned", "petition_participation", "petition_joined",
+    ]) {
+      globalThis.fetch = async (input) => {
+        const url = new URL(String(input));
+        const collection = url.pathname.split("/collections/")[1]?.split("/")[0];
+        const queries = url.searchParams.getAll("queries[]").map((query) => JSON.parse(query));
+        const field = (name: string) => queries.some((query) => query.method === "equal" && query.attribute === name);
+        const kind = collection === "issues" ? "issue" : collection === "petitions" ? "petition" : "";
+        const readStage = collection === "supports" ? "issue_participation"
+          : collection === "signatures" ? "petition_participation"
+            : kind && field("created_by") ? `${kind}_owned`
+              : kind && field("$id") ? `${kind}_joined` : "";
+        if (readStage === stage) return Response.json({ message: "Private citizen detail" }, { status: 503 });
+        if (collection === "supports") return Response.json({ documents: [{ issue_id: "backed_issue", user_id: "synthetic_owner" }] });
+        if (collection === "signatures") return Response.json({ documents: [{ petition_id: "signed_petition", user_id: "synthetic_owner" }] });
+        return Response.json({ documents: [] });
+      };
+      const readFailureResponse = await GET();
+      assert.equal(readFailureResponse.status, 503, stage);
+      const readFailureBody = await readFailureResponse.json();
+      assert.equal(readFailureBody.readStage, stage);
+      assert.equal(JSON.stringify(readFailureBody).includes("Private citizen detail"), false);
+    }
 
     authFailure = true;
     let appwriteRequests = 0;
