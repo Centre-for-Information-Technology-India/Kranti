@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-test("campaign creation gives check-before-retry guidance when the save result is uncertain", async () => {
+test("campaign creation preserves the draft when the save result is uncertain", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.APPWRITE_API_KEY;
   const clerkPath = require.resolve("@clerk/nextjs/server");
@@ -11,6 +11,7 @@ test("campaign creation gives check-before-retry guidance when the save result i
     exports: {
       auth: async () => ({ userId: "synthetic_owner" }),
       clerkClient: async () => ({ users: { getUser: async () => ({
+        id: "synthetic_owner",
         firstName: "Test", lastName: "Citizen", username: "synthetic", imageUrl: "",
       }) } }),
     },
@@ -39,7 +40,8 @@ test("campaign creation gives check-before-retry guidance when the save result i
     assert.equal(writes, 1);
     assert.equal(response.status, 503);
     const body = await response.json();
-    assert.match(body.error, /check your dashboard before trying again/i);
+    assert.match(body.error, /keep your draft and contact Kranti before trying again/i);
+    assert.doesNotMatch(body.error, /dashboard/i);
     assert.doesNotMatch(body.error, /private storage detail/i);
   } finally {
     if (originalClerk) require.cache[clerkPath] = originalClerk;

@@ -68,7 +68,7 @@ Campaign creation rejects JSON request bodies over 1 MiB with HTTP 413 before ca
 Campaign creation returns safe HTTP 503 JSON before any Appwrite write when Clerk cannot load the signed-in account.
 Campaign creation gives account retry guidance if Clerk authentication fails before any Appwrite request. Unsigned access remains HTTP 401.
 Campaign creation also stops before storage if the loaded Clerk profile ID differs from the signed-in ID.
-Campaign creation returns safe HTTP 503 JSON when its save result cannot be confirmed. Check the dashboard before trying again.
+Campaign creation returns safe HTTP 503 JSON when its save result cannot be confirmed. The dashboard does not list campaigns, so keep the draft and contact Kranti before trying again.
 
 Public lists require bounded pagination. Never expose an unbounded collection query.
 
