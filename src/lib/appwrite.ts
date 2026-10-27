@@ -80,6 +80,30 @@ export async function incrementDocumentAttribute(databaseId: string, collectionI
   });
 }
 
+export async function createDatabaseTransaction(): Promise<{ $id: string }> {
+  return appwriteRequest("/databases/transactions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  }) as Promise<{ $id: string }>;
+}
+
+export async function stageDatabaseOperations(transactionId: string, operations: AppwriteJson[]) {
+  return appwriteRequest(`/databases/transactions/${encodeURIComponent(transactionId)}/operations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ operations }),
+  });
+}
+
+export async function finishDatabaseTransaction(transactionId: string, commit: boolean) {
+  return appwriteRequest(`/databases/transactions/${encodeURIComponent(transactionId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(commit ? { commit: true } : { rollback: true }),
+  });
+}
+
 export async function upsertDocument(databaseId: string, collectionId: string, documentId: string, data: AppwriteJson) {
   try {
     return await createDocument(databaseId, collectionId, documentId, data);

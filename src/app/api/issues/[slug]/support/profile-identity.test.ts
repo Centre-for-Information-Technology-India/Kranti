@@ -25,10 +25,16 @@ test("support alert never uses another Clerk account's profile name", async () =
       if (path.includes("/collections/supports/documents/") && init?.method === undefined) {
         return Response.json({ message: "Not found" }, { status: 404 });
       }
-      if (path.includes("/collections/supports/documents") && init?.method === "POST") {
-        return Response.json({ $id: "synthetic-support" });
+      if (path.endsWith("/databases/transactions") && init?.method === "POST") {
+        return Response.json({ $id: "synthetic-transaction" }, { status: 201 });
       }
-      if (path.includes("/collections/issues/documents/synthetic-issue/supporter_count/increment")) {
+      if (path.includes("/databases/transactions/synthetic-transaction/operations")) {
+        return Response.json({ operations: 2 }, { status: 201 });
+      }
+      if (path.endsWith("/databases/transactions/synthetic-transaction") && init?.method === "PATCH") {
+        return Response.json({ status: "committed" });
+      }
+      if (path.includes("/collections/issues/documents/synthetic-issue") && init?.method === undefined) {
         return Response.json({ supporter_count: 1 });
       }
       if (path.includes("/collections/notifications/documents") && init?.method === "POST") {
