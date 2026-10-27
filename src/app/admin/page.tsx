@@ -62,6 +62,10 @@ export default function AdminPage() {
   const [pendingHasMore, setPendingHasMore] = useState(false);
   const [pendingLoading, setPendingLoading] = useState(false);
   const [pendingLoadError, setPendingLoadError] = useState(false);
+  const [publicOffset, setPublicOffset] = useState(0);
+  const [publicHasMore, setPublicHasMore] = useState(false);
+  const [publicLoading, setPublicLoading] = useState(false);
+  const [publicLoadError, setPublicLoadError] = useState(false);
 
   // Client-side role guard
   useEffect(() => {
@@ -137,6 +141,9 @@ export default function AdminPage() {
         setIssues(nextIssues);
         setPendingHasMore(pendingData?.hasMore === true);
         setPendingLoadError(false);
+        setPublicOffset(Array.isArray(publicData?.issues) ? publicData.issues.length : 0);
+        setPublicHasMore(publicData?.hasMore === true);
+        setPublicLoadError(false);
         setSelectedIssueId((current) => nextIssues.find((issue: IssueRecord) => issue.$id === current)?.$id || nextIssues.find((issue: IssueRecord) => issue.status === "pending_review")?.$id || nextIssues[0]?.$id || null);
         setIssueLoadError(false);
       })
@@ -144,6 +151,8 @@ export default function AdminPage() {
         if (controller.signal.aborted) return;
         setIssues([]);
         setPendingHasMore(false);
+        setPublicHasMore(false);
+        setPublicOffset(0);
         setSelectedIssueId(null);
         setIssueLoadError(true);
       });
@@ -170,6 +179,28 @@ export default function AdminPage() {
       setPendingLoadError(true);
     } finally {
       setPendingLoading(false);
+    }
+  }
+
+  async function loadMorePublic() {
+    if (publicLoading || !publicHasMore) return;
+    setPublicLoading(true);
+    setPublicLoadError(false);
+    try {
+      const response = await fetch(`/api/issues?offset=${publicOffset}`);
+      if (!response.ok) throw new Error("Public issues unavailable");
+      const data = await response.json();
+      if (!Array.isArray(data?.issues)) throw new Error("Invalid public issues response");
+      setIssues((current) => {
+        const seen = new Set(current.map((issue) => issue.$id));
+        return [...current, ...data.issues.filter((issue: IssueRecord) => !seen.has(issue.$id))];
+      });
+      setPublicOffset((current) => current + data.issues.length);
+      setPublicHasMore(data.hasMore === true);
+    } catch {
+      setPublicLoadError(true);
+    } finally {
+      setPublicLoading(false);
     }
   }
 
@@ -473,6 +504,21 @@ export default function AdminPage() {
               {statusFilter === "pending_review" && pendingLoadError && (
                 <p role="alert" className="text-center text-sm text-amber-800 dark:text-amber-200">
                   More reviews could not load. Try again.
+                </p>
+              )}
+              {statusFilter !== "pending_review" && publicHasMore && (
+                <button
+                  type="button"
+                  onClick={loadMorePublic}
+                  disabled={publicLoading}
+                  className="min-h-11 w-full rounded-xl border border-slate-900/10 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 disabled:cursor-wait disabled:opacity-60 dark:border-white/15 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  {publicLoading ? "Loading more issues..." : "Load more issues"}
+                </button>
+              )}
+              {statusFilter !== "pending_review" && publicLoadError && (
+                <p role="alert" className="text-center text-sm text-amber-800 dark:text-amber-200">
+                  More issues could not load. Try again.
                 </p>
               )}
             </div>
