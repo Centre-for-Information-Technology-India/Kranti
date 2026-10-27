@@ -5,11 +5,11 @@ import {
   AppwriteRequestError,
   appwriteDatabaseId,
   appwriteUsersCollectionId,
+  createDocument,
   getDocument,
   listDocuments,
   Query,
   updateDocument,
-  upsertDocument,
 } from "@/lib/appwrite";
 import { belongsToClerkAccount, preservedAccountFields, verifiedPrimaryEmail } from "@/lib/account-sync";
 
@@ -67,19 +67,32 @@ export async function POST() {
     }
 
     // Preserve account decisions made after signup on every later sync.
-    const accountFields = preservedAccountFields(existingDoc);
-
-    await upsertDocument(appwriteDatabaseId, appwriteUsersCollectionId, user.id, {
+    const accountData = (document: Record<string, unknown> | null) => ({
       clerk_id: user.id,
       display_name: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || primaryEmail || "Kranti user",
       email: primaryEmail,
       phone: primaryPhone,
       avatar_url: user.imageUrl,
-      role: accountFields.role,
+      ...preservedAccountFields(document),
       verified: Boolean(user.primaryEmailAddressId || user.primaryPhoneNumberId),
-      trust_score: accountFields.trust_score,
-      consent_accepted: accountFields.consent_accepted,
     });
+
+    if (existingDoc) {
+      await updateDocument(appwriteDatabaseId, appwriteUsersCollectionId, user.id, accountData(existingDoc));
+    } else {
+      try {
+        await createDocument(appwriteDatabaseId, appwriteUsersCollectionId, user.id, accountData(null));
+      } catch (error) {
+        if (!(error instanceof AppwriteRequestError) || error.status !== 409) throw error;
+
+        // Another request may have created this account after the first read.
+        const freshDoc = await getDocument(appwriteDatabaseId, appwriteUsersCollectionId, user.id) as Record<string, unknown>;
+        if (freshDoc.clerk_id !== user.id) {
+          return NextResponse.json({ error: "This account record belongs to another sign-in." }, { status: 409 });
+        }
+        await updateDocument(appwriteDatabaseId, appwriteUsersCollectionId, user.id, accountData(freshDoc));
+      }
+    }
 
     return NextResponse.json({ ok: true, userId: user.id });
   } catch {
