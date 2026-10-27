@@ -6,9 +6,10 @@ import {
   appwriteDatabaseId,
   appwriteIssuesCollectionId,
   appwriteModerationLogsCollectionId,
-  createDocument,
+  createDatabaseTransaction,
+  finishDatabaseTransaction,
   getDocument,
-  updateDocument,
+  stageDatabaseOperations,
 } from "@/lib/appwrite";
 import { getUserRole } from "@/lib/role-lookup";
 import { verifiedPrimaryEmailForAccount } from "@/lib/account-sync";
@@ -104,32 +105,40 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Could not confirm the issue status. Refresh it before trying again." }, { status: 503 });
   }
 
-  // Update issue status
-  try {
-    await updateDocument(appwriteDatabaseId, appwriteIssuesCollectionId, issueId, {
-      status: newStatus,
-    });
-  } catch (error) {
-    console.error("Moderation status update failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
-    return NextResponse.json({ error: "Could not confirm the action. Refresh the issue before trying again." }, { status: 503 });
-  }
-
   // Write moderation log (action enum: flag/hide/delete/ban/restore/escalate/approve/reject)
   // Map 'resolve' to 'approve' since DB enum doesn't have 'resolve'
   const dbAction = action === "resolve" ? "approve" : action;
   const logId = `log${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`.slice(0, 32);
-  try {
-    await createDocument(appwriteDatabaseId, appwriteModerationLogsCollectionId, logId, {
+  const logData = {
       action: dbAction,
       admin_id: userId,
       reason: action === "resolve"
         ? `Action: resolve. ${reason || "Moderator marked the issue resolved."}`
         : reason || `Action: ${action} performed by moderator.`,
       content_id: issueId,
-    });
+  };
+  // The status must never change without its review record.
+  let transactionId: string | null = null;
+  let commitStarted = false;
+  try {
+    const transaction = await createDatabaseTransaction();
+    transactionId = transaction.$id;
+    await stageDatabaseOperations(transactionId, [
+      { action: "update", databaseId: appwriteDatabaseId, collectionId: appwriteIssuesCollectionId, documentId: issueId, data: { status: newStatus } },
+      { action: "create", databaseId: appwriteDatabaseId, collectionId: appwriteModerationLogsCollectionId, documentId: logId, data: logData },
+    ]);
+    commitStarted = true;
+    await finishDatabaseTransaction(transactionId, true);
   } catch (error) {
-    console.error("Moderation audit write failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
-    return NextResponse.json({ error: "The issue status may have changed, but its review record was not confirmed. Refresh it and ask an administrator to check the action before trying again." }, { status: 503 });
+    if (transactionId && !commitStarted) {
+      try {
+        await finishDatabaseTransaction(transactionId, false);
+      } catch {
+        console.warn("Uncommitted moderation transaction rollback failed");
+      }
+    }
+    console.error("Moderation transaction failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+    return NextResponse.json({ error: "Could not confirm the review. Refresh the issue and check its review record before trying again." }, { status: 503 });
   }
 
   // The review is complete even if its secondary creator alert cannot be saved.

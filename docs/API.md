@@ -58,7 +58,7 @@ Incident report creation returns safe HTTP 503 JSON when its save result cannot 
 Successful incident report creation returns `ok`, `reportId`, `reportSlug`, and `evidenceSaved`. A false `evidenceSaved` means the report saved but its evidence metadata did not. The creator should keep the evidence and use the saved report reference instead of submitting it again. The response does not return the stored report document or evidence metadata.
 Moderator actions reject JSON request bodies over 1 MiB with HTTP 413 before issue or moderation-log writes.
 Moderator actions give account retry guidance if Clerk authentication fails before any role lookup or write. Unsigned access remains HTTP 401.
-Moderator actions return safe HTTP 503 JSON when a status update or its audit write cannot be confirmed. After an audit failure, refresh the issue and check its review record before trying again.
+Moderator actions commit the issue status and review record together. If that transaction cannot be confirmed, the route returns safe HTTP 503 JSON. Refresh the issue and check its review record before trying again.
 After a confirmed review record, moderator actions try to alert the issue creator. The response reports `notificationSaved`: `true` if saved, `false` if the alert failed, and `null` if no creator is known. An alert failure does not undo the status change.
 Issue comments reject JSON request bodies over 1 MiB with HTTP 413 before issue lookup or comment writes.
 Successful issue comment creation returns the public comment fields used by the page. It does not return the stored user ID or other Appwrite document fields.
