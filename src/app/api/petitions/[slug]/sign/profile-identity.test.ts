@@ -25,11 +25,14 @@ test("petition alert never uses another Clerk account's profile name", async () 
       if (path.includes("/collections/signatures/documents?") && init?.method === undefined) {
         return Response.json({ documents: [] });
       }
-      if (path.includes("/collections/signatures/documents") && init?.method === "POST") {
-        return Response.json({ $id: "synthetic-signature" });
+      if (path.endsWith("/databases/transactions") && init?.method === "POST") {
+        return Response.json({ $id: "synthetic-transaction" }, { status: 201 });
       }
-      if (path.includes("/collections/petitions/documents/synthetic-petition/signature_count/increment")) {
-        return Response.json({ signature_count: 1 });
+      if (path.includes("/databases/transactions/synthetic-transaction/operations")) {
+        return Response.json({ operations: 2 }, { status: 201 });
+      }
+      if (path.endsWith("/databases/transactions/synthetic-transaction") && init?.method === "PATCH") {
+        return Response.json({ status: "committed" });
       }
       if (path.includes("/collections/notifications/documents") && init?.method === "POST") {
         alertMessage = String((JSON.parse(String(init.body)) as { data: { message: string } }).data.message);

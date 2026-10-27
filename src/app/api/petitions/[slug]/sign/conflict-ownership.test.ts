@@ -25,7 +25,13 @@ for (const scenario of ["owned", "foreign", "unreadable"] as const) {
         if (url.includes("/collections/signatures/") && method === "GET" && url.includes("?")) {
           return Response.json({ documents: [] });
         }
-        if (url.includes("/collections/signatures/") && method === "POST") {
+        if (url.endsWith("/databases/transactions") && method === "POST") {
+          return Response.json({ $id: "synthetic-transaction" }, { status: 201 });
+        }
+        if (url.includes("/databases/transactions/synthetic-transaction/operations") && method === "POST") {
+          return Response.json({ operations: 2 }, { status: 201 });
+        }
+        if (url.endsWith("/databases/transactions/synthetic-transaction") && method === "PATCH") {
           return Response.json({ message: "Document already exists" }, { status: 409 });
         }
         if (url.includes("/collections/signatures/") && method === "GET") {
@@ -41,7 +47,7 @@ for (const scenario of ["owned", "foreign", "unreadable"] as const) {
       const body = await response.json();
       assert.equal(response.status, scenario === "owned" ? 200 : 503);
       assert.equal(body.alreadySigned, scenario === "owned" ? true : undefined);
-      assert.deepEqual(requests.map((entry) => entry.split(" ")[0]), ["GET", "GET", "POST", "GET"]);
+      assert.deepEqual(requests.map((entry) => entry.split(" ")[0]), ["GET", "GET", "POST", "POST", "PATCH", "GET"]);
     } finally {
       if (originalClerk) require.cache[clerkPath] = originalClerk;
       else delete require.cache[clerkPath];

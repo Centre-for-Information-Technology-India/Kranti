@@ -6,15 +6,15 @@ import {
   appwriteDatabaseId,
   appwritePetitionsCollectionId,
   appwriteSignaturesCollectionId,
-  createDocument,
+  createDatabaseTransaction,
+  finishDatabaseTransaction,
   getDocument,
-  incrementDocumentAttribute,
   listDocuments,
   Query,
+  stageDatabaseOperations,
 } from "@/lib/appwrite";
 import { notifyNewSignature } from "@/lib/notifications";
-import { updateSignatureCountAfterSave } from "@/lib/petition-signature-count";
-import { belongsToSigner, isExistingSignature, signatureDocumentId } from "@/lib/petition-signature";
+import { belongsToSigner, signatureDocumentId } from "@/lib/petition-signature";
 import { canSignPetition } from "@/lib/petition-signing-status";
 
 export const runtime = "nodejs";
@@ -65,30 +65,52 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
     const signatureId = signatureDocumentId(petitionId, userId);
 
-    try {
-      await createDocument(appwriteDatabaseId, appwriteSignaturesCollectionId, signatureId, {
-        petition_id: petitionId,
-        user_id: userId,
-        created_at: new Date().toISOString(),
-      });
-    } catch (error) {
-      // Another request can save the same signature after the lookup above.
-      if (isExistingSignature(error)) {
-        const existing = await getDocument(appwriteDatabaseId, appwriteSignaturesCollectionId, signatureId) as Record<string, unknown>;
-        if (!belongsToSigner(existing, petitionId, userId)) throw error;
-        return NextResponse.json({ ok: true, alreadySigned: true, countUpdated: false, notificationSaved: null });
+    let signatureSavedNow = false;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const transaction = await createDatabaseTransaction();
+      let commitStarted = false;
+      try {
+        await stageDatabaseOperations(transaction.$id, [
+          { action: "create", databaseId: appwriteDatabaseId, collectionId: appwriteSignaturesCollectionId, documentId: signatureId,
+            data: { petition_id: petitionId, user_id: userId, created_at: new Date().toISOString() } },
+          { action: "increment", databaseId: appwriteDatabaseId, collectionId: appwritePetitionsCollectionId, documentId: petitionId,
+            data: { attribute: "signature_count", value: 1 } },
+        ]);
+        commitStarted = true;
+        await finishDatabaseTransaction(transaction.$id, true);
+        signatureSavedNow = true;
+        break;
+      } catch (error) {
+        if (!commitStarted) {
+          try {
+            await finishDatabaseTransaction(transaction.$id, false);
+          } catch {
+            console.warn("Uncommitted petition signature transaction rollback failed");
+          }
+        }
+        // A lost commit response is ambiguous. A matching signature proves that
+        // the atomic transaction committed, so a retry must not increment again.
+        let existing: Record<string, unknown> | null = null;
+        try {
+          existing = await getDocument(appwriteDatabaseId, appwriteSignaturesCollectionId, signatureId) as Record<string, unknown>;
+        } catch (readError) {
+          if (!(readError instanceof AppwriteRequestError) || readError.status !== 404) throw readError;
+        }
+        if (existing) {
+          if (!belongsToSigner(existing, petitionId, userId)) throw error;
+          break;
+        }
+        if (!(error instanceof AppwriteRequestError) || error.status !== 409 || attempt === 2) throw error;
+        const latestPetition = await getDocument(appwriteDatabaseId, appwritePetitionsCollectionId, petitionId) as { status?: string };
+        if (!canSignPetition(latestPetition.status)) {
+          return NextResponse.json({ error: "This petition is not open for signatures." }, { status: 409 });
+        }
       }
-      throw error;
     }
-
-    const countUpdated = await updateSignatureCountAfterSave(
-      () => incrementDocumentAttribute(appwriteDatabaseId, appwritePetitionsCollectionId, petitionId, "signature_count"),
-      (error) => console.error("Petition signature saved but count update failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error"),
-    );
 
     // The signature is saved even if the creator's alert fails.
     let notificationSaved: boolean | null = null;
-    if (createdBy && createdBy !== userId) {
+    if (signatureSavedNow && createdBy && createdBy !== userId) {
       let user: Awaited<ReturnType<typeof currentUser>> = null;
       try {
         user = await currentUser();
@@ -110,7 +132,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       );
     }
 
-    return NextResponse.json({ ok: true, countUpdated, notificationSaved, message: "Petition signed successfully" });
+    return NextResponse.json({ ok: true, alreadySigned: !signatureSavedNow, countUpdated: signatureSavedNow, notificationSaved,
+      message: signatureSavedNow ? "Petition signed successfully" : "You already signed this petition." });
   } catch (error) {
     console.error("Petition signing failed:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
     return NextResponse.json(
