@@ -14,6 +14,10 @@ interface Props {
   children: React.ReactNode;
 }
 
+// Petition details may contain review-pending content after creator access is enabled.
+// Always render against the current publication status.
+export const dynamic = "force-dynamic";
+
 async function fetchPetitionBySlug(slug: string): Promise<Record<string, unknown> | null> {
   try {
     const res = (await listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [
