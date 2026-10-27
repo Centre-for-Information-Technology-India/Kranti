@@ -47,7 +47,7 @@ export function SupportButton({ slug, initialSupportCount }: SupportButtonProps)
       if (typeof body.supportCount === "number") setSupportCount(body.supportCount);
       setHasSupported(true);
       setFeedback(body.countUpdated === false && !body.alreadySupported
-        ? "Your support was saved. The public count may update later."
+        ? "Your support was saved. The public count may be out of date."
         : "Your support was saved.");
       if (body.countUpdated !== false) router.refresh();
     } catch (error) {
