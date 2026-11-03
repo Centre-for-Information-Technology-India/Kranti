@@ -71,7 +71,9 @@ test("signature and count commit together across failures and retries", async ()
       if (scenario !== "no-commit") {
         const repeat = await request();
         assert.equal(repeat.status, 200, `${scenario} repeat`);
-        assert.equal((await repeat.json()).alreadySigned, true, scenario);
+        const repeatBody = await repeat.json();
+        assert.equal(repeatBody.alreadySigned, true, scenario);
+        assert.equal(repeatBody.countUpdated, false, `${scenario} repeat count update`);
         assert.equal(count, scenario === "concurrent-conflict" ? 2 : 1, `${scenario} repeat count`);
       }
     }
