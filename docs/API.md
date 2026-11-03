@@ -17,6 +17,7 @@ Petition signing uses the authenticated Clerk user ID. If the optional signer pr
 Petition signing returns account retry guidance when Clerk authentication fails before any Appwrite write. An uncertain signature save still asks the citizen to check the petition before retrying.
 New petition signatures and the stored signature count commit in one Appwrite transaction. A retry checks the signer's stable signature ID before attempting another count increment.
 Issue support returns a safe HTTP 503 JSON response when its result cannot be confirmed. Retrying the same support cannot create a second support record.
+Issue support returns `countUpdated: false` when the supporter already has a saved action; a newly committed action returns `true`.
 Issues awaiting review and rejected issues cannot receive new support through a saved direct link. The support route returns HTTP 404 before any support or alert write.
 Issue support uses the authenticated Clerk user ID. If the optional supporter profile lookup fails, the support still saves and the creator alert uses a generic name.
 If the optional supporter profile belongs to another Clerk ID, the creator alert also uses a generic name.

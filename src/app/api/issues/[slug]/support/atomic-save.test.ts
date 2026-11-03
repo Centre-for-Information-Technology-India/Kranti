@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { legacySupportDocumentId } from "@/lib/support-id";
 
 test("support and count commit together across retries and conflicts", async () => {
   const originalFetch = globalThis.fetch;
@@ -18,6 +19,7 @@ test("support and count commit together across retries and conflicts", async () 
       let supportExists = false;
       let commitAttempts = 0;
       let stagedOperations: Array<Record<string, unknown>> = [];
+      const legacyId = legacySupportDocumentId("synthetic-issue", "synthetic-supporter");
 
       globalThis.fetch = async (url, init) => {
         const path = String(url);
@@ -28,7 +30,7 @@ test("support and count commit together across retries and conflicts", async () 
           return Response.json({ status: "open", supporter_count: count });
         }
         if (path.includes("/collections/supports/documents/") && !init?.method) {
-          if (path.endsWith("/synthetic-legacy")) return Response.json({}, { status: 404 });
+          if (path.endsWith(`/${legacyId}`)) return Response.json({}, { status: 404 });
           return supportExists
             ? Response.json({ issue_id: "synthetic-issue", user_id: "synthetic-supporter", kind: "support" })
             : Response.json({}, { status: 404 });
@@ -65,12 +67,15 @@ test("support and count commit together across retries and conflicts", async () 
       });
       const response = await request();
       assert.equal(response.status, scenario === "no-commit" ? 503 : 200, scenario);
+      if (scenario !== "no-commit") assert.equal((await response.json()).countUpdated, true, `${scenario} first count update`);
       assert.equal(supportExists, scenario !== "no-commit", scenario);
       assert.equal(count, scenario === "concurrent-conflict" ? 2 : scenario === "no-commit" ? 0 : 1, scenario);
       if (scenario !== "no-commit") {
         const repeat = await request();
         assert.equal(repeat.status, 200, `${scenario} repeat`);
-        assert.equal((await repeat.json()).alreadySupported, true, scenario);
+        const repeatBody = await repeat.json();
+        assert.equal(repeatBody.alreadySupported, true, scenario);
+        assert.equal(repeatBody.countUpdated, false, `${scenario} repeat count update`);
         assert.equal(count, scenario === "concurrent-conflict" ? 2 : 1, `${scenario} repeat count`);
       }
     }

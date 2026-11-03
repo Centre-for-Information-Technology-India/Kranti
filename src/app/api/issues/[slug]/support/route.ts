@@ -65,6 +65,16 @@ async function saveSupport(_: Request, { params }: { params: Promise<{ slug: str
   }
 
   const supportId = supportDocumentId(issue.$id, userId);
+  let priorSupport: Record<string, unknown> | null = null;
+  try {
+    priorSupport = await getDocument(appwriteDatabaseId, appwriteSupportsCollectionId, supportId) as Record<string, unknown>;
+  } catch (error) {
+    if (!(error instanceof AppwriteRequestError) || error.status !== 404) throw error;
+  }
+  if (priorSupport) {
+    if (!belongsToSupporter(priorSupport, issue.$id, userId)) throw new Error("Support ID belongs to a different action");
+    return NextResponse.json({ ok: true, supportCount: issue.supporter_count ?? 0, countUpdated: false, notificationSaved: null, alreadySupported: true });
+  }
   const supportPayload = {
     issue_id: issue.$id,
     user_id: userId,
@@ -73,6 +83,7 @@ async function saveSupport(_: Request, { params }: { params: Promise<{ slug: str
   };
 
   let supportSavedNow = false;
+  let countUpdated = false;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const transaction = await createDatabaseTransaction();
     let commitStarted = false;
@@ -84,6 +95,7 @@ async function saveSupport(_: Request, { params }: { params: Promise<{ slug: str
       commitStarted = true;
       await finishDatabaseTransaction(transaction.$id, true);
       supportSavedNow = true;
+      countUpdated = true;
       break;
     } catch (error) {
       if (!commitStarted) {
@@ -104,6 +116,7 @@ async function saveSupport(_: Request, { params }: { params: Promise<{ slug: str
       }
       if (existing) {
         if (!belongsToSupporter(existing, issue.$id, userId)) throw error;
+        countUpdated = true;
         break;
       }
       if (!(error instanceof AppwriteRequestError) || error.status !== 409 || attempt === 2) throw error;
@@ -148,5 +161,5 @@ async function saveSupport(_: Request, { params }: { params: Promise<{ slug: str
     }
   }
 
-  return NextResponse.json({ ok: true, supportCount, countUpdated: true, notificationSaved, alreadySupported: !supportSavedNow });
+  return NextResponse.json({ ok: true, supportCount, countUpdated, notificationSaved, alreadySupported: !supportSavedNow });
 }
