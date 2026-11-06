@@ -24,6 +24,7 @@ import { evidenceLevels, issueCategories, issueDefaultValues, issueSubmissionSch
 import { validateEvidenceFile } from "@/lib/evidence";
 import { EvidenceLinksInput } from "@/components/evidence-links-input";
 import { useFormAutoSave } from "@/lib/use-form-autosave";
+import { captureSavedCase } from "@/components/visitor-events";
 
 const checklist = [
   "Keep the complaint factual, local, and specific.",
@@ -104,6 +105,7 @@ export default function NewIssuePage() {
         throw new Error(body.error || "Failed to save the issue draft.");
       }
 
+      captureSavedCase("issue");
       setSubmitted(true);
       if (body.evidenceSaved === false) {
         setSavedWithoutEvidence(body.issueSlug ?? null);

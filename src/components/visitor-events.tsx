@@ -44,6 +44,17 @@ function capture(event: string, properties: Record<string, string>) {
   });
 }
 
+type SavedCase = "issue" | "petition" | "incident" | "campaign";
+
+export function captureSavedCase(kind: SavedCase) {
+  if (!enabled) return;
+  try {
+    capture("civic_case_saved", { kind });
+  } catch {
+    // Tracking must never turn a saved case into a form error.
+  }
+}
+
 export function VisitorEvents() {
   const pathname = usePathname();
   const lastPage = useRef<string | null>(null);

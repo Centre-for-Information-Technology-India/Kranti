@@ -16,6 +16,7 @@ import { petitionCategories, petitionDefaultValues, petitionSubmissionSchema, ty
 import { validateEvidenceFile } from "@/lib/evidence";
 import { EvidenceLinksInput } from "@/components/evidence-links-input";
 import { useFormAutoSave } from "@/lib/use-form-autosave";
+import { captureSavedCase } from "@/components/visitor-events";
 
 const checklist = [
   "State a clear, specific demand directed at the appropriate authority.",
@@ -96,6 +97,7 @@ export default function NewPetitionPage() {
         throw new Error(body.error || "Failed to save the petition.");
       }
 
+      captureSavedCase("petition");
       setSubmitted(true);
       if (body.evidenceSaved === false) {
         setSavedWithoutEvidence(body.petitionSlug ?? null);

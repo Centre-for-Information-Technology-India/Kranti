@@ -15,6 +15,7 @@ import { incidentTypes, reportDefaultValues, reportSubmissionSchema, type Report
 import { validateEvidenceFile } from "@/lib/evidence";
 import { EvidenceLinksInput } from "@/components/evidence-links-input";
 import { useFormAutoSave } from "@/lib/use-form-autosave";
+import { captureSavedCase } from "@/components/visitor-events";
 
 export default function NewReportPage() {
   const t = useTranslations("reportForm");
@@ -113,6 +114,7 @@ export default function NewReportPage() {
         throw new Error(body.error || t("submitFailed"));
       }
 
+      captureSavedCase("incident");
       setSubmitted(true);
       if (body.evidenceSaved === false) {
         setSavedWithoutEvidence(body.reportId ?? "saved");
