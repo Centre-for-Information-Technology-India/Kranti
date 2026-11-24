@@ -106,6 +106,7 @@ Creator-profile lookups are optional for issue lists. Missing names use "Citizen
 Issue lists use a creator profile only when its Clerk link matches the saved case owner. A conflicting link uses the generic name and no avatar.
 Public issue list replies omit stored creator account IDs. Signed-in moderators and admins can see those IDs for review.
 The public issue list returns up to 25 issues per request, newest first by Appwrite creation time. Use an `offset` from 0 to 10000 and the `hasMore` flag to read older issues.
+The issue list also checks each returned status before loading linked data or sending citizen text. Public requests include only public statuses, even if a database query returns a different record.
 
 An issue detail page reads only evidence and comments linked to that issue and the creator's profile. These reads are bounded.
 Review-pending and rejected issue pages and their comments are hidden from public readers, including saved direct links. The creator, moderators, and admins may still read the issue page. New comments on review-pending or rejected issues are not accepted.

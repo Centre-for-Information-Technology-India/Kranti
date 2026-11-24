@@ -22,7 +22,7 @@ import { detectEvidenceType, publicEvidenceWebUrl } from "@/lib/evidence";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
 import { getUserRole } from "@/lib/role-lookup";
 import { verifiedPrimaryEmailForAccount } from "@/lib/account-sync";
-import { publicIssueStatuses } from "@/lib/public-issue-status";
+import { isPublicIssueStatus, publicIssueStatuses } from "@/lib/public-issue-status";
 
 export const runtime = "nodejs";
 
@@ -248,7 +248,13 @@ export async function GET(request: Request) {
       Query.offset(offset),
     ]);
     const pageDocuments = (issuesResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [];
-    const issueDocuments = pageDocuments.slice(0, 25);
+    // The Appwrite query limits the read; verify each returned status before
+    // sending citizen text or loading linked evidence and creator profiles.
+    const issueDocuments = pageDocuments.slice(0, 25).filter((document) =>
+      reviewRequested
+        ? pendingOnly ? document.status === "pending_review" : document.status === "pending_review" || isPublicIssueStatus(document.status)
+        : isPublicIssueStatus(document.status)
+    );
     const issueIds = issueDocuments.map((document) => String(document.$id ?? "")).filter(Boolean);
     const creatorIds = [...new Set(issueDocuments
       .map((document) => String(document.created_by ?? document.createdBy ?? ""))
