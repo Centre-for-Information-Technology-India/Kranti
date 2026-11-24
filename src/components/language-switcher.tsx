@@ -46,7 +46,7 @@ export function LanguageSwitcher() {
       disabled={isPending}
       className="flex items-center gap-1.5"
       title={locale === "en" ? "हिन्दी में बदलें" : "Switch to English"}
-      aria-label={locale === "en" ? "Switch to Hindi" : "Switch to English"}
+      aria-label={locale === "en" ? "हिन्दी" : "English"}
     >
       {isPending ? (
         <Loader2 className="h-4 w-4 animate-spin" />

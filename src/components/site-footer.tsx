@@ -36,7 +36,7 @@ export function SiteFooter() {
 
           {/* Platform */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-600 dark:text-slate-300">
               {t("sections.platform")}
             </p>
             <nav className="flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-400">
@@ -51,7 +51,7 @@ export function SiteFooter() {
 
           {/* Legal */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-600 dark:text-slate-300">
               {t("sections.legal")}
             </p>
             <nav className="flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-400">
@@ -60,14 +60,14 @@ export function SiteFooter() {
               <Link href="/moderation" className="hover:text-slate-900 dark:hover:text-white">{t("links.moderation")}</Link>
               <Link href="/guidelines" className="hover:text-slate-900 dark:hover:text-white">{t("links.guidelines")}</Link>
               <Link href="/about" className="hover:text-slate-900 dark:hover:text-white">{t("links.about")}</Link>
-              <Link href="/volunteer" className="hover:text-slate-900 dark:hover:text-white font-medium text-emerald-600 dark:text-emerald-400">Volunteer</Link>
+              <Link href="/volunteer" className="hover:text-slate-900 dark:hover:text-white font-medium text-emerald-700 dark:text-emerald-400">Volunteer</Link>
               <Link href="/donate" className="hover:text-slate-900 dark:hover:text-white font-medium text-blue-600 dark:text-blue-400">Donate</Link>
             </nav>
           </div>
 
           {/* Grievance Officer */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-600 dark:text-slate-300">
               {t("grievance.title")}
             </p>
             <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
@@ -103,7 +103,7 @@ export function SiteFooter() {
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {t("copyright", { year })}
             </p>
-            <p className="text-xs text-slate-400 dark:text-slate-500">
+            <p className="text-xs text-slate-600 dark:text-slate-300">
               {t("developedBy")}{" "}
               <a
                 href="https://www.cit.org.in"

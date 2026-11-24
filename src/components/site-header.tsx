@@ -43,7 +43,7 @@ export function SiteHeader() {
           </span>
           <span>
             <span className="block text-lg font-semibold tracking-tight">Kranti</span>
-            <span className="block text-xs text-slate-500 dark:text-slate-400">People first civic action</span>
+            <span className="block text-xs text-slate-600 dark:text-slate-300">People first civic action</span>
           </span>
         </Link>
 
