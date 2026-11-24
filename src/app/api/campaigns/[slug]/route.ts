@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AppwriteRequestError, listDocuments, appwriteDatabaseId, appwriteCampaignsCollectionId, Query } from "@/lib/appwrite";
+import { isPublicCampaignStatus } from "@/lib/campaign-visibility";
 
 export async function GET(
   request: NextRequest,
@@ -18,6 +19,10 @@ export async function GET(
     }
 
     const doc = ((response as { documents?: Array<Record<string, unknown>> }).documents ?? [])[0] as Record<string, unknown>;
+
+    if (!isPublicCampaignStatus(doc.status)) {
+      return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    }
 
     const campaign = {
       $id: doc.$id,

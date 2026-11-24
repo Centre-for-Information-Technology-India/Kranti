@@ -11,12 +11,13 @@ test("campaign pages remain bounded and reject invalid offsets", async () => {
   try {
     globalThis.fetch = async (input) => {
       const queries = new URL(String(input)).searchParams.getAll("queries[]").map((query) => JSON.parse(query));
-      if (queries.some((query) => query.method === "equal" && query.attribute === "status")) {
+      if (queries.some((query) => query.method === "equal" && query.attribute === "status" && query.values.length === 1)) {
         assert.ok(queries.some((query) => query.method === "limit" && query.values[0] === 100));
         assert.ok(!queries.some((query) => query.method === "offset"));
         return Response.json({ documents: [] });
       }
-      assert.ok(queries.some((query) => query.method === "notEqual" && query.attribute === "status"));
+      assert.ok(queries.some((query) => query.method === "equal" && query.attribute === "status" &&
+        JSON.stringify(query.values) === JSON.stringify(["active", "completed", "paused"])));
       assert.ok(queries.some((query) => query.method === "limit" && query.values[0] === 26));
       const offset = queries.find((query) => query.method === "offset")?.values[0];
       seenOffsets.push(offset);
@@ -45,6 +46,7 @@ test("campaign pages remain bounded and reject invalid offsets", async () => {
     assert.equal(filtered.status, 400);
     const originalStatusPage = await GET(new NextRequest("https://example.test/api/campaigns?status=pending_review"));
     assert.equal(originalStatusPage.status, 200);
+    assert.deepEqual(await originalStatusPage.json(), { campaigns: [] });
     assert.deepEqual(seenOffsets, [0, 25]);
 
     for (const offset of ["-1", "10001", "1e3", "01"]) {
