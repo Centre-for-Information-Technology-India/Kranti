@@ -120,7 +120,7 @@ export default function Home() {
 
         <section className="mt-14">
           <div className="mb-6 max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">{t("flow.label")}</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-600 dark:text-slate-300">{t("flow.label")}</p>
             <h2 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">{t("flow.title")}</h2>
             <p className="mt-3 text-lg leading-8 text-slate-600 dark:text-slate-300">
               {t("flow.intro")}
