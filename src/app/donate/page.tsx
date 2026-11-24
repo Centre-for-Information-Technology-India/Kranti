@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Support Kranti | Responsible Civic Platform for India",
-  description: "Kranti is an open-source, non-profit civic platform built to help citizens raise issues, launch petitions, document evidence, and push for real change.",
+  description: "Kranti is an open-source civic platform built to help citizens raise issues, launch petitions, document evidence, and push for real change.",
 };
 
 export default function DonatePage() {
@@ -17,7 +17,7 @@ export default function DonatePage() {
           </Badge>
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Support Kranti</h1>
           <p className="mx-auto max-w-3xl text-lg leading-8 text-slate-600 dark:text-slate-300">
-            Kranti is an open-source, non-profit civic platform built to help citizens raise issues, launch petitions, document evidence, and push for real change — peacefully and lawfully.
+            Kranti is an open-source civic platform built to help citizens raise issues, launch petitions, document evidence, and push for real change — peacefully and lawfully.
           </p>
         </div>
 
@@ -34,7 +34,7 @@ export default function DonatePage() {
             </ul>
             <div className="p-5 bg-white/60 dark:bg-white/5 rounded-xl border border-slate-900/5 dark:border-white/10 mt-8">
               <p className="text-base">
-                <strong className="text-slate-900 dark:text-slate-100 font-semibold">100% Transparent</strong> — We publish monthly funding and expense reports on our <Link href="/transparency" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">Transparency page</Link>.
+                Funding and expense reports are not available yet. See our <Link href="/transparency" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">Transparency page</Link> for current platform information.
               </p>
             </div>
           </div>
