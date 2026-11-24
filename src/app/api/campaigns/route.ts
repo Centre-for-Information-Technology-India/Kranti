@@ -13,6 +13,7 @@ import {
 import { campaignFormSchema } from "@/lib/campaign-form";
 import { buildCampaignSlug } from "@/lib/campaign-slug";
 import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
+import { isPublicCampaignStatus } from "@/lib/campaign-visibility";
 
 export async function POST(request: NextRequest) {
   try {
@@ -121,11 +122,10 @@ export async function GET(request: NextRequest) {
       queries.push(Query.equal("state", [state]));
     }
 
-    if (status) {
-      queries.push(Query.equal("status", [status]));
-    } else {
-      queries.push(`notEqual("status", ["pending_review"])`);
+    if (status && !isPublicCampaignStatus(status)) {
+      return NextResponse.json({ campaigns: [] });
     }
+    queries.push(Query.equal("status", status ? [status] : ["active", "completed", "paused"]));
 
     if (featured === "true") {
       queries.push(Query.equal("featured", [true]));
@@ -138,24 +138,26 @@ export async function GET(request: NextRequest) {
     const response = await listDocuments(appwriteDatabaseId, appwriteCampaignsCollectionId, queries);
 
     const pageDocuments = (response as { documents?: Array<Record<string, unknown>> }).documents ?? [];
-    const campaigns = (status ? pageDocuments : pageDocuments.slice(0, 25)).map((doc: Record<string, unknown>) => ({
-      $id: doc.$id,
-      title: doc.title,
-      slug: doc.slug,
-      description: doc.description,
-      goals: doc.goals,
-      category: doc.category,
-      state: doc.state,
-      status: doc.status,
-      volunteer_count: doc.volunteer_count,
-      featured: doc.featured,
-      creatorName: doc.creator_name,
-      creatorAvatar: doc.creator_avatar,
-      language: doc.language,
-      start_date: doc.start_date,
-      end_date: doc.end_date,
-      createdAt: doc.created_at,
-    }));
+    const campaigns = (status ? pageDocuments : pageDocuments.slice(0, 25))
+      .filter((doc) => isPublicCampaignStatus(doc.status))
+      .map((doc: Record<string, unknown>) => ({
+        $id: doc.$id,
+        title: doc.title,
+        slug: doc.slug,
+        description: doc.description,
+        goals: doc.goals,
+        category: doc.category,
+        state: doc.state,
+        status: doc.status,
+        volunteer_count: doc.volunteer_count,
+        featured: doc.featured,
+        creatorName: doc.creator_name,
+        creatorAvatar: doc.creator_avatar,
+        language: doc.language,
+        start_date: doc.start_date,
+        end_date: doc.end_date,
+        createdAt: doc.created_at,
+      }));
 
     return NextResponse.json({ campaigns, hasMore: !status && pageDocuments.length > 25 && offset + 25 <= 10000 });
   } catch (error) {
