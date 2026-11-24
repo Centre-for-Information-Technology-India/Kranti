@@ -628,55 +628,6 @@ These independent bodies have quasi-judicial powers:
   },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Transparency Dashboard Data
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const siteTransparencyStats = {
-  totalIssuesRaised: "1.2K",
-  issuesResolved: "318",
-  avgModerationTime: "18h",
-  accuracyRate: "96%",
-  fundingDetails: {
-    totalDonations: "₹4.8L",
-    serverCosts: "₹52K",
-    maintenanceCosts: "₹31K",
-  },
-  recentModerationActions: [
-    {
-      id: "mod_1",
-      action: "APPROVE",
-      target: "Road safety report, Mumbai",
-      reason: "Verified location evidence and supporting images.",
-      timestamp: "2026-05-21T08:15:00Z",
-    },
-    {
-      id: "mod_2",
-      action: "RESTRICT",
-      target: "Duplicate grievance submission",
-      reason: "Merged into the original issue to avoid fragmentation.",
-      timestamp: "2026-05-20T16:40:00Z",
-    },
-    {
-      id: "mod_3",
-      action: "APPROVE",
-      target: "Water supply outage, Delhi",
-      reason: "Confirmed public authority escalation and clean narrative.",
-      timestamp: "2026-05-19T12:05:00Z",
-    },
-    {
-      id: "mod_4",
-      action: "REJECT",
-      target: "Unverified personal accusation",
-      reason: "No supporting evidence provided. User notified to resubmit with documentation.",
-      timestamp: "2026-05-18T14:30:00Z",
-    },
-    {
-      id: "mod_5",
-      action: "APPROVE",
-      target: "School infrastructure complaint, Patna",
-      reason: "Photographic evidence verified. Escalated to District Education Officer.",
-      timestamp: "2026-05-17T10:00:00Z",
-    },
-  ],
-};
+// Note: transparency dashboard figures are served live by /api/transparency.
+// Hardcoded aggregates were removed in favor of Appwrite counts plus explicit
+// "Public beta" / unavailable states for unverifiable figures.
