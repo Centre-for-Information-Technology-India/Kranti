@@ -15,7 +15,7 @@ import {
   FileText,
   User,
   MapPin,
-  Sparkles,
+  ClipboardCheck,
   Inbox,
   Filter,
   Eye,
@@ -644,20 +644,18 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* AI Assistance Pre-audit Analysis */}
-                  {selectedIssue.status !== "pending_review" && <div className="bg-emerald-50/50 border border-emerald-900/10 rounded-2xl p-4 dark:bg-emerald-950/10 dark:border-emerald-900/20 mb-5">
+                  {/* Review prompts; no automated audit is performed. */}
+                  <div className="bg-emerald-50/50 border border-emerald-900/10 rounded-2xl p-4 dark:bg-emerald-950/10 dark:border-emerald-900/20 mb-5">
                     <div className="flex gap-2">
-                      <Sparkles className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5 animate-pulse" />
+                      <ClipboardCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                       <div className="space-y-1">
-                        <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Kranti AI Assistant Pre-audit</p>
+                        <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Moderator checklist</p>
                         <p className="text-xs text-emerald-700 leading-relaxed dark:text-emerald-300">
-                          {selectedIssue.status === "open"
-                            ? "Content matches neutral, non-inciting civic standards. Location data matches postal registers. Suggested action: Approve / Publish."
-                            : `Audit complete. Issue currently set to '${selectedIssue.status.toUpperCase()}'. Status timelines are synchronized with public directories.`}
+                          Check facts, location, evidence, and privacy before changing this report. These checks require human review.
                         </p>
                       </div>
                     </div>
-                  </div>}
+                  </div>
 
                   {/* Control Buttons */}
                   {actionError && (
