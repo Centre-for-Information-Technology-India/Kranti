@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MapPin, ArrowRight } from "lucide-react";
 import { IssueRecord } from "@/lib/content-types";
+import type * as Leaflet from "leaflet";
+
+type LeafletWindow = Window & { L?: typeof Leaflet };
 
 interface IssueMapProps {
   issues: IssueRecord[];
@@ -12,16 +15,16 @@ interface IssueMapProps {
 export default function IssueMap({ issues }: IssueMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
-  const mapRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
+  const mapRef = useRef<Leaflet.Map | null>(null);
+  const markersRef = useRef<Leaflet.Marker[]>([]);
 
   // Load Leaflet dynamically from CDN
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     // Check if leaflet is already loaded
-    if ((window as any).L) {
-      setLeafletLoaded(true);
+    if ((window as LeafletWindow).L) {
+      queueMicrotask(() => setLeafletLoaded(true));
       return;
     }
 
@@ -51,11 +54,11 @@ export default function IssueMap({ issues }: IssueMapProps) {
   // Initialize and update Map
   useEffect(() => {
     if (!leafletLoaded || !mapContainerRef.current) return;
-    const L = (window as any).L;
+    const L = (window as LeafletWindow).L;
     if (!L) return;
 
     // Center of India
-    const defaultCenter = [20.5937, 78.9629];
+    const defaultCenter: Leaflet.LatLngTuple = [20.5937, 78.9629];
     const defaultZoom = 5;
 
     // Destroy existing map if it exists
@@ -154,7 +157,7 @@ export default function IssueMap({ issues }: IssueMapProps) {
 
     // Fit bounds if there are issues
     if (issues.length > 0) {
-      const group = new L.featureGroup(markersRef.current);
+      const group = L.featureGroup(markersRef.current);
       map.fitBounds(group.getBounds().pad(0.1));
     }
 
