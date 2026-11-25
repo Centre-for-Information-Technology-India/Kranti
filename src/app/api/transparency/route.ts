@@ -33,10 +33,20 @@ export async function GET() {
       ]),
     ]);
 
+    if (
+      !Number.isSafeInteger(allIssues.total) ||
+      allIssues.total < 0 ||
+      !Number.isSafeInteger(resolvedIssues.total) ||
+      resolvedIssues.total < 0 ||
+      resolvedIssues.total > allIssues.total
+    ) {
+      throw new Error("Invalid transparency aggregate");
+    }
+
     return NextResponse.json({
       available: true,
-      totalIssues: Number(allIssues.total ?? 0),
-      resolvedIssues: Number(resolvedIssues.total ?? 0),
+      totalIssues: allIssues.total,
+      resolvedIssues: resolvedIssues.total,
     });
   } catch (error) {
     console.error(
