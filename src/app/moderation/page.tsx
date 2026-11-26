@@ -2,18 +2,15 @@ import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, XCircle, Clock, AlertTriangle, Users, Gavel, ArrowRight, ShieldCheck } from "lucide-react";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Moderation Policy",
   description:
     "Kranti Moderation Policy — How content is reviewed, approved, restricted, or removed. Hybrid human + AI moderation with clear appeal process. IT Rules 2021 compliant.",
-  openGraph: {
-    title: "Moderation Policy | Kranti",
-    description: "How Kranti moderates content to keep civic discourse safe, lawful, and evidence-based.",
-    url: "https://kranti.org.in/moderation",
-  },
-  alternates: { canonical: "/moderation" },
-};
+  path: "/moderation",
+  socialDescription: "How Kranti moderates content to keep civic discourse safe, lawful, and evidence-based.",
+});
 
 const allowedContent = [
   "Evidence-based reports of civic problems (roads, water, sanitation, healthcare, education, corruption)",
@@ -71,7 +68,7 @@ const moderationSteps = [
 ];
 
 const appealProcess = [
-  "Submit an appeal to grievance@kranti.org.in within 15 days of the moderation decision.",
+  "Submit an appeal to the Grievance Officer (Koshik Sharma) at grievance@kranti.org.in within 15 days of the moderation decision.",
   "Include your content ID, the decision you are appealing, and your reasons for the appeal.",
   "A senior moderator (different from the original reviewer) will review your appeal.",
   "You will receive a decision within 15 working days as required under IT Rules 2021.",

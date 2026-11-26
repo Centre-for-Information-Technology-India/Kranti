@@ -10,49 +10,78 @@ interface IssueCommentsProps {
   issueSlug: string;
   issueId: string;
   initialComments: IssueComment[];
+  initialHasMore: boolean;
+  initialLoadError?: boolean;
 }
 
-export default function IssueComments({ issueSlug, issueId, initialComments }: IssueCommentsProps) {
+export default function IssueComments({ issueSlug, issueId, initialComments, initialHasMore, initialLoadError = false }: IssueCommentsProps) {
   const { user, isLoaded } = useUser();
   const [comments, setComments] = useState<IssueComment[]>(initialComments);
   const [newCommentText, setNewCommentText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [loadedCount, setLoadedCount] = useState(initialComments.length);
+  const [hasMore, setHasMore] = useState(initialHasMore || initialLoadError);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState(initialLoadError ? "Comments could not load. Please try again." : "");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const loadMore = async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    setLoadError("");
+    try {
+      const response = await fetch(`/api/issues/${encodeURIComponent(issueSlug)}/comments?offset=${loadedCount}`);
+      const data = await response.json();
+      if (!response.ok || !Array.isArray(data?.comments)) throw new Error("Comment page failed");
+      const nextComments = data.comments as IssueComment[];
+      setComments((current) => {
+        const ids = new Set(current.map((comment) => comment.$id));
+        return [...current, ...nextComments.filter((comment) => !ids.has(comment.$id))];
+      });
+      setLoadedCount((count) => count + nextComments.length);
+      setHasMore(data.hasMore === true && nextComments.length > 0 && loadedCount + nextComments.length <= 10000);
+    } catch {
+      setLoadError(loadedCount === 0 ? "Comments could not load. Please try again." : "Older comments could not load. Please try again.");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCommentText.trim()) return;
 
     setIsSubmitting(true);
-
-    fetch(`/api/issues/${issueSlug}/comments`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ content: newCommentText }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (!data?.comment) {
-          throw new Error("Unable to post comment");
-        }
-
-        const addedComment: IssueComment = {
-          $id: String(data.comment.$id ?? `comment_${Date.now()}`),
-          issue_id: issueId,
-          user_name: String(data.comment.user_name ?? user?.fullName ?? user?.username ?? "Citizen User"),
-          avatar_url: data.comment.avatar_url ?? user?.imageUrl,
-          content: newCommentText,
-          status: "approved",
-          createdAt: String(data.comment.createdAt ?? new Date().toISOString()),
-        };
-
-        setComments([addedComment, ...comments]);
-        setNewCommentText("");
-      })
-      .finally(() => {
-        setIsSubmitting(false);
+    setSubmitError("");
+    try {
+      const response = await fetch(`/api/issues/${encodeURIComponent(issueSlug)}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newCommentText }),
       });
+      const data = await response.json();
+      if (!response.ok || !data?.comment) {
+        setSubmitError(response.status === 400 ? "Check your comment and try again." : "We couldn't confirm your comment was saved. Check the discussion before trying again.");
+        return;
+      }
+
+      const addedComment: IssueComment = {
+        $id: String(data.comment.$id ?? `comment_${Date.now()}`),
+        issue_id: issueId,
+        user_name: String(data.comment.user_name ?? user?.fullName ?? user?.username ?? "Citizen User"),
+        avatar_url: data.comment.avatar_url ?? user?.imageUrl,
+        content: newCommentText,
+        status: "approved",
+        createdAt: String(data.comment.createdAt ?? new Date().toISOString()),
+      };
+
+      setComments((current) => [...current, addedComment]);
+      setNewCommentText("");
+    } catch {
+      setSubmitError("We couldn't confirm your comment was saved. Check the discussion before trying again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -76,11 +105,17 @@ export default function IssueComments({ issueSlug, issueId, initialComments }: I
           <div className="flex-1 space-y-2">
             <textarea
               value={newCommentText}
-              onChange={(e) => setNewCommentText(e.target.value)}
+              onChange={(e) => {
+                setNewCommentText(e.target.value);
+                setSubmitError("");
+              }}
               placeholder="Add your voice... Keep comments factual, civil, and constructive."
               rows={3}
+              aria-invalid={Boolean(submitError)}
+              aria-describedby={submitError ? "comment-submit-error" : undefined}
               className="w-full rounded-2xl border border-slate-900/10 bg-white/90 p-4 text-sm focus:border-slate-950/20 focus:outline-none dark:border-white/10 dark:bg-slate-900/90"
             />
+            {submitError && <p id="comment-submit-error" role="alert" className="text-sm text-red-700 dark:text-red-300">{submitError}</p>}
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-500 flex items-center gap-1.5">
                 <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />
@@ -131,6 +166,14 @@ export default function IssueComments({ issueSlug, issueId, initialComments }: I
           </div>
         ))}
       </div>
+      {loadError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{loadError}</p>}
+      {hasMore && (
+        <div className="flex justify-center">
+          <Button type="button" variant="outline" onClick={loadMore} disabled={isLoadingMore} className="rounded-full">
+            {isLoadingMore ? "Loading comments..." : loadedCount === 0 && loadError ? "Retry comments" : "Load older comments"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,18 +2,15 @@ import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Scale, ShieldCheck, AlertTriangle, UserCheck, Gavel, Mail, Phone, MapPin } from "lucide-react";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Terms of Service",
   description:
     "Kranti Terms of Service — Rules for lawful, evidence-based civic participation on India's responsible civic action platform. Compliant with IT Rules 2021 and DPDP Act.",
-  openGraph: {
-    title: "Terms of Service | Kranti",
-    description: "Read the terms governing use of Kranti, India's civic action platform.",
-    url: "https://kranti.org.in/terms",
-  },
-  alternates: { canonical: "/terms" },
-};
+  path: "/terms",
+  socialDescription: "Read the terms governing use of Kranti, India's civic action platform.",
+});
 
 const sections = [
   {
@@ -149,7 +146,7 @@ export default function TermsPage() {
                 <UserCheck className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400">Grievance Officer</p>
-                  <p className="mt-1 text-sm font-medium text-slate-900 dark:text-white">To be appointed</p>
+                  <p className="mt-1 text-sm font-medium text-slate-900 dark:text-white">Koshik Sharma</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Centre for Information Technology India</p>
                 </div>
               </div>

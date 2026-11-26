@@ -5,6 +5,39 @@
 
 export const siteGuides = [
   {
+    id: "local-service-complaint-guide",
+    slug: "how-to-report-local-service-complaint-india",
+    title: "How to Report a Street Light, Water or Pothole Complaint",
+    category: "Local services",
+    summary:
+      "Find the right local complaint route for a broken street light, water supply problem, pothole or municipal service issue. Includes checked Delhi examples and steps for other cities.",
+    timeToRead: "4 min read",
+    lastUpdated: "October 2026",
+    content: `### Start with the service and the place
+
+A street light, water supply problem, pothole and missed municipal service may have different owners. Check your city or state government's official site before choosing a complaint route. The Delhi examples below do not apply to every city or every road.
+
+Keep the exact location, a short description, the date you noticed the problem, and a safe photo if one helps. Avoid sharing a stranger's face, contact details or private documents in a public report.
+
+### Broken street light
+
+In Delhi, first check which agency maintains the light. [MCD lists its MCD 311 app](https://mcdonline.nic.in/portal/feedback) for municipal complaints. [BSES Rajdhani's street light page](https://www.bsesdelhi.com/web/brpl/street-light-complaint) directs complaints about MCD lights in its area to eSmart. Record the pole number if it is visible. Outside Delhi, find the street lighting contact on your local body's or electricity provider's official site.
+
+### Water supply or sewer problem
+
+For Delhi water and sewer complaints, [Delhi Jal Board explains its complaint channels](https://delhijalboard.delhi.gov.in/jalboard/grievance-redressal-mechanism), including its control room at 1916. Elsewhere, check your local water utility's official complaint page. Describe the affected address or area, but do not post your private account number on Kranti.
+
+### Pothole or other municipal problem
+
+For a road under MCD, its [MCD 311 complaint route](https://mcdonline.nic.in/portal/feedback) covers potholes and other municipal services. Road ownership can differ, even within one city. Check the road authority before filing. For waste, drains or similar services, use the local body's official complaint route and keep the reference number.
+
+### Keep a record and follow up
+
+Save the official complaint number, date and any reply. Use that authority's tracking or follow-up route if the problem remains. Kranti's [CPGRAMS guide](/guides/how-to-lodge-grievance-cpgrams) covers another grievance route. For these local examples, start with a checked service channel. Do not submit the same complaint repeatedly without checking its status.
+
+Kranti can help you document a civic issue or gather support for a shared request. A Kranti report does not file a complaint with the authority or prove that the service problem has been fixed.`,
+  },
+  {
     id: "rti-guide",
     slug: "how-to-file-rti-application-india",
     title: "How to File an RTI Application in India (2026 Complete Guide)",
@@ -34,7 +67,7 @@ The most common reason RTIs are rejected is filing with the wrong department. Be
 
 1. Identify which government body is responsible for the issue (e.g., Municipal Corporation for roads, Water Board for water supply, PWD for state highways).
 2. Find the name of the Public Information Officer (PIO) of that department. Most departments publish this on their website.
-3. If unsure, file with the department you believe is responsible. They are legally required to transfer your application to the correct department within 5 days.
+3. Check the public authority before filing. The Central RTI Online portal does not accept requests for State public authorities, including Delhi. Find the relevant State authority's RTI route before you pay. If you file with the wrong public authority, it must transfer your application to the correct one within 5 days.
 
 ### Step 2 — Draft Your Questions
 
@@ -101,7 +134,7 @@ The PIO must respond within **30 days** of receipt (48 hours for matters involvi
 
 If the PIO does not respond within 30 days, or gives an unsatisfactory response, you have two escalation options:
 
-1. **First Appeal:** File with the First Appellate Authority (FAA) of the same department within 30 days of the deadline. The FAA must decide within 30 days.
+1. **First Appeal:** File with the First Appellate Authority (FAA) of the same department within 30 days of the deadline. The FAA should decide within 30 days. In exceptional cases, it may take up to 45 days and must record the reason for delay.
 2. **Second Appeal / Complaint:** File with the Central Information Commission (CIC) at [cic.gov.in](https://cic.gov.in/) or the State Information Commission. The CIC can impose penalties of up to ₹25,000 on errant PIOs.
 
 ### Sample RTI Templates by Topic
@@ -595,55 +628,6 @@ These independent bodies have quasi-judicial powers:
   },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Transparency Dashboard Data
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const siteTransparencyStats = {
-  totalIssuesRaised: "1.2K",
-  issuesResolved: "318",
-  avgModerationTime: "18h",
-  accuracyRate: "96%",
-  fundingDetails: {
-    totalDonations: "₹4.8L",
-    serverCosts: "₹52K",
-    maintenanceCosts: "₹31K",
-  },
-  recentModerationActions: [
-    {
-      id: "mod_1",
-      action: "APPROVE",
-      target: "Road safety report, Mumbai",
-      reason: "Verified location evidence and supporting images.",
-      timestamp: "2026-05-21T08:15:00Z",
-    },
-    {
-      id: "mod_2",
-      action: "RESTRICT",
-      target: "Duplicate grievance submission",
-      reason: "Merged into the original issue to avoid fragmentation.",
-      timestamp: "2026-05-20T16:40:00Z",
-    },
-    {
-      id: "mod_3",
-      action: "APPROVE",
-      target: "Water supply outage, Delhi",
-      reason: "Confirmed public authority escalation and clean narrative.",
-      timestamp: "2026-05-19T12:05:00Z",
-    },
-    {
-      id: "mod_4",
-      action: "REJECT",
-      target: "Unverified personal accusation",
-      reason: "No supporting evidence provided. User notified to resubmit with documentation.",
-      timestamp: "2026-05-18T14:30:00Z",
-    },
-    {
-      id: "mod_5",
-      action: "APPROVE",
-      target: "School infrastructure complaint, Patna",
-      reason: "Photographic evidence verified. Escalated to District Education Officer.",
-      timestamp: "2026-05-17T10:00:00Z",
-    },
-  ],
-};
+// Note: transparency dashboard figures are served live by /api/transparency.
+// Hardcoded aggregates were removed in favor of Appwrite counts plus explicit
+// "Public beta" / unavailable states for unverifiable figures.

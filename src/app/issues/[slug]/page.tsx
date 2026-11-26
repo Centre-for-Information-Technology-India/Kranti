@@ -23,17 +23,25 @@ import { SupportButton } from "@/components/support-button";
 import IssueComments from "@/components/issue-comments";
 import { ShareButtons } from "@/components/share-buttons";
 import {
+  AppwriteRequestError,
   appwriteDatabaseId,
   appwriteEvidenceCollectionId,
   appwriteCommentsCollectionId,
   appwriteUsersCollectionId,
   appwriteIssuesCollectionId,
   listDocuments,
+  Query,
 } from "@/lib/appwrite";
 import { IssueRecord } from "@/lib/content-types";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/json-ld";
 import { canonical, SITE_URL, buildBreadcrumbSchema } from "@/lib/seo";
+import { canReadUnpublishedIssue } from "@/lib/unpublished-issue-access";
+import { isPublicIssueStatus } from "@/lib/public-issue-status";
+import { publicEvidenceWebUrl } from "@/lib/evidence";
+
+// This page can render a review-pending issue for its signed-in creator.
+export const dynamic = "force-dynamic";
 
 type IssueEvidence = {
   fileId: string;
@@ -59,15 +67,15 @@ const statusSteps = [
 ];
 
 // Lightweight fetcher used by both generateMetadata and the page
-async function fetchIssueBySlug(slug: string): Promise<Record<string, unknown> | null> {
+async function fetchIssueBySlug(slug: string): Promise<Record<string, unknown> | null | undefined> {
   try {
     const res = (await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [
-      `equal("slug", ["${slug}"])`,
-      "limit(1)",
+      Query.equal("slug", [slug]),
+      Query.limit(1),
     ])) as { documents?: Array<Record<string, unknown>> };
     return res.documents?.[0] || null;
   } catch {
-    return null;
+    return undefined;
   }
 }
 
@@ -79,7 +87,14 @@ export async function generateMetadata({
   const { slug } = await params;
   const doc = await fetchIssueBySlug(slug);
 
-  if (!doc || doc.status === "pending_review") {
+  if (doc === undefined) {
+    return {
+      title: "Issue temporarily unavailable",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  if (!doc || !isPublicIssueStatus(doc.status)) {
     return {
       title: "Issue not found",
       robots: { index: false, follow: false },
@@ -130,31 +145,75 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
   const { slug } = await params;
   let issue: IssueRecord | null = null;
   let commentsResponse: unknown = { documents: [] };
+  let commentsUnavailable = false;
+  let evidenceUnavailable = false;
 
   try {
-    const [issueResponse, evidenceResponse, usersResponse, commentsData] = await Promise.all([
-      listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [`equal("slug", ["${slug}"])`, "limit(1)"]),
-      listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, []),
-      listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, []),
-      listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, []),
+    const issueResponse = await listDocuments(appwriteDatabaseId, appwriteIssuesCollectionId, [
+      Query.equal("slug", [slug]),
+      Query.limit(1),
     ]);
-    commentsResponse = commentsData;
-
     const doc = (issueResponse as { documents?: Array<Record<string, unknown>> }).documents?.[0];
-    if (doc) {
+    if (doc && await canReadUnpublishedIssue(doc)) {
       const creatorId = String(doc.created_by ?? doc.createdBy ?? "");
-      const creatorRow = ((usersResponse as { documents?: Array<Record<string, unknown>> }).documents ?? []).find((userDocument) => {
-        return String(userDocument.clerk_id ?? userDocument.clerkUserId ?? userDocument.$id ?? "") === creatorId;
+      const issueId = String(doc.$id ?? "");
+      const [evidenceResponse, commentsData, creatorResponses] = await Promise.all([
+        (async () => {
+          const documents: Array<Record<string, unknown>> = [];
+          let unavailable = false;
+          try {
+            for (let page = 0; page < 10; page++) {
+              const response = await listDocuments(appwriteDatabaseId, appwriteEvidenceCollectionId, [
+                Query.equal("issue_id", [issueId]),
+                Query.orderAsc("$id"),
+                Query.limit(100),
+                Query.offset(page * 100),
+              ]);
+              const pageDocuments = (response as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+              documents.push(...pageDocuments);
+              if (pageDocuments.length < 100) break;
+              if (page === 9) unavailable = true;
+            }
+          } catch (error) {
+            unavailable = true;
+            console.warn("Issue evidence unavailable:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+          }
+          return { documents, unavailable };
+        })(),
+        listDocuments(appwriteDatabaseId, appwriteCommentsCollectionId, [
+          Query.equal("issue_id", [issueId]),
+          Query.equal("status", ["approved"]),
+          Query.orderAsc("$createdAt"),
+          Query.limit(100),
+        ]).catch(() => null),
+        creatorId
+          ? Promise.allSettled(["clerk_id", "$id"].map((field) =>
+              listDocuments(appwriteDatabaseId, appwriteUsersCollectionId, [Query.equal(field, [creatorId]), Query.limit(1)])
+            ))
+          : Promise.resolve([]),
+      ]);
+      evidenceUnavailable = evidenceResponse.unavailable;
+      commentsUnavailable = commentsData === null;
+      commentsResponse = commentsData ?? { documents: [] };
+      const creatorRow = creatorResponses.flatMap((result) =>
+        result.status === "fulfilled"
+          ? (result.value as { documents?: Array<Record<string, unknown>> }).documents ?? []
+          : []
+      ).find((userDocument) => {
+        const linkedIds = [userDocument.clerk_id, userDocument.clerkUserId]
+          .filter((id): id is string => typeof id === "string" && id.length > 0);
+        if (new Set(linkedIds).size > 1) return false;
+        return (linkedIds[0] ?? userDocument.$id) === creatorId;
       });
 
-      const evidence = ((evidenceResponse as { documents?: Array<Record<string, unknown>> }).documents ?? [])
+      const evidence = evidenceResponse.documents
         .filter((evidenceDocument) => String(evidenceDocument.issue_id ?? "") === String(doc.$id ?? ""))
         .map((evidenceDocument) => ({
           fileId: String(evidenceDocument.$id ?? ""),
-          name: String(evidenceDocument.file_name ?? evidenceDocument.fileName ?? "Evidence"),
+          name: "Evidence",
           size: Number(evidenceDocument.size_bytes ?? evidenceDocument.fileSize ?? 0),
           mimeType: String(evidenceDocument.type ?? "application/octet-stream"),
-          publicUrl: String(evidenceDocument.file_url ?? evidenceDocument.publicUrl ?? ""),
+          publicUrl: publicEvidenceWebUrl(evidenceDocument.file_url ?? evidenceDocument.publicUrl),
           sanitized: Boolean(evidenceDocument.verified ?? false),
         }));
 
@@ -180,7 +239,8 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
       };
     }
   } catch (err) {
-    console.warn("Appwrite lookup failed:", err);
+    console.warn("Appwrite lookup failed:", err instanceof AppwriteRequestError ? `Appwrite status ${err.status}` : "Unexpected error");
+    throw new Error("Issue details are temporarily unavailable");
   }
 
   if (!issue) {
@@ -203,7 +263,10 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
     }));
 
   // Determine current timeline step index
-  const currentStepIndex = statusSteps.findIndex(s => s.key === issue?.status);
+  // Escalated is a public, active case. It belongs at the in-progress step,
+  // not back at the submitted step when the timeline has no separate marker.
+  const timelineStatus = issue?.status === "escalated" ? "in_progress" : issue?.status;
+  const currentStepIndex = statusSteps.findIndex(s => s.key === timelineStatus);
   const activeStep = currentStepIndex !== -1 ? currentStepIndex : 0;
 
   // ── JSON-LD: Article + Breadcrumb for SEO ─────────────────────────────────
@@ -415,7 +478,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
                   <CardTitle className="text-xl">Lawful Civic Escalation Pathways</CardTitle>
                 </div>
                 <CardDescription>
-                  Under India's civic governance framework, citizens can pursue these actionable pathways for immediate resolution.
+                  Under India&apos;s civic governance framework, citizens can pursue these actionable pathways for immediate resolution.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -467,7 +530,13 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
             {/* Comments Section */}
             <Card className="border-slate-900/10 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-900/70">
               <CardContent className="p-6 md:p-8">
-                <IssueComments issueSlug={issue.slug} issueId={issue.$id} initialComments={comments} />
+                <IssueComments
+                  issueSlug={issue.slug}
+                  issueId={issue.$id}
+                  initialComments={comments}
+                  initialHasMore={comments.length < Number((commentsResponse as { total?: number }).total ?? comments.length)}
+                  initialLoadError={commentsUnavailable}
+                />
               </CardContent>
             </Card>
 
@@ -481,17 +550,22 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Video className="h-5 w-5 text-slate-500" />
-                  <CardTitle className="text-xl">Evidence Gallery ({evidence.length})</CardTitle>
+                  <CardTitle className="text-xl">Evidence Gallery{evidenceUnavailable ? "" : ` (${evidence.length})`}</CardTitle>
                 </div>
                 <CardDescription>
                   Verified files uploaded by the citizen. Sensitive metadata has been stripped for safety.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {evidenceUnavailable && (
+                  <div className="rounded-2xl border border-slate-900/10 bg-slate-50 p-5 text-sm text-slate-700 dark:border-white/10 dark:bg-slate-950/40 dark:text-slate-200" role="status">
+                    {evidence.length > 0 ? "Some evidence could not load. The items shown are still available." : "Evidence could not load. The issue is still available."} <a href={`/issues/${encodeURIComponent(slug)}`} className="font-semibold underline underline-offset-4">Try again</a>.
+                  </div>
+                )}
                 {evidence.length > 0 ? (
                   evidence.map((item) => {
-                    const isImg = item.mimeType.startsWith("image/");
-                    const isVid = item.mimeType.startsWith("video/");
+                    const isImg = Boolean(item.publicUrl) && item.mimeType.startsWith("image/");
+                    const isVid = Boolean(item.publicUrl) && item.mimeType.startsWith("video/");
                     return (
                       <div 
                         key={item.fileId} 
@@ -525,23 +599,27 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ sl
                               Metadata Cleansed
                             </span>
                           </div>
-                          <a 
-                            href={item.publicUrl} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            className="mt-2 block w-full py-2 rounded-xl text-center border border-slate-900/10 text-xs font-semibold hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/5"
-                          >
-                            View Original File &rarr;
-                          </a>
+                          {item.publicUrl ? (
+                            <a
+                              href={item.publicUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-2 block w-full py-2 rounded-xl text-center border border-slate-900/10 text-xs font-semibold hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/5"
+                            >
+                              View Original File &rarr;
+                            </a>
+                          ) : (
+                            <p className="mt-2 py-2 text-center text-xs text-slate-500">Evidence link unavailable.</p>
+                          )}
                         </div>
                       </div>
                     );
                   })
-                ) : (
+                ) : !evidenceUnavailable ? (
                   <div className="rounded-2xl border border-dashed border-slate-900/10 bg-slate-50 p-8 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-slate-950/20">
                     No evidence has been attached.
                   </div>
-                )}
+                ) : null}
               </CardContent>
             </Card>
 

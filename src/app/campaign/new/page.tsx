@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 
 import { campaignFormSchema, type CampaignFormData, campaignCategories, indianStates } from "@/lib/campaign-form";
 import { useFormAutoSave } from "@/lib/use-form-autosave";
+import { captureSavedCase } from "@/components/visitor-events";
 
 export default function NewCampaignPage() {
   const router = useRouter();
@@ -60,6 +61,7 @@ export default function NewCampaignPage() {
       }
 
       const result = await response.json();
+      captureSavedCase("campaign");
       clearDraft();
       router.push(`/campaigns/${result.slug}`);
     } catch (error) {

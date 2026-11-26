@@ -23,8 +23,35 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { IssueRecord } from "@/lib/content-types";
+import { IssueRecord, PetitionRecord } from "@/lib/content-types";
 import type { NotificationRecord } from "@/lib/notifications";
+
+async function fetchNotifications(offset = 0, signal?: AbortSignal): Promise<{ notifications: NotificationRecord[]; hasMore: boolean }> {
+  const response = await fetch(`/api/notifications?offset=${offset}`, { signal });
+  if (!response.ok) throw new Error("Could not load alerts");
+  const data = await response.json();
+  if (!Array.isArray(data?.notifications) || typeof data?.hasMore !== "boolean") throw new Error("Invalid alerts response");
+  return { notifications: data.notifications, hasMore: data.hasMore };
+}
+
+type DashboardCases = {
+  raisedIssues: IssueRecord[];
+  supportedIssues: IssueRecord[];
+  raisedPetitions: PetitionRecord[];
+  signedPetitions: PetitionRecord[];
+};
+
+async function fetchDashboard(signal?: AbortSignal): Promise<DashboardCases> {
+  const response = await fetch("/api/dashboard", { signal });
+  if (!response.ok) throw new Error("Could not load cases");
+  const data = await response.json();
+  if (!Array.isArray(data?.raisedIssues) || !Array.isArray(data?.supportedIssues)
+    || !Array.isArray(data?.raisedPetitions) || !Array.isArray(data?.signedPetitions)) {
+    throw new Error("Invalid cases response");
+  }
+  return { raisedIssues: data.raisedIssues, supportedIssues: data.supportedIssues,
+    raisedPetitions: data.raisedPetitions, signedPetitions: data.signedPetitions };
+}
 
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
@@ -32,52 +59,122 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<"raised" | "supported" | "alerts">("raised");
   const [raisedIssues, setRaisedIssues] = useState<IssueRecord[]>([]);
   const [supportedIssues, setSupportedIssues] = useState<IssueRecord[]>([]);
+  const [raisedPetitions, setRaisedPetitions] = useState<PetitionRecord[]>([]);
+  const [signedPetitions, setSignedPetitions] = useState<PetitionRecord[]>([]);
+  const [casesError, setCasesError] = useState(false);
+  const [casesLoading, setCasesLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
+  const [notificationsError, setNotificationsError] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [markReadError, setMarkReadError] = useState(false);
+  const [notificationsHasMore, setNotificationsHasMore] = useState(false);
+  const [notificationsOffset, setNotificationsOffset] = useState(0);
+  const [notificationsMoreLoading, setNotificationsMoreLoading] = useState(false);
+  const [notificationsMoreError, setNotificationsMoreError] = useState(false);
+
+  function retryNotifications() {
+    setNotificationsLoading(true);
+    setNotificationsError(false);
+    void fetchNotifications()
+      .then(({ notifications, hasMore }) => {
+        setNotifications(notifications);
+        setNotificationsOffset(notifications.length);
+        setNotificationsHasMore(hasMore);
+        setNotificationsMoreError(false);
+      })
+      .catch(() => setNotificationsError(true))
+      .finally(() => setNotificationsLoading(false));
+  }
+
+  function loadMoreNotifications() {
+    if (notificationsMoreLoading || !notificationsHasMore) return;
+    setNotificationsMoreLoading(true);
+    setNotificationsMoreError(false);
+    void fetchNotifications(notificationsOffset)
+      .then(({ notifications: nextPage, hasMore }) => {
+        setNotifications((previous) => {
+          const seen = new Set(previous.map((notification) => notification.$id));
+          return [...previous, ...nextPage.filter((notification) => !seen.has(notification.$id))];
+        });
+        setNotificationsHasMore(hasMore);
+        setNotificationsOffset((previous) => previous + nextPage.length);
+      })
+      .catch(() => setNotificationsMoreError(true))
+      .finally(() => setNotificationsMoreLoading(false));
+  }
+
+  function retryCases() {
+    setCasesLoading(true);
+    setCasesError(false);
+    void fetchDashboard()
+      .then(({ raisedIssues, supportedIssues, raisedPetitions, signedPetitions }) => {
+        setRaisedIssues(raisedIssues);
+        setSupportedIssues(supportedIssues);
+        setRaisedPetitions(raisedPetitions);
+        setSignedPetitions(signedPetitions);
+      })
+      .catch(() => setCasesError(true))
+      .finally(() => setCasesLoading(false));
+  }
 
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch("/api/dashboard", { signal: controller.signal })
-      .then((response) => response.json())
-      .then((data) => {
-        setRaisedIssues(Array.isArray(data?.raisedIssues) ? data.raisedIssues : []);
-        setSupportedIssues(Array.isArray(data?.supportedIssues) ? data.supportedIssues : []);
+    void fetchDashboard(controller.signal)
+      .then(({ raisedIssues, supportedIssues, raisedPetitions, signedPetitions }) => {
+        setRaisedIssues(raisedIssues);
+        setSupportedIssues(supportedIssues);
+        setRaisedPetitions(raisedPetitions);
+        setSignedPetitions(signedPetitions);
       })
       .catch(() => {
-        setRaisedIssues([]);
-        setSupportedIssues([]);
+        if (!controller.signal.aborted) setCasesError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCasesLoading(false);
       });
 
-    // Fetch notifications
-    fetch("/api/notifications", { signal: controller.signal })
-      .then((response) => response.json())
-      .then((data) => {
-        setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
+    void fetchNotifications(0, controller.signal)
+      .then(({ notifications, hasMore }) => {
+        setNotifications(notifications);
+        setNotificationsOffset(notifications.length);
+        setNotificationsHasMore(hasMore);
       })
       .catch(() => {
-        setNotifications([]);
+        if (!controller.signal.aborted) setNotificationsError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setNotificationsLoading(false);
       });
 
     return () => controller.abort();
   }, []);
 
   const handleMarkAllAsRead = async () => {
+    setMarkReadError(false);
     try {
-      await fetch("/api/notifications", { method: "PATCH" });
+      const response = await fetch("/api/notifications", { method: "PATCH" });
+      if (!response.ok) throw new Error("Could not mark alerts as read");
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (error) {
       console.error("Failed to mark notifications as read:", error);
+      setMarkReadError(true);
+      retryNotifications();
     }
   };
 
   const handleMarkAsRead = async (notificationId: string) => {
+    setMarkReadError(false);
     try {
-      await fetch(`/api/notifications/${notificationId}`, { method: "PATCH" });
+      const response = await fetch(`/api/notifications/${notificationId}`, { method: "PATCH" });
+      if (!response.ok) throw new Error("Could not mark alert as read");
       setNotifications((prev) =>
         prev.map((n) => (n.$id === notificationId ? { ...n, read: true } : n))
       );
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
+      setMarkReadError(true);
+      retryNotifications();
     }
   };
 
@@ -152,7 +249,7 @@ export default function DashboardPage() {
               Welcome back, {user?.firstName || "Aarav"}
             </h1>
             <p className="max-w-2xl text-base text-slate-600 dark:text-slate-350">
-              Track issues you've raised, monitor ongoing petitions you support, and review moderation notices.
+              Track issues you&apos;ve raised, monitor ongoing petitions you support, and review moderation notices.
             </p>
           </div>
           <Button 
@@ -195,18 +292,18 @@ export default function DashboardPage() {
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           
           {/* Left Column: Interactive tabs & list */}
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             {/* Tabs selector */}
-            <div className="flex border-b border-slate-900/5 dark:border-white/5 pb-2 gap-4">
-              {[
-                { id: "raised", label: "My Raised Issues", count: raisedIssues.length, icon: FileText },
-                { id: "supported", label: "Backed Petitions", count: supportedIssues.length, icon: Heart },
-                { id: "alerts", label: "Moderation Alerts", count: notifications.filter(n => !n.read).length, icon: Bell }
-              ].map((tab) => (
+            <div className="flex overflow-x-auto border-b border-slate-900/5 dark:border-white/5 pb-2 gap-4">
+              {([
+                { id: "raised", label: "My Raised Issues and Petitions", count: casesError ? "!" : casesLoading ? "…" : raisedIssues.length + raisedPetitions.length, icon: FileText },
+                { id: "supported", label: "Backed Petitions and Issues", count: casesError ? "!" : casesLoading ? "…" : supportedIssues.length + signedPetitions.length, icon: Heart },
+                { id: "alerts", label: "Moderation Alerts", count: notificationsError ? "!" : notificationsLoading ? "…" : notifications.filter(n => !n.read).length, icon: Bell }
+              ] as const).map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`relative pb-2.5 text-sm font-semibold transition-all flex items-center gap-2 ${
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative shrink-0 whitespace-nowrap pb-2.5 text-sm font-semibold transition-all flex items-center gap-2 ${
                     activeTab === tab.id
                       ? "text-slate-950 dark:text-white"
                       : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-350"
@@ -238,23 +335,31 @@ export default function DashboardPage() {
                     exit={{ opacity: 0, y: 5 }}
                     className="space-y-4"
                   >
-                    {raisedIssues.length > 0 ? (
-                      raisedIssues.map((issue) => (
+                    {casesLoading ? (
+                      <div className="py-10 text-center text-sm text-slate-500" role="status">Loading your cases...</div>
+                    ) : casesError ? (
+                      <div className="rounded-2xl border border-slate-900/10 bg-white/70 p-5 dark:border-white/10 dark:bg-slate-900/40" role="alert">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">Your cases could not load.</p>
+                        <Button variant="outline" className="mt-3 min-h-11 rounded-full" onClick={retryCases}>Try again</Button>
+                      </div>
+                    ) : raisedIssues.length + raisedPetitions.length > 0 ? (
+                      [...raisedIssues.map((record) => ({ kind: "issue" as const, record })),
+                        ...raisedPetitions.map((record) => ({ kind: "petition" as const, record }))].map(({ kind, record }) => (
                         <div 
-                          key={issue.$id}
+                          key={`${kind}-${record.$id}`}
                           className="flex items-center justify-between gap-4 p-5 rounded-3xl border border-slate-900/5 bg-white/70 dark:border-white/5 dark:bg-slate-900/40"
                         >
                           <div className="space-y-1">
-                            <h4 className="font-semibold text-slate-900 dark:text-white leading-tight">{issue.title}</h4>
+                            <h4 className="font-semibold text-slate-900 dark:text-white leading-tight">{record.title}</h4>
                             <div className="flex items-center gap-2 text-xs text-slate-500">
-                              <span>{issue.district}, {issue.state}</span>
+                              <span>{kind === "petition" ? "Petition" : "Issue"} · {[record.district, record.state].filter(Boolean).join(", ")}</span>
                               <span>•</span>
-                              <Badge className={`border uppercase text-[9px] font-semibold px-2 py-0 rounded-full ${getStatusBadgeColor(issue.status)}`}>
-                                {issue.status.replace("_", " ")}
+                              <Badge className={`border uppercase text-[9px] font-semibold px-2 py-0 rounded-full ${getStatusBadgeColor(record.status)}`}>
+                                {record.status.replace("_", " ")}
                               </Badge>
                             </div>
                           </div>
-                          <Link href={`/issues/${issue.slug}`}>
+                          <Link href={`/${kind === "petition" ? "petitions" : "issues"}/${record.slug}`} aria-label={`View ${kind}: ${record.title}`}>
                             <Button variant="ghost" size="icon" className="rounded-full shrink-0 border border-slate-900/10 dark:border-white/10">
                               <ArrowRight className="h-4 w-4" />
                             </Button>
@@ -263,7 +368,7 @@ export default function DashboardPage() {
                       ))
                     ) : (
                       <div className="text-center py-10 text-slate-500">
-                        You have not submitted any issues yet.
+                        You have not submitted any issues or petitions yet.
                       </div>
                     )}
                   </motion.div>
@@ -277,26 +382,34 @@ export default function DashboardPage() {
                     exit={{ opacity: 0, y: 5 }}
                     className="space-y-4"
                   >
-                    {supportedIssues.length > 0 ? (
-                      supportedIssues.map((issue) => (
+                    {casesLoading ? (
+                      <div className="py-10 text-center text-sm text-slate-500" role="status">Loading backed cases...</div>
+                    ) : casesError ? (
+                      <div className="rounded-2xl border border-slate-900/10 bg-white/70 p-5 dark:border-white/10 dark:bg-slate-900/40" role="alert">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">Backed cases could not load.</p>
+                        <Button variant="outline" className="mt-3 min-h-11 rounded-full" onClick={retryCases}>Try again</Button>
+                      </div>
+                    ) : supportedIssues.length + signedPetitions.length > 0 ? (
+                      [...supportedIssues.map((record) => ({ kind: "issue" as const, record })),
+                        ...signedPetitions.map((record) => ({ kind: "petition" as const, record }))].map(({ kind, record }) => (
                         <div 
-                          key={issue.$id}
+                          key={`${kind}-${record.$id}`}
                           className="flex items-center justify-between gap-4 p-5 rounded-3xl border border-slate-900/5 bg-white/70 dark:border-white/5 dark:bg-slate-900/40"
                         >
                           <div className="space-y-1">
-                            <h4 className="font-semibold text-slate-900 dark:text-white leading-tight">{issue.title}</h4>
+                            <h4 className="font-semibold text-slate-900 dark:text-white leading-tight">{record.title}</h4>
                             <div className="flex items-center gap-2 text-xs text-slate-500">
                               <span className="flex items-center gap-1">
                                 <Users className="h-3.5 w-3.5" />
-                                {issue.supporter_count} total supporters
+                                {kind === "petition" ? `${record.signature_count} signatures` : `${record.supporter_count} total supporters`}
                               </span>
                               <span>•</span>
-                              <Badge className={`border uppercase text-[9px] font-semibold px-2 py-0 rounded-full ${getStatusBadgeColor(issue.status)}`}>
-                                {issue.status.replace("_", " ")}
+                              <Badge className={`border uppercase text-[9px] font-semibold px-2 py-0 rounded-full ${getStatusBadgeColor(record.status)}`}>
+                                {record.status.replace("_", " ")}
                               </Badge>
                             </div>
                           </div>
-                          <Link href={`/issues/${issue.slug}`}>
+                          <Link href={`/${kind === "petition" ? "petitions" : "issues"}/${record.slug}`} aria-label={`View ${kind}: ${record.title}`}>
                             <Button variant="ghost" size="icon" className="rounded-full shrink-0 border border-slate-900/10 dark:border-white/10">
                               <ArrowRight className="h-4 w-4" />
                             </Button>
@@ -305,7 +418,7 @@ export default function DashboardPage() {
                       ))
                     ) : (
                       <div className="text-center py-10 text-slate-500">
-                        You have not backed any petitions yet.
+                        You have not backed any issues or petitions yet.
                       </div>
                     )}
                   </motion.div>
@@ -319,7 +432,23 @@ export default function DashboardPage() {
                     exit={{ opacity: 0, y: 5 }}
                     className="space-y-3"
                   >
-                    {notifications.length > 0 ? (
+                    {!notificationsLoading && !notificationsError && markReadError && (
+                      <p role="alert" className="rounded-xl border border-amber-900/20 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-400/20 dark:bg-amber-950/20 dark:text-amber-100">
+                        Couldn&apos;t confirm the alert update. Check the read status before trying again.
+                      </p>
+                    )}
+                    {notificationsLoading ? (
+                      <div className="py-10 text-center text-sm text-slate-500" role="status">
+                        Loading alerts...
+                      </div>
+                    ) : notificationsError ? (
+                      <div className="rounded-2xl border border-slate-900/10 bg-white/70 p-5 dark:border-white/10 dark:bg-slate-900/40" role="alert">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">Alerts could not load.</p>
+                        <Button variant="outline" className="mt-3 min-h-11 rounded-full" onClick={retryNotifications}>
+                          Try again
+                        </Button>
+                      </div>
+                    ) : notifications.length > 0 ? (
                       <>
                         {notifications.filter(n => !n.read).length > 0 && (
                           <div className="flex justify-end">
@@ -372,6 +501,23 @@ export default function DashboardPage() {
                             </div>
                           );
                         })}
+                        {notificationsHasMore && (
+                          <div className="flex justify-center pt-3">
+                            <Button
+                              variant="outline"
+                              className="min-h-11 rounded-full"
+                              onClick={loadMoreNotifications}
+                              disabled={notificationsMoreLoading}
+                            >
+                              {notificationsMoreLoading ? "Loading alerts..." : "Load older alerts"}
+                            </Button>
+                          </div>
+                        )}
+                        {notificationsMoreError && (
+                          <p className="text-center text-sm text-red-700 dark:text-red-300" role="alert">
+                            Older alerts could not load. Try again.
+                          </p>
+                        )}
                       </>
                     ) : (
                       <div className="text-center py-10 text-slate-500">

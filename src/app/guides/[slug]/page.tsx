@@ -24,24 +24,32 @@ export async function generateMetadata({
   const guide = getGuideBySlug(slug);
   if (!guide) return {};
 
+  const isRtiGuide = guide.id === "rti-guide";
+  const title = isRtiGuide ? "How to File an RTI Application in India" : guide.title;
+  const description = isRtiGuide
+    ? "Learn what an RTI application needs, how to choose a public authority, and how to follow up after filing in India."
+    : guide.summary;
+
   return {
-    title: `${guide.title} | Kranti`,
-    description: guide.summary,
+    title: `${title} | Kranti`,
+    description,
     keywords: [
       guide.category,
       guide.title.split(" ").slice(0, 5).join(" "),
       "India",
       "citizen guide",
-      "2025",
+      ...(guide.id === "local-service-complaint-guide" ? ["2026"] : []),
     ],
     alternates: { canonical: `/guides/${guide.slug}` },
     openGraph: {
-      title: guide.title,
-      description: guide.summary,
+      title,
+      description,
       url: `${SITE_URL}/guides/${guide.slug}`,
       type: "article",
-      publishedTime: "2025-01-01T00:00:00Z",
-      modifiedTime: new Date().toISOString(),
+      ...(guide.id === "local-service-complaint-guide" && {
+        publishedTime: "2026-10-18T00:00:00Z",
+        modifiedTime: "2026-10-18T00:00:00Z",
+      }),
     },
   };
 }
@@ -183,16 +191,26 @@ export default async function GuidePage({
           {/* CTA */}
           <div className="mt-10 flex flex-wrap gap-3 border-t border-slate-900/10 pt-8 dark:border-white/10">
             <a
-              href={guide.id === "rti-guide" ? "https://rtionline.gov.in/" : "https://pgportal.gov.in/"}
+              href={guide.id === "rti-guide" ? "https://rtionline.gov.in/" : guide.id === "local-service-complaint-guide" ? "https://mcdonline.nic.in/portal/feedback" : "https://pgportal.gov.in/"}
               target="_blank"
               rel="noreferrer"
             >
               <Button className="rounded-full gap-1.5 h-10 px-4 bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
-                Open Official Portal
+                {guide.id === "local-service-complaint-guide" ? "Delhi MCD complaints" : "Open Official Portal"}
                 <ExternalLink className="h-4 w-4" />
               </Button>
             </a>
           </div>
+          {guide.id === "rti-guide" && (
+            <p className="text-sm leading-7 text-slate-600 dark:text-slate-300">
+              For a local service problem, read the <Link href="/guides/how-to-report-local-service-complaint-india" className="font-medium text-slate-900 underline underline-offset-4 dark:text-white">local complaint guide</Link>, then <Link href="/issue/new" className="font-medium text-slate-900 underline underline-offset-4 dark:text-white">raise an issue</Link> on Kranti. To gather support for a shared request, <Link href="/petition/new" className="font-medium text-slate-900 underline underline-offset-4 dark:text-white">start a petition</Link>.
+            </p>
+          )}
+          {guide.id === "local-service-complaint-guide" && (
+            <p className="text-sm leading-7 text-slate-600 dark:text-slate-300">
+              To document the problem on Kranti, <Link href="/issue/new" className="font-medium text-slate-900 underline underline-offset-4 dark:text-white">raise an issue</Link>. For a shared request, <Link href="/petition/new" className="font-medium text-slate-900 underline underline-offset-4 dark:text-white">start a petition</Link>. These actions ask you to sign in and return to the form.
+            </p>
+          )}
         </article>
       </div>
     </>

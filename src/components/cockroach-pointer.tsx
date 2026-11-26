@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 type Point = {
   x: number;
@@ -109,15 +109,9 @@ export function CockroachPointer() {
   const lastRef = useRef<Point>({ x: 0, y: 0 });
   const angleRef = useRef(0);
   const timeRef = useRef(0);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReducedMotion || !mounted) {
+    if (prefersReducedMotion) {
       return;
     }
 
@@ -199,11 +193,7 @@ export function CockroachPointer() {
         window.cancelAnimationFrame(frameRef.current);
       }
     };
-  }, [mounted]);
-
-  if (!mounted) {
-    return null;
-  }
+  }, []);
 
   return (
     <div ref={containerRef} className="cockroach-pointer" aria-hidden="true">

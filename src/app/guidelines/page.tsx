@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Community Guidelines",
+  description:
+    "Evidence first, safety first. Kranti reviews content to reduce harm, false accusations, and abuse.",
+  path: "/guidelines",
+});
 
 export default function GuidelinesPage() {
   return (

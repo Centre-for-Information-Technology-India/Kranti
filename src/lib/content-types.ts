@@ -29,7 +29,7 @@ export interface IssueRecord {
   status: "pending_review" | "open" | "in_progress" | "escalated" | "resolved" | "rejected";
   supporter_count: number;
   evidence_count: number;
-  created_by: string;
+  created_by?: string;
   creatorName: string;
   creatorAvatar?: string;
   language: string;
@@ -52,7 +52,6 @@ export interface PetitionRecord {
   signature_count: number;
   signature_goal: number;
   evidence_count: number;
-  created_by: string;
   creatorName: string;
   creatorAvatar?: string;
   language: string;

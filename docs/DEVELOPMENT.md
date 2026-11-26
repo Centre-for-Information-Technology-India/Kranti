@@ -33,6 +33,8 @@ For non-trivial work record:
 ## Quality
 Run relevant lint/build/tests. For user-facing work check mobile, desktop, loading, empty, error, unauthorized, moderation-restricted, accessibility and localization states.
 
+The `X-Kranti-Revision` response header identifies the Git commit used to build the running site. Check `curl -I https://www.kranti.org.in/` and compare its value with the merged commit before attributing live behavior to a fix. A value of `unavailable` means the builder supplied neither Git metadata nor `VERCEL_GIT_COMMIT_SHA` or `GITHUB_SHA`.
+
 ## Security review
 Check IDOR, unauthorized mutation/access, private-field leakage, evidence URL bypass, replay/double-submit, malformed files, injection/XSS/SSRF, rate-limit bypass and sensitive logging.
 

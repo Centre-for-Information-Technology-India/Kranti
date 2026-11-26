@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { evidenceWebUrlSchema } from "@/lib/evidence";
 
 export const petitionCategories = [
   "policy_change",
@@ -17,16 +18,24 @@ export const petitionSubmissionSchema = z.object({
   title: z.string().min(10, "Title must be at least 10 characters").max(500, "Title too long"),
   description: z.string().min(50, "Description must be at least 50 characters"),
   demand: z.string().min(20, "Please clearly state your demand (minimum 20 characters)"),
-  targetAuthority: z.string().min(5, "Please specify the target authority"),
+  targetAuthority: z.string().min(5, "Please specify the target authority").max(500, "Target authority must not exceed 500 characters"),
   category: z.enum(petitionCategories),
-  state: z.string().min(2, "State is required"),
-  district: z.string().optional(),
+  state: z.string().min(2, "State is required").max(100, "State must not exceed 100 characters"),
+  district: z.string().max(100, "District must not exceed 100 characters").optional(),
   signatureGoal: z.number().min(10, "Signature goal must be at least 10").max(10000000, "Goal too high"),
   language: z.enum(["en", "hi"]),
   evidenceLevel: z.enum(["high", "medium", "low"]),
-  evidenceLinks: z.string().url("Must be a valid URL").array().optional(),
+  evidenceLinks: evidenceWebUrlSchema.array().optional(),
   consent: z.boolean().refine((val) => val === true, "You must agree to the terms"),
 });
+
+export const petitionEvidenceSchema = z.array(z.object({
+  fileId: z.string().min(1),
+  name: z.string().min(1),
+  size: z.number().positive().finite(),
+  mimeType: z.string().min(1),
+  publicUrl: evidenceWebUrlSchema.optional(),
+})).default([]);
 
 export type PetitionSubmissionValues = z.infer<typeof petitionSubmissionSchema>;
 
@@ -45,11 +54,15 @@ export const petitionDefaultValues: PetitionSubmissionValues = {
   consent: false,
 };
 
-export function buildPetitionSlug(title: string): string {
-  return title
+export function buildPetitionSlug(title: string, petitionId: string): string {
+  const readable = title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
-    .slice(0, 100);
+    .replace(/^-|-$/g, "")
+    .slice(0, 78)
+    .replace(/-$/g, "");
+
+  return `${readable || "petition"}-${petitionId}`;
 }

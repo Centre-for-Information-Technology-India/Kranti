@@ -54,7 +54,7 @@ export function DonationCard() {
           <form ref={formRef} className="min-h-[48px]" />
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-4 border-t border-slate-900/5 dark:border-white/5 pt-4">
-          <strong>100% Transparent</strong> &mdash; We publish monthly funding & expense reports.
+          Funding and expense reports are not available yet.
         </p>
       </CardContent>
     </Card>

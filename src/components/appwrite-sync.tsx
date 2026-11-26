@@ -27,8 +27,10 @@ export default function AppwriteSync() {
       },
       body: JSON.stringify({ userId: user.id }),
       signal: controller.signal,
+    }).then((response) => {
+      if (!response.ok) syncedUserId.current = null;
     }).catch(() => {
-      // Let the next route change or refresh retry the sync.
+      if (!controller.signal.aborted) syncedUserId.current = null;
     });
 
     return () => controller.abort();

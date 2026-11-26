@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Users, Calendar, MapPin, Filter, Loader2 } from "lucide-react";
@@ -20,34 +20,63 @@ const statusColors = {
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
-  const [filteredCampaigns, setFilteredCampaigns] = useState<CampaignRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [stateFilter, setStateFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
-    fetchCampaigns();
-  }, []);
+    const controller = new AbortController();
 
-  useEffect(() => {
-    applyFilters();
-  }, [campaigns, categoryFilter, stateFilter, statusFilter]);
+    fetch("/api/campaigns", { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Campaign list unavailable");
+        return response.json();
+      })
+      .then((data) => {
+        if (!Array.isArray(data?.campaigns)) throw new Error("Invalid campaign list");
+        setCampaigns(data.campaigns);
+        setHasMore(data.hasMore === true);
+        setLoadMoreError(false);
+        setLoadError(false);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setLoadError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoading(false);
+      });
 
-  const fetchCampaigns = async () => {
+    return () => controller.abort();
+  }, [loadAttempt]);
+
+  const loadMoreCampaigns = async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    setLoadMoreError(false);
     try {
-      const response = await fetch("/api/campaigns");
-      if (!response.ok) throw new Error("Failed to fetch campaigns");
+      const response = await fetch(`/api/campaigns?offset=${campaigns.length}`);
+      if (!response.ok) throw new Error("Campaign list unavailable");
       const data = await response.json();
-      setCampaigns(data.campaigns || []);
-    } catch (error) {
-      console.error("Error fetching campaigns:", error);
+      if (!Array.isArray(data?.campaigns)) throw new Error("Invalid campaign list");
+      setCampaigns((current) => {
+        const seen = new Set(current.map((campaign) => campaign.$id));
+        return [...current, ...data.campaigns.filter((campaign: CampaignRecord) => !seen.has(campaign.$id))];
+      });
+      setHasMore(data.hasMore === true);
+    } catch {
+      setLoadMoreError(true);
     } finally {
-      setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
-  const applyFilters = () => {
+  const filteredCampaigns = useMemo(() => {
     let filtered = [...campaigns];
 
     if (categoryFilter !== "all") {
@@ -62,8 +91,8 @@ export default function CampaignsPage() {
       filtered = filtered.filter((c) => c.status === statusFilter);
     }
 
-    setFilteredCampaigns(filtered);
-  };
+    return filtered;
+  }, [campaigns, categoryFilter, stateFilter, statusFilter]);
 
   const resetFilters = () => {
     setCategoryFilter("all");
@@ -148,11 +177,19 @@ export default function CampaignsPage() {
           </CardContent>
         </Card>
 
-        {filteredCampaigns.length === 0 ? (
+        {loadError ? (
+          <div role="alert" className="rounded-3xl border border-slate-900/10 bg-white/90 px-6 py-10 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/70">
+            <p className="text-lg font-semibold">Campaigns could not load right now.</p>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Please try again in a moment.</p>
+            <Button variant="outline" className="mt-5 h-11 rounded-full" onClick={() => { setIsLoading(true); setLoadError(false); setLoadAttempt((attempt) => attempt + 1); }}>
+              Try again
+            </Button>
+          </div>
+        ) : filteredCampaigns.length === 0 ? (
           <Card className="border-slate-900/10 bg-white/85 dark:border-white/10 dark:bg-white/5">
             <CardContent className="py-12 text-center">
               <p className="text-slate-600 dark:text-slate-300">
-                No campaigns found. {campaigns.length > 0 ? "Try adjusting your filters." : "Be the first to create one!"}
+                {campaigns.length > 0 ? "No campaigns match these filters in the loaded results." : "No campaigns found. Be the first to create one!"}
               </p>
               <Link href="/campaign/new">
                 <Button className="mt-4">Create Campaign</Button>
@@ -207,6 +244,15 @@ export default function CampaignsPage() {
                 </Link>
               </motion.div>
             ))}
+          </div>
+        )}
+
+        {!loadError && (hasMore || loadMoreError) && (
+          <div className="flex flex-col items-center gap-3">
+            {loadMoreError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">Older campaigns could not load. Please try again.</p>}
+            <Button variant="outline" className="h-11 rounded-full" onClick={loadMoreCampaigns} disabled={isLoadingMore}>
+              {isLoadingMore ? "Loading..." : loadMoreError ? "Try again" : "Load more campaigns"}
+            </Button>
           </div>
         )}
 

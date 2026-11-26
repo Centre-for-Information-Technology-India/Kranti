@@ -1,9 +1,11 @@
 import { ID } from "node-appwrite";
 import {
+  AppwriteRequestError,
   appwriteDatabaseId,
   appwriteNotificationsCollectionId,
   createDocument,
   listDocuments,
+  Query,
   updateDocument,
 } from "./appwrite";
 
@@ -19,7 +21,6 @@ export interface NotificationData {
 
 export interface NotificationRecord {
   $id: string;
-  user_id: string;
   type: NotificationType;
   title: string;
   message: string;
@@ -28,7 +29,7 @@ export interface NotificationRecord {
   created_at: string;
 }
 
-export async function createNotification(data: NotificationData): Promise<void> {
+export async function createNotification(data: NotificationData): Promise<boolean> {
   try {
     const notificationId = ID.unique();
     await createDocument(appwriteDatabaseId, appwriteNotificationsCollectionId, notificationId, {
@@ -40,55 +41,69 @@ export async function createNotification(data: NotificationData): Promise<void> 
       read: false,
       created_at: new Date().toISOString(),
     });
+    return true;
   } catch (error) {
-    console.error("Failed to create notification:", error);
+    console.error("Failed to create notification:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+    return false;
   }
 }
 
-export async function getUserNotifications(userId: string, limit = 50): Promise<NotificationRecord[]> {
-  try {
-    const response = await listDocuments(appwriteDatabaseId, appwriteNotificationsCollectionId, [
-      `equal("user_id", "${userId}")`,
-      `orderDesc("created_at")`,
-      `limit(${limit})`,
-    ]);
+export async function getUserNotifications(userId: string, limit = 50, offset = 0): Promise<NotificationRecord[]> {
+  const boundedLimit = Number.isSafeInteger(limit) ? Math.min(100, Math.max(1, limit)) : 50;
+  const response = await listDocuments(appwriteDatabaseId, appwriteNotificationsCollectionId, [
+    Query.equal("user_id", [userId]),
+    Query.orderDesc("created_at"),
+    Query.limit(boundedLimit),
+    ...(offset > 0 ? [Query.offset(offset)] : []),
+  ]);
 
-    return response.documents.map((doc: Record<string, unknown>) => ({
-      $id: doc.$id as string,
-      user_id: doc.user_id as string,
-      type: doc.type as NotificationType,
-      title: doc.title as string,
-      message: doc.message as string,
-      link: doc.link as string | undefined,
-      read: doc.read as boolean,
-      created_at: doc.created_at as string,
-    }));
-  } catch (error) {
-    console.error("Failed to fetch notifications:", error);
-    return [];
-  }
+  return response.documents.map((doc: Record<string, unknown>) => ({
+    $id: doc.$id as string,
+    type: doc.type as NotificationType,
+    title: doc.title as string,
+    message: doc.message as string,
+    link: doc.link as string | undefined,
+    read: doc.read as boolean,
+    created_at: doc.created_at as string,
+  }));
 }
 
-export async function markNotificationAsRead(notificationId: string): Promise<void> {
-  try {
-    await updateDocument(appwriteDatabaseId, appwriteNotificationsCollectionId, notificationId, {
-      read: true,
-    });
-  } catch (error) {
-    console.error("Failed to mark notification as read:", error);
-  }
+export async function markNotificationAsRead(notificationId: string, userId: string): Promise<boolean> {
+  // Reject path characters before using an untrusted ID in a privileged request.
+  if (!userId || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,35}$/.test(notificationId)) return false;
+
+  const response = await listDocuments(appwriteDatabaseId, appwriteNotificationsCollectionId, [
+    Query.equal("$id", [notificationId]),
+    Query.equal("user_id", [userId]),
+    Query.limit(1),
+  ]);
+  const notification = response.documents[0];
+  if (!notification || notification.$id !== notificationId || notification.user_id !== userId) return false;
+  if (notification.read === true) return true;
+
+  await updateDocument(appwriteDatabaseId, appwriteNotificationsCollectionId, notificationId, { read: true });
+  return true;
 }
 
 export async function markAllNotificationsAsRead(userId: string): Promise<void> {
-  try {
-    const notifications = await getUserNotifications(userId, 100);
-    const unreadNotifications = notifications.filter((n) => !n.read);
+  if (!userId) throw new Error("Notification owner is required");
+  const pageSize = 100;
+  let offset = 0;
 
-    await Promise.all(
-      unreadNotifications.map((notification) => markNotificationAsRead(notification.$id))
-    );
-  } catch (error) {
-    console.error("Failed to mark all notifications as read:", error);
+  while (true) {
+    const response = await listDocuments(appwriteDatabaseId, appwriteNotificationsCollectionId, [
+      Query.equal("user_id", [userId]),
+      Query.orderDesc("created_at"),
+      Query.limit(pageSize),
+      Query.offset(offset),
+    ]);
+    const notifications = response.documents as Array<{ $id: string; read: boolean }>;
+    await Promise.all(notifications
+      .filter((notification) => !notification.read)
+      .map((notification) => updateDocument(appwriteDatabaseId, appwriteNotificationsCollectionId, notification.$id, { read: true })));
+
+    if (notifications.length < pageSize) return;
+    offset += notifications.length;
   }
 }
 
@@ -131,8 +146,8 @@ export async function notifyNewSupport(
   contentTitle: string,
   supporterName: string,
   link: string
-): Promise<void> {
-  await createNotification({
+): Promise<boolean> {
+  return createNotification({
     userId,
     type: "support",
     title: "New Support",
@@ -146,8 +161,8 @@ export async function notifyNewSignature(
   petitionTitle: string,
   signerName: string,
   link: string
-): Promise<void> {
-  await createNotification({
+): Promise<boolean> {
+  return createNotification({
     userId,
     type: "signature",
     title: "New Signature",

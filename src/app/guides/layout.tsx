@@ -3,9 +3,9 @@ import { siteGuides } from "@/lib/site-content";
 import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Citizen Guides — RTI, FIR, Consumer Rights & Escalation",
+  title: "How to File RTI, FIR and Consumer Complaints in India",
   description:
-    "Free, practical guides for Indian citizens: How to file RTI, FIR, consumer complaints, CPGRAMS grievances, and escalate civic issues. Written by legal experts, updated 2025.",
+    "Find guides to filing RTI applications, reporting an FIR, making consumer complaints, and using civic grievance routes in India.",
   keywords: [
     "RTI application India",
     "how to file FIR India",
@@ -20,9 +20,9 @@ export const metadata: Metadata = {
     canonical: "/guides",
   },
   openGraph: {
-    title: "Citizen Guides — RTI, FIR, Consumer Rights | Kranti",
+    title: "How to File RTI, FIR and Consumer Complaints in India | Kranti",
     description:
-      "Free step-by-step guides for Indian citizens on RTI, FIR, consumer complaints, and civic escalation.",
+      "Find guides to filing RTI applications, reporting an FIR, making consumer complaints, and using civic grievance routes in India.",
     url: `${SITE_URL}/guides`,
     type: "website",
   },

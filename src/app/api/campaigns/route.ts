@@ -3,40 +3,62 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { ID } from "node-appwrite";
 
 import {
+  AppwriteRequestError,
   appwriteDatabaseId,
   appwriteCampaignsCollectionId,
   createDocument,
   listDocuments,
+  Query,
 } from "@/lib/appwrite";
 import { campaignFormSchema } from "@/lib/campaign-form";
-
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .substring(0, 100);
-}
+import { buildCampaignSlug } from "@/lib/campaign-slug";
+import { readJsonWithLimit, RequestBodyTooLargeError } from "@/lib/limited-json";
+import { isPublicCampaignStatus } from "@/lib/campaign-visibility";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    let userId: string | null;
+    try {
+      ({ userId } = await auth());
+    } catch {
+      return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
+    }
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const validatedData = campaignFormSchema.parse(body);
+    let body: unknown;
+    try {
+      body = await readJsonWithLimit(request, 1024 * 1024);
+    } catch (error) {
+      if (error instanceof RequestBodyTooLargeError) {
+        return NextResponse.json({ error: "Campaign details are too large. Shorten the text and try again." }, { status: 413 });
+      }
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
 
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
+    const parsed = campaignFormSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Please check the campaign details and try again." }, { status: 400 });
+    }
+    const validatedData = parsed.data;
+
+    let user;
+    try {
+      const client = await clerkClient();
+      user = await client.users.getUser(userId);
+    } catch {
+      return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
+    }
+    if (user.id !== userId) {
+      return NextResponse.json({ error: "Unable to load your account. Please try again." }, { status: 503 });
+    }
     const userName = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username || "Anonymous";
     const userAvatar = user.imageUrl;
 
-    const slug = generateSlug(validatedData.title);
     const campaignId = ID.unique();
+    const slug = buildCampaignSlug(validatedData.title, campaignId);
 
     const campaignData = {
       title: validatedData.title,
@@ -65,72 +87,81 @@ export async function POST(request: NextRequest) {
       slug,
     });
   } catch (error) {
-    console.error("Campaign creation error:", error);
+    console.error("Campaign creation error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
 
-    if (error instanceof Error && error.message.includes("ZodError")) {
-      return NextResponse.json({ error: "Invalid campaign data" }, { status: 400 });
-    }
-
-    return NextResponse.json({ error: "Failed to create campaign" }, { status: 500 });
+    return NextResponse.json(
+      { error: "We couldn't confirm your campaign was saved. Keep your draft and contact Kranti before trying again." },
+      { status: 503 },
+    );
   }
 }
 
 export async function GET(request: NextRequest) {
+  const rawOffset = new URL(request.url).searchParams.get("offset") ?? "0";
+  if (!/^(0|[1-9]\d*)$/.test(rawOffset) || Number(rawOffset) > 10000) {
+    return NextResponse.json({ error: "Invalid campaign offset" }, { status: 400 });
+  }
+  const offset = Number(rawOffset);
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const state = searchParams.get("state");
     const status = searchParams.get("status");
     const featured = searchParams.get("featured");
+    if (status && offset !== 0) {
+      return NextResponse.json({ error: "Campaign offset is unavailable for status filters" }, { status: 400 });
+    }
 
     const queries: string[] = [];
 
     if (category) {
-      queries.push(`equal("category", ["${category}"])`);
+      queries.push(Query.equal("category", [category]));
     }
 
     if (state) {
-      queries.push(`equal("state", ["${state}"])`);
+      queries.push(Query.equal("state", [state]));
     }
 
-    if (status) {
-      queries.push(`equal("status", ["${status}"])`);
-    } else {
-      queries.push(`notEqual("status", ["pending_review"])`);
+    if (status && !isPublicCampaignStatus(status)) {
+      return NextResponse.json({ campaigns: [] });
     }
+    queries.push(Query.equal("status", status ? [status] : ["active", "completed", "paused"]));
 
     if (featured === "true") {
-      queries.push(`equal("featured", [true])`);
+      queries.push(Query.equal("featured", [true]));
     }
 
-    queries.push(`orderDesc("created_at")`);
-    queries.push(`limit(100)`);
+    queries.push(Query.orderDesc("created_at"));
+    queries.push(Query.limit(status ? 100 : 26));
+    if (!status) queries.push(Query.offset(offset));
 
     const response = await listDocuments(appwriteDatabaseId, appwriteCampaignsCollectionId, queries);
 
-    const campaigns = ((response as { documents?: Array<Record<string, unknown>> }).documents ?? []).map((doc: Record<string, unknown>) => ({
-      $id: doc.$id,
-      title: doc.title,
-      slug: doc.slug,
-      description: doc.description,
-      goals: doc.goals,
-      category: doc.category,
-      state: doc.state,
-      status: doc.status,
-      volunteer_count: doc.volunteer_count,
-      featured: doc.featured,
-      created_by: doc.created_by,
-      creatorName: doc.creator_name,
-      creatorAvatar: doc.creator_avatar,
-      language: doc.language,
-      start_date: doc.start_date,
-      end_date: doc.end_date,
-      createdAt: doc.created_at,
-    }));
+    const pageDocuments = (response as { documents?: Array<Record<string, unknown>> }).documents ?? [];
+    const campaigns = (status ? pageDocuments : pageDocuments.slice(0, 25))
+      .filter((doc) => isPublicCampaignStatus(doc.status))
+      .map((doc: Record<string, unknown>) => ({
+        $id: doc.$id,
+        title: doc.title,
+        slug: doc.slug,
+        description: doc.description,
+        goals: doc.goals,
+        category: doc.category,
+        state: doc.state,
+        status: doc.status,
+        volunteer_count: doc.volunteer_count,
+        featured: doc.featured,
+        creatorName: doc.creator_name,
+        creatorAvatar: doc.creator_avatar,
+        language: doc.language,
+        start_date: doc.start_date,
+        end_date: doc.end_date,
+        createdAt: doc.created_at,
+      }));
 
-    return NextResponse.json({ campaigns });
+    return NextResponse.json({ campaigns, hasMore: !status && pageDocuments.length > 25 && offset + 25 <= 10000 });
   } catch (error) {
-    console.error("Campaigns fetch error:", error);
-    return NextResponse.json({ error: "Failed to fetch campaigns" }, { status: 500 });
+    console.error("Campaigns fetch error:", error instanceof AppwriteRequestError ? `Appwrite status ${error.status}` : "Unexpected error");
+    return NextResponse.json({ error: "Campaigns are temporarily unavailable. Please try again." }, { status: 503 });
   }
 }

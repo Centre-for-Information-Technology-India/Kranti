@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { evidenceWebUrlSchema } from "@/lib/evidence";
 
 export const incidentTypes = [
   "communal_hate",
@@ -16,14 +17,22 @@ export const reportSubmissionSchema = z.object({
   description: z.string().min(100, "Description must be at least 100 characters for safety documentation"),
   incidentType: z.enum(incidentTypes),
   incidentDate: z.string().min(1, "Incident date is required"),
-  state: z.string().min(2, "State is required"),
-  district: z.string().min(2, "District is required"),
-  landmark: z.string().optional(),
+  state: z.string().min(2, "State is required").max(100, "State must not exceed 100 characters"),
+  district: z.string().min(2, "District is required").max(100, "District must not exceed 100 characters"),
+  landmark: z.string().max(255, "Landmark must not exceed 255 characters").optional(),
   language: z.enum(["en", "hi"]),
-  evidenceLinks: z.string().url("Must be a valid URL").array().optional(),
+  evidenceLinks: evidenceWebUrlSchema.array().optional(),
   evidenceRequired: z.boolean().refine((val) => val === true, "Evidence is mandatory for incident reports"),
   consent: z.boolean().refine((val) => val === true, "You must agree to the terms"),
 });
+
+export const reportEvidenceSchema = z.array(z.object({
+  fileId: z.string().min(1),
+  name: z.string().min(1),
+  size: z.number().positive().finite(),
+  mimeType: z.string().min(1),
+  publicUrl: evidenceWebUrlSchema.optional(),
+})).min(1);
 
 export type ReportSubmissionValues = z.infer<typeof reportSubmissionSchema>;
 

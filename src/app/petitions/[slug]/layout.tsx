@@ -4,19 +4,25 @@ import {
   appwriteDatabaseId,
   appwritePetitionsCollectionId,
   listDocuments,
+  Query,
 } from "@/lib/appwrite";
 import { canonical, SITE_URL, buildBreadcrumbSchema } from "@/lib/seo";
+import { isPublicPetitionStatus } from "@/lib/public-petition-status";
 
 interface Props {
   params: Promise<{ slug: string }>;
   children: React.ReactNode;
 }
 
+// Petition details may contain review-pending content after creator access is enabled.
+// Always render against the current publication status.
+export const dynamic = "force-dynamic";
+
 async function fetchPetitionBySlug(slug: string): Promise<Record<string, unknown> | null> {
   try {
     const res = (await listDocuments(appwriteDatabaseId, appwritePetitionsCollectionId, [
-      `equal("slug", ["${slug}"])`,
-      "limit(1)",
+      Query.equal("slug", [slug]),
+      Query.limit(1),
     ])) as { documents?: Array<Record<string, unknown>> };
     return res.documents?.[0] || null;
   } catch {
@@ -28,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const doc = await fetchPetitionBySlug(slug);
 
-  if (!doc || doc.status === "pending_review") {
+  if (!doc || !isPublicPetitionStatus(doc.status)) {
     return { title: "Petition not found", robots: { index: false, follow: false } };
   }
 
@@ -72,7 +78,8 @@ export default async function PetitionDetailLayout({ params, children }: Props) 
   const { slug } = await params;
   const doc = await fetchPetitionBySlug(slug);
 
-  if (!doc) return <>{children}</>;
+  // Only public petition statuses may enter structured page data.
+  if (!doc || !isPublicPetitionStatus(doc.status)) return <>{children}</>;
 
   const title = String(doc.title ?? "Petition");
   const description = String(doc.description ?? "").slice(0, 300);

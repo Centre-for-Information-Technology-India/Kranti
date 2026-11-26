@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PetitionRecord } from "@/lib/content-types";
+import { canSignPetition } from "@/lib/petition-signing-status";
 
 const statesList = ["All States", "Maharashtra", "Karnataka", "Delhi", "Tamil Nadu", "West Bengal"];
 const categoriesList = ["All Categories", "policy_change", "justice", "environment", "education", "health", "safety", "infrastructure", "corruption", "rights"];
@@ -30,6 +31,13 @@ const statusList = ["All Statuses", "open", "in_progress", "successful", "pendin
 
 export default function PetitionsPage() {
   const [petitions, setPetitions] = useState<PetitionRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
+  const [evidenceUnavailable, setEvidenceUnavailable] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedState, setSelectedState] = useState("All States");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
@@ -41,16 +49,51 @@ export default function PetitionsPage() {
     const controller = new AbortController();
 
     fetch("/api/petitions", { signal: controller.signal })
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) throw new Error("Petition list unavailable");
+        return response.json();
+      })
       .then((data) => {
-        setPetitions(Array.isArray(data?.petitions) ? data.petitions : []);
+        if (!Array.isArray(data?.petitions)) throw new Error("Invalid petition list");
+        if (!controller.signal.aborted) {
+          setPetitions(data.petitions);
+          setHasMore(data.hasMore === true);
+          setEvidenceUnavailable(data.evidenceUnavailable === true);
+          setLoadMoreError(false);
+          setLoadError(false);
+        }
       })
       .catch(() => {
-        setPetitions([]);
+        if (!controller.signal.aborted) setLoadError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoading(false);
       });
 
     return () => controller.abort();
-  }, []);
+  }, [loadAttempt]);
+
+  const loadMorePetitions = async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    setLoadMoreError(false);
+    try {
+      const response = await fetch(`/api/petitions?offset=${petitions.length}`);
+      if (!response.ok) throw new Error("Petition list unavailable");
+      const data = await response.json();
+      if (!Array.isArray(data?.petitions)) throw new Error("Invalid petition list");
+      setPetitions((current) => {
+        const seen = new Set(current.map((petition) => petition.$id));
+        return [...current, ...data.petitions.filter((petition: PetitionRecord) => !seen.has(petition.$id))];
+      });
+      setHasMore(data.hasMore === true);
+      setEvidenceUnavailable((current) => current || data.evidenceUnavailable === true);
+    } catch {
+      setLoadMoreError(true);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   const filteredPetitions = useMemo(() => {
     return petitions
@@ -194,6 +237,26 @@ export default function PetitionsPage() {
           )}
         </AnimatePresence>
 
+        {!isLoading && !loadError && evidenceUnavailable && (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-slate-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-slate-100">
+            <p>Supporting evidence could not load. Petitions are still available.</p>
+            <Button variant="outline" className="h-11 rounded-full" onClick={() => { setIsLoading(true); setLoadAttempt((attempt) => attempt + 1); }}>
+              Try again
+            </Button>
+          </div>
+        )}
+
+        {isLoading ? (
+          <div role="status" className="py-16 text-center text-slate-600 dark:text-slate-300">Loading petitions...</div>
+        ) : loadError ? (
+          <div role="alert" className="rounded-3xl border border-slate-900/10 bg-white/90 px-6 py-10 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/70">
+            <p className="text-lg font-semibold">Petitions could not load right now.</p>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Please try again in a moment.</p>
+            <Button variant="outline" className="mt-5 h-11 rounded-full" onClick={() => { setIsLoading(true); setLoadError(false); setLoadAttempt((attempt) => attempt + 1); }}>
+              Try again
+            </Button>
+          </div>
+        ) : (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -214,7 +277,7 @@ export default function PetitionsPage() {
                   className="group flex flex-col overflow-hidden rounded-3xl border border-slate-900/10 bg-white/90 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-950/5 dark:border-white/10 dark:bg-slate-900/70"
                 >
                   <div className="relative h-48 w-full overflow-hidden bg-gradient-to-br from-rose-100 to-amber-100 dark:from-rose-950/40 dark:to-amber-950/40">
-                    {petition.evidence.length > 0 ? (
+                    {petition.evidence.length > 0 && petition.evidence[0].publicUrl ? (
                       <img
                         src={petition.evidence[0].publicUrl}
                         alt={petition.title}
@@ -282,7 +345,7 @@ export default function PetitionsPage() {
 
                     <Link href={`/petitions/${petition.slug}`} className="block">
                       <Button className="w-full rounded-2xl h-10 bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 flex items-center justify-center gap-1">
-                        Sign petition
+                        {canSignPetition(petition.status) ? "Sign petition" : "View petition"}
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                     </Link>
@@ -297,6 +360,21 @@ export default function PetitionsPage() {
             </div>
           )}
         </motion.div>
+        )}
+
+        {!loadError && hasMore && (
+          <div className="flex flex-col items-center gap-3">
+            {loadMoreError && <p role="alert" className="text-sm text-slate-700 dark:text-slate-200">More petitions could not load. Try again.</p>}
+            <Button
+              variant="outline"
+              className="h-11 rounded-full border-slate-900/15 bg-white px-6 dark:border-white/15 dark:bg-slate-900"
+              onClick={loadMorePetitions}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore ? "Loading more petitions..." : "Load more petitions"}
+            </Button>
+          </div>
+        )}
 
         <div className="rounded-3xl border border-slate-900/10 bg-white/70 p-8 shadow-xl dark:border-white/10 dark:bg-slate-900/30 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>

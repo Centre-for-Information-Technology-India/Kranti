@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 // preventing Google from rendering/indexing them. The NEXT_LOCALE cookie
 // is still re-read on every request because next-intl's getRequestConfig
 // reads cookies() which is always dynamic — no explicit declaration needed.
-import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
+import { Noto_Sans_Devanagari, Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
@@ -16,6 +16,7 @@ import "./globals.css";
 import { PWARegister } from "@/components/pwa-register";
 import AppwriteSync from "@/components/appwrite-sync";
 import { VisitAudio } from "@/components/visit-audio";
+import { VisitorEvents } from "@/components/visitor-events";
 import { JsonLd } from "@/components/json-ld";
 import {
   SITE_URL,
@@ -32,8 +33,13 @@ const outfit = Outfit({
 });
 
 const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-sans",
+  variable: "--font-jakarta",
   subsets: ["latin"],
+});
+
+const devanagari = Noto_Sans_Devanagari({
+  variable: "--font-devanagari",
+  subsets: ["devanagari"],
 });
 
 export const metadata: Metadata = {
@@ -150,7 +156,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${outfit.variable} ${jakarta.variable} font-sans antialiased bg-slate-50 dark:bg-slate-950`}
+      className={`${outfit.variable} ${jakarta.variable} ${devanagari.variable} font-sans antialiased bg-slate-50 dark:bg-slate-950`}
     >
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
@@ -165,6 +171,7 @@ export default async function RootLayout({
         <ClerkProvider>
           <NextIntlClientProvider messages={messages}>
             <PWARegister />
+            <VisitorEvents />
             <AppwriteSync />
             <VisitAudio />
             <SiteHeader />

@@ -33,6 +33,12 @@ const statusList = ["All Statuses", "open", "in_progress", "resolved", "pending_
 
 export default function IssuesPage() {
   const [issues, setIssues] = useState<IssueRecord[]>([]);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
+  const [evidenceUnavailable, setEvidenceUnavailable] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedState, setSelectedState] = useState("All States");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
@@ -45,16 +51,45 @@ export default function IssuesPage() {
     const controller = new AbortController();
 
     fetch("/api/issues", { signal: controller.signal })
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) throw new Error("Issue list unavailable");
+        return response.json();
+      })
       .then((data) => {
-        setIssues(Array.isArray(data?.issues) ? data.issues : []);
+        if (!Array.isArray(data?.issues)) throw new Error("Invalid issue list");
+        setIssues(data.issues);
+        setHasMore(data.hasMore === true);
+        setLoadMoreError(false);
+        setEvidenceUnavailable(data.evidenceUnavailable === true);
       })
       .catch(() => {
-        setIssues([]);
+        if (!controller.signal.aborted) setLoadError(true);
       });
 
     return () => controller.abort();
-  }, []);
+  }, [loadAttempt]);
+
+  const loadMoreIssues = async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    setLoadMoreError(false);
+    try {
+      const response = await fetch(`/api/issues?offset=${issues.length}`);
+      if (!response.ok) throw new Error("Issue list unavailable");
+      const data = await response.json();
+      if (!Array.isArray(data?.issues)) throw new Error("Invalid issue list");
+      setIssues((current) => {
+        const seen = new Set(current.map((issue) => issue.$id));
+        return [...current, ...data.issues.filter((issue: IssueRecord) => !seen.has(issue.$id))];
+      });
+      setHasMore(data.hasMore === true);
+      setEvidenceUnavailable((current) => current || data.evidenceUnavailable === true);
+    } catch {
+      setLoadMoreError(true);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   // Filter & Sort logic
   const filteredIssues = useMemo(() => {
@@ -218,7 +253,25 @@ export default function IssuesPage() {
           )}
         </AnimatePresence>
 
+        {evidenceUnavailable && !loadError && (
+          <div role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-slate-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-slate-100">
+            <p>Supporting evidence could not load. Issues are still available.</p>
+            <Button variant="outline" className="h-11 rounded-full" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
+              Try again
+            </Button>
+          </div>
+        )}
+
         {/* Dynamic Map or Grid Render */}
+        {loadError ? (
+          <div role="alert" className="rounded-3xl border border-slate-900/10 bg-white/90 px-6 py-10 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/70">
+            <p className="text-lg font-semibold">Issues could not load right now.</p>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Please try again in a moment.</p>
+            <Button variant="outline" className="mt-5 h-11 rounded-full" onClick={() => { setLoadError(false); setLoadAttempt((attempt) => attempt + 1); }}>
+              Try again
+            </Button>
+          </div>
+        ) : (
         <AnimatePresence mode="wait">
           {viewMode === "map" ? (
             <motion.div
@@ -252,7 +305,7 @@ export default function IssuesPage() {
                     >
                       {/* Image Thumbnail */}
                       <div className="relative h-48 w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-                        {issue.evidence.length > 0 ? (
+                        {issue.evidence.length > 0 && issue.evidence[0].publicUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={issue.evidence[0].publicUrl}
@@ -261,7 +314,7 @@ export default function IssuesPage() {
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-slate-400">
-                            No evidence thumbnail
+                            {evidenceUnavailable ? "Evidence unavailable" : "No evidence thumbnail"}
                           </div>
                         )}
                         <Badge className={`absolute left-4 top-4 border flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full shadow-sm uppercase ${statusInfo.color}`}>
@@ -324,6 +377,21 @@ export default function IssuesPage() {
             </motion.div>
           )}
         </AnimatePresence>
+        )}
+
+        {!loadError && hasMore && (
+          <div className="flex flex-col items-center gap-3">
+            {loadMoreError && <p role="alert" className="text-sm text-slate-700 dark:text-slate-200">More issues could not load. Try again.</p>}
+            <Button
+              variant="outline"
+              className="h-11 rounded-full border-slate-900/15 bg-white px-6 dark:border-white/15 dark:bg-slate-900"
+              onClick={loadMoreIssues}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore ? "Loading more issues..." : "Load more issues"}
+            </Button>
+          </div>
+        )}
 
         {/* Raise Issue Callout */}
         <div className="rounded-3xl border border-slate-900/10 bg-white/70 p-8 shadow-xl dark:border-white/10 dark:bg-slate-900/30 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
